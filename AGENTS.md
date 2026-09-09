@@ -64,3 +64,15 @@ After coding:
 3. Run lint.
 4. Note migrations/config changes.
 5. Update roadmap/backlog status if appropriate.
+
+## Branches
+
+`dev` is the working branch and holds the complete repository. `main` is the
+published subset: it is never merged into, it is regenerated from dev's tree by
+`node scripts/sync-main.mjs`, which drops `.claude/`, `AGENTS.md`, `CLAUDE.md`,
+`MANIFEST.json`, `docs/`, `marketing/`, `prompts/` and the script itself.
+
+Every change is committed to `dev` first. Only after the local gate run
+(`typecheck`, `lint`, `test`, `build`, `verify-bundle`, `test:db`, `test:e2e`) is
+green may `main` be regenerated and pushed. Never commit directly on `main`; the
+next sync would silently discard it.
