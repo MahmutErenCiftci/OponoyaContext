@@ -6,6 +6,10 @@ DevContext OS is a SaaS for developers and AI-native builders who want one place
 
 The product turns that personal/team development system into project-specific context for coding agents such as Codex, Claude Code, Cursor and GitHub Copilot.
 
+> This is the `main` branch: product code, tests, deployment and CI only.
+> Product documentation, architecture notes, agent prompts and marketing assets
+> live on `dev`, which holds the complete repository.
+
 ## Core promise
 
 **Stop re-explaining your stack to AI.**
@@ -44,9 +48,10 @@ packages/
   context-compiler/     Core rule-merging + export engine
   catalog/              Read-only technology catalog compiled from data/catalog
 data/catalog/           Technology, stack, AI-readiness and velocity research (JSON)
-docs/                   Product, architecture and roadmap
-prompts/                Master prompts for coding agents
+deploy/                 Compose stack and environment templates
+e2e/                    Playwright journeys
 examples/               Example generated project context
+scripts/                Development, smoke, backup and bundle-guard tooling
 ```
 
 The web app ships brand marks for the catalog under `apps/web/public/logos`
@@ -54,30 +59,9 @@ The web app ships brand marks for the catalog under `apps/web/public/logos`
 `node scripts/fetch-logos.mjs` after editing `data/catalog`. The UI has dark and
 light themes; the choice is stored in the `devcontext-theme` cookie.
 
-## Recommended implementation order
-
-Do **not** build every planned feature at once.
-
-Start with:
-- authentication
-- Library
-- Project Wizard
-- Project Stack editor
-- decision modes
-- Context Compiler
-- Codex/Claude/Cursor exports
-
-Then ship to real users.
-
-Read `docs/README.md` and `docs/05_ROADMAP_VERSIONS.md` before coding. For the
-production sequence, run one prompt at a time from
-`prompts/claude-code-production/README.md`.
-
-Current dependency/version notes: `docs/26_SOURCES_AND_VERSION_NOTES.md`.
-
 ## Local development
 
-Prerequisites (updated at the owner's request, 2026-09-07):
+Prerequisites:
 - Node.js 26.8.1 (Current stable)
 - pnpm 12.3.4
 - Docker Compose for PostgreSQL 18.6, or an existing PostgreSQL instance
@@ -100,14 +84,7 @@ Production requires HTTPS `BETTER_AUTH_URL`/`CORS_ORIGIN` and an explicit
 rewrites `X-Forwarded-For`. `LOG_LEVEL` overrides the per-environment default.
 `BILLING_PROVIDER` is `none` by default (everyone on the Free plan, no upgrade
 path); `fake` enables the in-process test provider for development and requires
-`BILLING_WEBHOOK_SECRET`; the real adapter is an external activation step (see
-`docs/40_BILLING_HANDOFF.md`).
-
-On this Windows workspace, downloaded Node/pnpm binaries can be used without a
-global installation: `./scripts/pnpm-local.ps1 dev`. If the prepared portable
-PostgreSQL cluster exists under `.local`, `pnpm dev` uses it instead of Docker.
-Those binaries and database files are local, ignored artifacts and are not shipped
-in source control. A fresh checkout uses the prerequisites above.
+`BILLING_WEBHOOK_SECRET`; the real adapter is an external activation step.
 
 Checks:
 
@@ -141,27 +118,34 @@ For a schema change: edit `packages/db/src/schema.ts`, run `pnpm db:generate`,
 review and commit **both SQL and drizzle/meta**, then run `pnpm db:migrate`.
 Never regenerate existing migrations to change an already deployed database.
 
-V0.0 foundation, V0.1 authentication, the Resource Library, Minimal Projects
-(project wizard, archive/restore, Library attachments) and Project decisions
-(DecisionControl, Stack screen, Library inheritance) the deterministic
-compiler with persisted versions and exports (master prompt, AGENTS.md,
-CLAUDE.md, Cursor, Copilot), reusable Profiles, the ten-step Project composer, the V0.3
-usability layer (search palette, favorites, duplicate evidence, compatibility
-warnings, clone, semantic diff, onboarding), the V0.3 reliability layer
-(origin guard, rate limits, redacted structured logs, audit trail, error
-boundaries, backup/restore drill) and the V1 activation slice (Recipes with
-inheritance, first-run choices, optional sample data, portable JSON
-export/import, zipped context bundles) are implemented. Handoff 10 (billing and
-entitlements) is next. See the
-[foundation report](docs/27_FOUNDATION_HANDOFF.md),
-[authentication report](docs/28_AUTHENTICATION_HANDOFF.md),
-[Resource Library report](docs/29_RESOURCE_LIBRARY_HANDOFF.md),
-[current-state audit](docs/31_CURRENT_STATE_AUDIT.md),
-[Projects report](docs/32_PROJECTS_HANDOFF.md),
-[Decisions report](docs/33_DECISIONS_HANDOFF.md),
-[Compiler and exports report](docs/34_COMPILER_EXPORTS_HANDOFF.md),
-[Composer and profiles report](docs/35_COMPOSER_HANDOFF.md),
-[V0.3 usability report](docs/36_V0_3_USABILITY_HANDOFF.md),
-[V0.3 reliability report](docs/37_V0_3_RELIABILITY_HANDOFF.md),
-[V1 portability report](docs/38_V1_PORTABILITY_HANDOFF.md) and
-[backlog](docs/18_BACKLOG.md).
+## Operations
+
+Deployment images are `apps/*/Dockerfile`; the staging stack is
+`deploy/compose.staging.yml` with the templates under `deploy/env/`. Migrations
+run as a release step, never on boot. `/health` and `/ready` back the rollout —
+`/ready` answers 503 while the process drains. Evidence tooling:
+
+```bash
+node scripts/smoke.mjs           # post-deploy journey against a running stack
+node scripts/restore-drill.mjs   # snapshot -> scratch restore -> checksums
+node scripts/verify-bundle.mjs   # client bundle carries no server-only names
+```
+
+Secrets are never committed. `deploy/env/ci.env` is throwaway configuration for
+the local and CI container smoke test and contains no real secret.
+
+## Status
+
+V1.0 code is complete and covered by 198 unit/integration tests plus 13
+Playwright journeys. The V1.0 launch gate is **BLOCKED** — not on any code or
+configuration defect, but on items only the owner can supply: hosting and
+managed PostgreSQL, DNS/TLS, a monitoring destination, and legal values and
+approval. Launch mode is a free beta (`BILLING_PROVIDER=none`).
+
+**This product is not production-ready.** The gate must be re-run with staging
+evidence and return GO first. The gate document and the numbered implementation
+reports are on the `dev` branch under `docs/`.
+
+## License
+
+See [LICENSE](LICENSE).
