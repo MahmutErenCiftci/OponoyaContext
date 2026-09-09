@@ -1,0 +1,63 @@
+# Technology logos
+
+Icons in this directory come from [Simple Icons](https://simpleicons.org) 16.30.0 (CC0-1.0),
+downloaded by `scripts/fetch-logos.mjs`. Each file is named after the catalog slug in `data/catalog/`
+and keeps the Simple Icons slug and brand colour as `data-icon` / `data-brand` attributes.
+
+Brand names and logos are trademarks of their respective owners; they are used here only to identify
+the technology they refer to (see Simple Icons' DISCLAIMER.md). Do not present them as an endorsement.
+
+Matched: 194 of 246 catalog entries. The web app shows a monogram for the rest:
+
+- `agents-md` (AGENTS.md / CLAUDE.md)
+- `aider` (Aider)
+- `aws` (AWS)
+- `bolt-new` (Bolt.new)
+- `bullmq` (BullMQ)
+- `codex-cli` (OpenAI Codex)
+- `craftgate` (Craftgate)
+- `dagster` (Dagster)
+- `dbt` (dbt (data build tool))
+- `debezium` (Debezium (CDC))
+- `dynamodb` (Amazon DynamoDB)
+- `e-devlet-eimza` (e-Devlet Kapısı / e-İmza / Mobil İmza)
+- `e-fatura-turkiye` (e-Fatura / e-Arşiv Entegratörleri)
+- `fivetran` (Fivetran)
+- `gitleaks` (Gitleaks / TruffleHog)
+- `great-expectations` (Great Expectations / Soda)
+- `grpc` (gRPC / Protocol Buffers)
+- `heroicons` (Heroicons)
+- `infisical` (Infisical / Doppler)
+- `inngest` (Inngest)
+- `iys` (İYS (İleti Yönetim Sistemi))
+- `iyzico` (iyzico / PayTR / Param)
+- `jotai` (Jotai)
+- `kargo-entegrasyon` (Kargo Entegrasyonları (Yurtiçi, Aras, MNG, Sürat, PTT))
+- `kestra` (Kestra)
+- `kvkk-gdpr` (KVKK / GDPR Uyumluluk)
+- `kysely` (Kysely)
+- `langfuse` (Langfuse)
+- `liveblocks` (Liveblocks)
+- `llamaindex` (LlamaIndex)
+- `lovable` (Lovable)
+- `mastra` (Mastra)
+- `netgsm` (Netgsm / İleti Merkezi)
+- `openai-sdk` (OpenAI API)
+- `parasut` (Paraşüt / Bizim Hesap / KolayBi)
+- `paytr` (PayTR)
+- `pinecone` (Pinecone)
+- `playwright` (Playwright)
+- `prompt-library` (Prompt Kütüphanesi (kurumsal pratik))
+- `rate-limiting` (Rate Limiting & Abuse Kontrolü)
+- `recharts` (Recharts)
+- `semgrep` (Semgrep)
+- `shopier` (Shopier / Papara İşyeri)
+- `sigstore-cosign` (Sigstore / Cosign + SBOM)
+- `ticimax-ideasoft` (Ticimax / İdeaSoft / T-Soft)
+- `trendyol-api` (Trendyol / Hepsiburada / N11 Pazaryeri API'leri)
+- `turkiye-cloud` (Yerli Bulut (Turkcell, Türk Telekom, Bulutistan, Vargonen))
+- `twilio` (Twilio)
+- `uploadthing` (UploadThing)
+- `vanta` (Vanta / Drata)
+- `wazuh` (Wazuh)
+- `zustand` (Zustand)

@@ -1,0 +1,77 @@
+{
+  "project": {
+    "id": "restaurant-os",
+    "name": "RestaurantOS",
+    "stage": "mvp",
+    "priorities": [
+      "Fast MVP",
+      "Maintainability"
+    ]
+  },
+  "resources": [
+    {
+      "id": "next",
+      "name": "Next.js",
+      "type": "framework"
+    },
+    {
+      "id": "pg",
+      "name": "PostgreSQL",
+      "type": "database"
+    },
+    {
+      "id": "shadcn",
+      "name": "shadcn/ui",
+      "type": "ui_library"
+    },
+    {
+      "id": "animate-toggle",
+      "name": "Animate UI Toggle",
+      "type": "component",
+      "sourceUrl": "https://animate-ui.com/docs/components/radix/toggle"
+    }
+  ],
+  "projectDecisions": [
+    {
+      "id": "d1",
+      "scope": "project",
+      "slot": "frontend.framework",
+      "mode": "LOCKED",
+      "resourceId": "next"
+    },
+    {
+      "id": "d2",
+      "scope": "project",
+      "slot": "frontend.ui.base",
+      "mode": "LOCKED",
+      "resourceId": "shadcn"
+    },
+    {
+      "id": "d3",
+      "scope": "project",
+      "slot": "frontend.component.toggle",
+      "mode": "PREFERRED",
+      "resourceId": "animate-toggle"
+    },
+    {
+      "id": "d4",
+      "scope": "project",
+      "slot": "backend.framework",
+      "mode": "AI_DECIDE",
+      "constraints": {
+        "language": "typescript",
+        "priorities": [
+          "simplicity",
+          "maintainability"
+        ]
+      }
+    },
+    {
+      "id": "d5",
+      "scope": "project",
+      "slot": "database.primary",
+      "mode": "LOCKED",
+      "resourceId": "pg"
+    }
+  ]
+}

@@ -1,0 +1,1444 @@
+{
+  "source": "simple-icons",
+  "version": "16.30.0",
+  "license": "CC0-1.0",
+  "logos": {
+    "airbyte": {
+      "icon": "airbyte",
+      "title": "Airbyte",
+      "hex": "615EFF"
+    },
+    "algolia": {
+      "icon": "algolia",
+      "title": "Algolia",
+      "hex": "003DFF"
+    },
+    "alpinejs": {
+      "icon": "alpinedotjs",
+      "title": "Alpine.js",
+      "hex": "8BC0D0"
+    },
+    "angular": {
+      "icon": "angular",
+      "title": "Angular",
+      "hex": "0F0F11"
+    },
+    "ant-design": {
+      "icon": "antdesign",
+      "title": "Ant Design",
+      "hex": "0170FE"
+    },
+    "anthropic-api": {
+      "icon": "anthropic",
+      "title": "Anthropic",
+      "hex": "191919"
+    },
+    "apache-airflow": {
+      "icon": "apacheairflow",
+      "title": "Apache Airflow",
+      "hex": "017CEE"
+    },
+    "apache-iceberg": {
+      "icon": "apache",
+      "title": "Apache",
+      "hex": "D22128"
+    },
+    "apache-spark": {
+      "icon": "apachespark",
+      "title": "Apache Spark",
+      "hex": "E25A1C"
+    },
+    "apache-superset": {
+      "icon": "apachesuperset",
+      "title": "Apache Superset",
+      "hex": "20A6C9"
+    },
+    "astro": {
+      "icon": "astro",
+      "title": "Astro",
+      "hex": "BC52EE"
+    },
+    "auth0": {
+      "icon": "auth0",
+      "title": "Auth0",
+      "hex": "EB5424"
+    },
+    "authjs": {
+      "icon": "nextdotjs",
+      "title": "Next.js",
+      "hex": "000000"
+    },
+    "better-auth": {
+      "icon": "betterauth",
+      "title": "Better Auth",
+      "hex": "FFFFFF"
+    },
+    "bigquery": {
+      "icon": "googlebigquery",
+      "title": "Google BigQuery",
+      "hex": "669DF6"
+    },
+    "biome": {
+      "icon": "biome",
+      "title": "Biome",
+      "hex": "60A5FA"
+    },
+    "bootstrap": {
+      "icon": "bootstrap",
+      "title": "Bootstrap",
+      "hex": "7952B3"
+    },
+    "braintrust": {
+      "icon": "braintrust",
+      "title": "Braintrust",
+      "hex": "000000"
+    },
+    "bun": {
+      "icon": "bun",
+      "title": "Bun",
+      "hex": "000000"
+    },
+    "burp-suite": {
+      "icon": "burpsuite",
+      "title": "Burp Suite",
+      "hex": "FF6633"
+    },
+    "capacitor": {
+      "icon": "capacitor",
+      "title": "Capacitor",
+      "hex": "119EFF"
+    },
+    "chakra-ui": {
+      "icon": "chakraui",
+      "title": "Chakra UI",
+      "hex": "1BB2A9"
+    },
+    "claude-agent-sdk": {
+      "icon": "claude",
+      "title": "Claude",
+      "hex": "D97757"
+    },
+    "claude-code": {
+      "icon": "claudecode",
+      "title": "Claude Code",
+      "hex": "D97757"
+    },
+    "clerk": {
+      "icon": "clerk",
+      "title": "Clerk",
+      "hex": "6C47FF"
+    },
+    "clickhouse": {
+      "icon": "clickhouse",
+      "title": "ClickHouse",
+      "hex": "FFCC01"
+    },
+    "cline": {
+      "icon": "cline",
+      "title": "Cline",
+      "hex": "18181B"
+    },
+    "cloudflare-r2": {
+      "icon": "cloudflare",
+      "title": "Cloudflare",
+      "hex": "F38020"
+    },
+    "cloudflare-waf": {
+      "icon": "cloudflare",
+      "title": "Cloudflare",
+      "hex": "F38020"
+    },
+    "cloudflare-workers": {
+      "icon": "cloudflareworkers",
+      "title": "Cloudflare Workers",
+      "hex": "F38020"
+    },
+    "cloudinary": {
+      "icon": "cloudinary",
+      "title": "Cloudinary",
+      "hex": "3448C5"
+    },
+    "codeql": {
+      "icon": "github",
+      "title": "GitHub",
+      "hex": "181717"
+    },
+    "convex": {
+      "icon": "convex",
+      "title": "Convex",
+      "hex": "EE342F"
+    },
+    "coolify": {
+      "icon": "coolify",
+      "title": "Coolify",
+      "hex": "6B16ED"
+    },
+    "crewai": {
+      "icon": "crewai",
+      "title": "CrewAI",
+      "hex": "FF5A50"
+    },
+    "csharp": {
+      "icon": "dotnet",
+      "title": ".NET",
+      "hex": "512BD4"
+    },
+    "css3": {
+      "icon": "css",
+      "title": "CSS",
+      "hex": "663399"
+    },
+    "cursor": {
+      "icon": "cursor",
+      "title": "Cursor",
+      "hex": "000000"
+    },
+    "cypress": {
+      "icon": "cypress",
+      "title": "Cypress",
+      "hex": "69D3A7"
+    },
+    "d3js": {
+      "icon": "d3",
+      "title": "D3",
+      "hex": "F9A03C"
+    },
+    "databricks": {
+      "icon": "databricks",
+      "title": "Databricks",
+      "hex": "FF3621"
+    },
+    "datadog": {
+      "icon": "datadog",
+      "title": "Datadog",
+      "hex": "632CA6"
+    },
+    "deno": {
+      "icon": "deno",
+      "title": "Deno",
+      "hex": "000000"
+    },
+    "dependabot": {
+      "icon": "dependabot",
+      "title": "Dependabot",
+      "hex": "025E8C"
+    },
+    "django": {
+      "icon": "django",
+      "title": "Django",
+      "hex": "092E20"
+    },
+    "docker": {
+      "icon": "docker",
+      "title": "Docker",
+      "hex": "2496ED"
+    },
+    "dotnet-aspnet": {
+      "icon": "dotnet",
+      "title": ".NET",
+      "hex": "512BD4"
+    },
+    "drizzle-orm": {
+      "icon": "drizzle",
+      "title": "Drizzle",
+      "hex": "C5F74F"
+    },
+    "duckdb": {
+      "icon": "duckdb",
+      "title": "DuckDB",
+      "hex": "FFF000"
+    },
+    "echarts": {
+      "icon": "apacheecharts",
+      "title": "Apache ECharts",
+      "hex": "AA344D"
+    },
+    "elasticsearch": {
+      "icon": "elasticsearch",
+      "title": "Elasticsearch",
+      "hex": "005571"
+    },
+    "electron": {
+      "icon": "electron",
+      "title": "Electron",
+      "hex": "47848F"
+    },
+    "elevenlabs": {
+      "icon": "elevenlabs",
+      "title": "ElevenLabs",
+      "hex": "000000"
+    },
+    "elixir-phoenix": {
+      "icon": "phoenixframework",
+      "title": "Phoenix Framework",
+      "hex": "FD4F00"
+    },
+    "eslint": {
+      "icon": "eslint",
+      "title": "ESLint",
+      "hex": "4B32C3"
+    },
+    "expo": {
+      "icon": "expo",
+      "title": "Expo",
+      "hex": "1C2024"
+    },
+    "expressjs": {
+      "icon": "express",
+      "title": "Express",
+      "hex": "0A0A0A"
+    },
+    "falco": {
+      "icon": "falco",
+      "title": "Falco",
+      "hex": "00AEC7"
+    },
+    "fastapi": {
+      "icon": "fastapi",
+      "title": "FastAPI",
+      "hex": "009688"
+    },
+    "fastify": {
+      "icon": "fastify",
+      "title": "Fastify",
+      "hex": "000000"
+    },
+    "figma": {
+      "icon": "figma",
+      "title": "Figma",
+      "hex": "F24E1E"
+    },
+    "firebase": {
+      "icon": "firebase",
+      "title": "Firebase",
+      "hex": "DD2C00"
+    },
+    "flask": {
+      "icon": "flask",
+      "title": "Flask",
+      "hex": "3BABC3"
+    },
+    "flutter": {
+      "icon": "flutter",
+      "title": "Flutter",
+      "hex": "02569B"
+    },
+    "fly-io": {
+      "icon": "flydotio",
+      "title": "Fly.io",
+      "hex": "24175B"
+    },
+    "framer-motion": {
+      "icon": "framer",
+      "title": "Framer",
+      "hex": "0055FF"
+    },
+    "git": {
+      "icon": "git",
+      "title": "Git",
+      "hex": "F03C2E"
+    },
+    "github-actions": {
+      "icon": "githubactions",
+      "title": "GitHub Actions",
+      "hex": "2088FF"
+    },
+    "github-copilot": {
+      "icon": "githubcopilot",
+      "title": "GitHub Copilot",
+      "hex": "000000"
+    },
+    "go": {
+      "icon": "go",
+      "title": "Go",
+      "hex": "00ADD8"
+    },
+    "godot": {
+      "icon": "godotengine",
+      "title": "Godot Engine",
+      "hex": "478CBF"
+    },
+    "google-gemini-api": {
+      "icon": "googlegemini",
+      "title": "Google Gemini",
+      "hex": "8E75B2"
+    },
+    "grafana": {
+      "icon": "grafana",
+      "title": "Grafana",
+      "hex": "F46800"
+    },
+    "graphql": {
+      "icon": "graphql",
+      "title": "GraphQL",
+      "hex": "E10098"
+    },
+    "gsap": {
+      "icon": "gsap",
+      "title": "GSAP",
+      "hex": "0AE448"
+    },
+    "hetzner": {
+      "icon": "hetzner",
+      "title": "Hetzner",
+      "hex": "D50C2D"
+    },
+    "hono": {
+      "icon": "hono",
+      "title": "Hono",
+      "hex": "E36002"
+    },
+    "html5": {
+      "icon": "html5",
+      "title": "HTML5",
+      "hex": "E34F26"
+    },
+    "htmx": {
+      "icon": "htmx",
+      "title": "htmx",
+      "hex": "3366CC"
+    },
+    "huggingface": {
+      "icon": "huggingface",
+      "title": "Hugging Face",
+      "hex": "FFD21E"
+    },
+    "java": {
+      "icon": "openjdk",
+      "title": "OpenJDK",
+      "hex": "000000"
+    },
+    "javascript": {
+      "icon": "javascript",
+      "title": "JavaScript",
+      "hex": "F7DF1E"
+    },
+    "jetpack-compose": {
+      "icon": "jetpackcompose",
+      "title": "Jetpack Compose",
+      "hex": "4285F4"
+    },
+    "kafka": {
+      "icon": "apachekafka",
+      "title": "Apache Kafka",
+      "hex": "231F20"
+    },
+    "keycloak": {
+      "icon": "keycloak",
+      "title": "Keycloak",
+      "hex": "4D4D4D"
+    },
+    "kotlin": {
+      "icon": "kotlin",
+      "title": "Kotlin",
+      "hex": "7F52FF"
+    },
+    "kubernetes": {
+      "icon": "kubernetes",
+      "title": "Kubernetes",
+      "hex": "326CE5"
+    },
+    "langchain": {
+      "icon": "langchain",
+      "title": "LangChain",
+      "hex": "7FC8FF"
+    },
+    "langgraph": {
+      "icon": "langgraph",
+      "title": "LangGraph",
+      "hex": "7FC8FF"
+    },
+    "laravel": {
+      "icon": "laravel",
+      "title": "Laravel",
+      "hex": "FF2D20"
+    },
+    "lemonsqueezy": {
+      "icon": "lemonsqueezy",
+      "title": "Lemon Squeezy",
+      "hex": "FFC233"
+    },
+    "llm-security": {
+      "icon": "owasp",
+      "title": "OWASP",
+      "hex": "000000"
+    },
+    "lottie": {
+      "icon": "lottiefiles",
+      "title": "LottieFiles",
+      "hex": "00DDB3"
+    },
+    "lucide-icons": {
+      "icon": "lucide",
+      "title": "Lucide",
+      "hex": "F56565"
+    },
+    "mantine": {
+      "icon": "mantine",
+      "title": "Mantine",
+      "hex": "339AF0"
+    },
+    "mcp": {
+      "icon": "modelcontextprotocol",
+      "title": "Model Context Protocol",
+      "hex": "000000"
+    },
+    "meilisearch": {
+      "icon": "meilisearch",
+      "title": "Meilisearch",
+      "hex": "FF5CAA"
+    },
+    "metabase": {
+      "icon": "metabase",
+      "title": "Metabase",
+      "hex": "509EE3"
+    },
+    "mlflow": {
+      "icon": "mlflow",
+      "title": "MLflow",
+      "hex": "0194E2"
+    },
+    "modal": {
+      "icon": "modal",
+      "title": "Modal",
+      "hex": "7FEE64"
+    },
+    "mongodb": {
+      "icon": "mongodb",
+      "title": "MongoDB",
+      "hex": "47A248"
+    },
+    "mongoose": {
+      "icon": "mongoose",
+      "title": "Mongoose",
+      "hex": "880000"
+    },
+    "mui": {
+      "icon": "mui",
+      "title": "MUI",
+      "hex": "007FFF"
+    },
+    "mysql": {
+      "icon": "mysql",
+      "title": "MySQL",
+      "hex": "4479A1"
+    },
+    "n8n": {
+      "icon": "n8n",
+      "title": "n8n",
+      "hex": "EA4B71"
+    },
+    "neon": {
+      "icon": "neon",
+      "title": "Neon",
+      "hex": "34D59A"
+    },
+    "nestjs": {
+      "icon": "nestjs",
+      "title": "NestJS",
+      "hex": "E0234E"
+    },
+    "netlify": {
+      "icon": "netlify",
+      "title": "Netlify",
+      "hex": "00C7B7"
+    },
+    "nextjs": {
+      "icon": "nextdotjs",
+      "title": "Next.js",
+      "hex": "000000"
+    },
+    "nodejs": {
+      "icon": "nodedotjs",
+      "title": "Node.js",
+      "hex": "5FA04E"
+    },
+    "nuxt": {
+      "icon": "nuxt",
+      "title": "Nuxt",
+      "hex": "00DC82"
+    },
+    "ollama": {
+      "icon": "ollama",
+      "title": "Ollama",
+      "hex": "000000"
+    },
+    "openapi-rest": {
+      "icon": "openapiinitiative",
+      "title": "OpenAPI Initiative",
+      "hex": "6BA539"
+    },
+    "openrouter": {
+      "icon": "openrouter",
+      "title": "OpenRouter",
+      "hex": "94A3B8"
+    },
+    "opentelemetry": {
+      "icon": "opentelemetry",
+      "title": "OpenTelemetry",
+      "hex": "000000"
+    },
+    "owasp-top10": {
+      "icon": "owasp",
+      "title": "OWASP",
+      "hex": "000000"
+    },
+    "owasp-zap": {
+      "icon": "zap",
+      "title": "ZAP",
+      "hex": "00549E"
+    },
+    "pandas": {
+      "icon": "pandas",
+      "title": "pandas",
+      "hex": "150458"
+    },
+    "payload-cms": {
+      "icon": "payloadcms",
+      "title": "Payload CMS",
+      "hex": "000000"
+    },
+    "pgvector": {
+      "icon": "postgresql",
+      "title": "PostgreSQL",
+      "hex": "4169E1"
+    },
+    "php": {
+      "icon": "php",
+      "title": "PHP",
+      "hex": "777BB4"
+    },
+    "pinia": {
+      "icon": "pinia",
+      "title": "Pinia",
+      "hex": "FFD859"
+    },
+    "plausible": {
+      "icon": "plausibleanalytics",
+      "title": "Plausible Analytics",
+      "hex": "5850EC"
+    },
+    "pnpm": {
+      "icon": "pnpm",
+      "title": "pnpm",
+      "hex": "F69220"
+    },
+    "pocketbase": {
+      "icon": "pocketbase",
+      "title": "PocketBase",
+      "hex": "B8DBE4"
+    },
+    "polars": {
+      "icon": "polars",
+      "title": "Polars",
+      "hex": "0075FF"
+    },
+    "postgresql": {
+      "icon": "postgresql",
+      "title": "PostgreSQL",
+      "hex": "4169E1"
+    },
+    "posthog": {
+      "icon": "posthog",
+      "title": "PostHog",
+      "hex": "000000"
+    },
+    "power-bi": {
+      "icon": "looker",
+      "title": "Looker",
+      "hex": "4285F4"
+    },
+    "prefect": {
+      "icon": "prefect",
+      "title": "Prefect",
+      "hex": "070E10"
+    },
+    "prisma": {
+      "icon": "prisma",
+      "title": "Prisma",
+      "hex": "2D3748"
+    },
+    "pwa": {
+      "icon": "pwa",
+      "title": "PWA",
+      "hex": "5A0FC8"
+    },
+    "python": {
+      "icon": "python",
+      "title": "Python",
+      "hex": "3776AB"
+    },
+    "pytorch": {
+      "icon": "pytorch",
+      "title": "PyTorch",
+      "hex": "EE4C2C"
+    },
+    "qdrant": {
+      "icon": "qdrant",
+      "title": "Qdrant",
+      "hex": "DC244C"
+    },
+    "rabbitmq": {
+      "icon": "rabbitmq",
+      "title": "RabbitMQ",
+      "hex": "FF6600"
+    },
+    "radix-ui": {
+      "icon": "radixui",
+      "title": "Radix UI",
+      "hex": "161618"
+    },
+    "rails": {
+      "icon": "rubyonrails",
+      "title": "Ruby on Rails",
+      "hex": "D30001"
+    },
+    "railway": {
+      "icon": "railway",
+      "title": "Railway",
+      "hex": "0B0D0E"
+    },
+    "react": {
+      "icon": "react",
+      "title": "React",
+      "hex": "61DAFB"
+    },
+    "react-hook-form": {
+      "icon": "reacthookform",
+      "title": "React Hook Form",
+      "hex": "EC5990"
+    },
+    "react-native": {
+      "icon": "react",
+      "title": "React",
+      "hex": "61DAFB"
+    },
+    "redis": {
+      "icon": "redis",
+      "title": "Redis",
+      "hex": "FF4438"
+    },
+    "redux-toolkit": {
+      "icon": "redux",
+      "title": "Redux",
+      "hex": "764ABC"
+    },
+    "remix": {
+      "icon": "remix",
+      "title": "Remix",
+      "hex": "000000"
+    },
+    "replicate": {
+      "icon": "replicate",
+      "title": "Replicate",
+      "hex": "000000"
+    },
+    "replit-agent": {
+      "icon": "replit",
+      "title": "Replit",
+      "hex": "F26207"
+    },
+    "resend": {
+      "icon": "resend",
+      "title": "Resend",
+      "hex": "000000"
+    },
+    "rust": {
+      "icon": "rust",
+      "title": "Rust",
+      "hex": "000000"
+    },
+    "sanity": {
+      "icon": "sanity",
+      "title": "Sanity",
+      "hex": "0D0E12"
+    },
+    "sass": {
+      "icon": "sass",
+      "title": "Sass",
+      "hex": "CC6699"
+    },
+    "sentry": {
+      "icon": "sentry",
+      "title": "Sentry",
+      "hex": "362D59"
+    },
+    "shadcn-ui": {
+      "icon": "shadcnui",
+      "title": "shadcn/ui",
+      "hex": "000000"
+    },
+    "snowflake": {
+      "icon": "snowflake",
+      "title": "Snowflake",
+      "hex": "29B5E8"
+    },
+    "snyk": {
+      "icon": "snyk",
+      "title": "Snyk",
+      "hex": "4C4A73"
+    },
+    "socketio": {
+      "icon": "socketdotio",
+      "title": "Socket.io",
+      "hex": "010101"
+    },
+    "solidjs": {
+      "icon": "solid",
+      "title": "Solid",
+      "hex": "2C4F7C"
+    },
+    "sonarqube": {
+      "icon": "sonarqubeserver",
+      "title": "SonarQube Server",
+      "hex": "126ED3"
+    },
+    "spring-boot": {
+      "icon": "springboot",
+      "title": "Spring Boot",
+      "hex": "6DB33F"
+    },
+    "sqlalchemy": {
+      "icon": "sqlalchemy",
+      "title": "SQLAlchemy",
+      "hex": "D71F00"
+    },
+    "sqlite": {
+      "icon": "sqlite",
+      "title": "SQLite",
+      "hex": "003B57"
+    },
+    "storybook": {
+      "icon": "storybook",
+      "title": "Storybook",
+      "hex": "FF4785"
+    },
+    "strapi": {
+      "icon": "strapi",
+      "title": "Strapi",
+      "hex": "4945FF"
+    },
+    "stripe": {
+      "icon": "stripe",
+      "title": "Stripe",
+      "hex": "635BFF"
+    },
+    "styled-components": {
+      "icon": "styledcomponents",
+      "title": "styled-components",
+      "hex": "DB7093"
+    },
+    "supabase": {
+      "icon": "supabase",
+      "title": "Supabase",
+      "hex": "3FCF8E"
+    },
+    "svelte": {
+      "icon": "svelte",
+      "title": "Svelte",
+      "hex": "FF3E00"
+    },
+    "sveltekit": {
+      "icon": "svelte",
+      "title": "Svelte",
+      "hex": "FF3E00"
+    },
+    "swift-ios": {
+      "icon": "swift",
+      "title": "Swift",
+      "hex": "F05138"
+    },
+    "tailwindcss": {
+      "icon": "tailwindcss",
+      "title": "Tailwind CSS",
+      "hex": "06B6D4"
+    },
+    "tanstack-query": {
+      "icon": "reactquery",
+      "title": "React Query",
+      "hex": "FF4154"
+    },
+    "tauri": {
+      "icon": "tauri",
+      "title": "Tauri",
+      "hex": "24C8D8"
+    },
+    "temporal": {
+      "icon": "temporal",
+      "title": "Temporal",
+      "hex": "000000"
+    },
+    "terraform": {
+      "icon": "terraform",
+      "title": "Terraform",
+      "hex": "844FBA"
+    },
+    "testing-library": {
+      "icon": "testinglibrary",
+      "title": "Testing Library",
+      "hex": "E33332"
+    },
+    "threejs": {
+      "icon": "threedotjs",
+      "title": "Three.js",
+      "hex": "000000"
+    },
+    "trino": {
+      "icon": "trino",
+      "title": "Trino",
+      "hex": "DD00A1"
+    },
+    "trivy": {
+      "icon": "trivy",
+      "title": "Trivy",
+      "hex": "1904DA"
+    },
+    "trpc": {
+      "icon": "trpc",
+      "title": "tRPC",
+      "hex": "2596BE"
+    },
+    "turborepo": {
+      "icon": "turborepo",
+      "title": "Turborepo",
+      "hex": "FF1E56"
+    },
+    "turso": {
+      "icon": "turso",
+      "title": "Turso",
+      "hex": "4FF8D2"
+    },
+    "typeorm": {
+      "icon": "typeorm",
+      "title": "TypeORM",
+      "hex": "FE0803"
+    },
+    "typescript": {
+      "icon": "typescript",
+      "title": "TypeScript",
+      "hex": "3178C6"
+    },
+    "unity": {
+      "icon": "unity",
+      "title": "Unity",
+      "hex": "FFFFFF"
+    },
+    "v0": {
+      "icon": "v0",
+      "title": "v0",
+      "hex": "000000"
+    },
+    "vault": {
+      "icon": "vault",
+      "title": "Vault",
+      "hex": "FFEC6E"
+    },
+    "vercel": {
+      "icon": "vercel",
+      "title": "Vercel",
+      "hex": "000000"
+    },
+    "vercel-ai-sdk": {
+      "icon": "vercel",
+      "title": "Vercel",
+      "hex": "000000"
+    },
+    "vite": {
+      "icon": "vite",
+      "title": "Vite",
+      "hex": "9135FF"
+    },
+    "vitest": {
+      "icon": "vitest",
+      "title": "Vitest",
+      "hex": "00FF74"
+    },
+    "vue": {
+      "icon": "vuedotjs",
+      "title": "Vue.js",
+      "hex": "4FC08D"
+    },
+    "windsurf": {
+      "icon": "windsurf",
+      "title": "Windsurf",
+      "hex": "0B100F"
+    },
+    "wordpress": {
+      "icon": "wordpress",
+      "title": "WordPress",
+      "hex": "21759B"
+    },
+    "zod": {
+      "icon": "zod",
+      "title": "Zod",
+      "hex": "408AFF"
+    }
+  },
+  "names": {
+    "agents md claude md": "agents-md",
+    "aider": "aider",
+    "airbyte": "airbyte",
+    "algolia": "algolia",
+    "alpine js": "alpinejs",
+    "amazon dynamodb": "dynamodb",
+    "angular": "angular",
+    "ant design": "ant-design",
+    "apache airflow": "apache-airflow",
+    "apache echarts": "echarts",
+    "apache iceberg": "apache-iceberg",
+    "apache kafka": "kafka",
+    "apache spark": "apache-spark",
+    "apache superset": "apache-superset",
+    "asp net core": "dotnet-aspnet",
+    "astro": "astro",
+    "auth js nextauth": "authjs",
+    "auth0 okta": "auth0",
+    "aws": "aws",
+    "better auth": "better-auth",
+    "biome": "biome",
+    "bolt new": "bolt-new",
+    "bootstrap 5": "bootstrap",
+    "braintrust": "braintrust",
+    "bullmq": "bullmq",
+    "bun": "bun",
+    "burp suite": "burp-suite",
+    "c": "csharp",
+    "capacitor": "capacitor",
+    "chakra ui": "chakra-ui",
+    "claude agent sdk": "claude-agent-sdk",
+    "claude api anthropic": "anthropic-api",
+    "claude code": "claude-code",
+    "clerk": "clerk",
+    "clickhouse": "clickhouse",
+    "cline roo code": "cline",
+    "cloudflare r2 amazon s3": "cloudflare-r2",
+    "cloudflare waf turnstile": "cloudflare-waf",
+    "cloudflare workers pages": "cloudflare-workers",
+    "cloudinary imagekit": "cloudinary",
+    "codeql": "codeql",
+    "convex": "convex",
+    "coolify dokploy": "coolify",
+    "craftgate": "craftgate",
+    "crewai": "crewai",
+    "css3": "css3",
+    "cursor": "cursor",
+    "cypress": "cypress",
+    "d3 js": "d3js",
+    "dagster": "dagster",
+    "databricks": "databricks",
+    "datadog": "datadog",
+    "dbt data build tool": "dbt",
+    "debezium cdc": "debezium",
+    "deno": "deno",
+    "dependabot renovate": "dependabot",
+    "django": "django",
+    "docker": "docker",
+    "drizzle orm": "drizzle-orm",
+    "duckdb": "duckdb",
+    "e devlet kapısı e i mza mobil i mza": "e-devlet-eimza",
+    "e fatura e ars iv entegrato rleri": "e-fatura-turkiye",
+    "elasticsearch opensearch": "elasticsearch",
+    "electron": "electron",
+    "elevenlabs": "elevenlabs",
+    "elixir phoenix": "elixir-phoenix",
+    "eslint": "eslint",
+    "expo": "expo",
+    "express js": "expressjs",
+    "falco": "falco",
+    "fastapi": "fastapi",
+    "fastify": "fastify",
+    "figma": "figma",
+    "firebase": "firebase",
+    "fivetran": "fivetran",
+    "flask": "flask",
+    "flutter": "flutter",
+    "fly io": "fly-io",
+    "git github": "git",
+    "github actions": "github-actions",
+    "github copilot": "github-copilot",
+    "gitleaks trufflehog": "gitleaks",
+    "go golang": "go",
+    "godot": "godot",
+    "google bigquery": "bigquery",
+    "google gemini api": "google-gemini-api",
+    "grafana prometheus": "grafana",
+    "graphql": "graphql",
+    "great expectations soda": "great-expectations",
+    "grpc protocol buffers": "grpc",
+    "gsap": "gsap",
+    "hashicorp vault openbao": "vault",
+    "heroicons": "heroicons",
+    "hetzner digitalocean": "hetzner",
+    "hono": "hono",
+    "html5": "html5",
+    "htmx": "htmx",
+    "hugging face": "huggingface",
+    "i ys i leti yo netim sistemi": "iys",
+    "infisical doppler": "infisical",
+    "inngest": "inngest",
+    "iyzico paytr param": "iyzico",
+    "java": "java",
+    "javascript es2024": "javascript",
+    "jotai": "jotai",
+    "kargo entegrasyonları yurtic i aras mng su rat ptt": "kargo-entegrasyon",
+    "kestra": "kestra",
+    "keycloak": "keycloak",
+    "kotlin": "kotlin",
+    "kotlin jetpack compose": "jetpack-compose",
+    "kubernetes": "kubernetes",
+    "kvkk gdpr uyumluluk": "kvkk-gdpr",
+    "kysely": "kysely",
+    "langchain": "langchain",
+    "langfuse": "langfuse",
+    "langgraph": "langgraph",
+    "laravel": "laravel",
+    "lemon squeezy paddle": "lemonsqueezy",
+    "liveblocks": "liveblocks",
+    "llamaindex": "llamaindex",
+    "llm gu venlig i owasp llm top 10": "llm-security",
+    "lottie": "lottie",
+    "lovable": "lovable",
+    "lucide icons": "lucide-icons",
+    "mantine": "mantine",
+    "mastra": "mastra",
+    "meilisearch": "meilisearch",
+    "metabase": "metabase",
+    "mlflow": "mlflow",
+    "modal": "modal",
+    "model context protocol mcp": "mcp",
+    "mongodb": "mongodb",
+    "mongoose": "mongoose",
+    "motion framer motion": "framer-motion",
+    "mui material ui": "mui",
+    "mysql mariadb": "mysql",
+    "n8n": "n8n",
+    "neon": "neon",
+    "nestjs": "nestjs",
+    "netgsm i leti merkezi": "netgsm",
+    "netlify": "netlify",
+    "next js": "nextjs",
+    "node js": "nodejs",
+    "nuxt": "nuxt",
+    "ollama": "ollama",
+    "openai api": "openai-sdk",
+    "openai codex": "codex-cli",
+    "openrouter": "openrouter",
+    "opentelemetry": "opentelemetry",
+    "owasp top 10 asvs": "owasp-top10",
+    "owasp zap": "owasp-zap",
+    "pandas": "pandas",
+    "paras u t bizim hesap kolaybi": "parasut",
+    "payload cms": "payload-cms",
+    "paytr": "paytr",
+    "pgvector": "pgvector",
+    "php 8": "php",
+    "pinecone": "pinecone",
+    "pinia": "pinia",
+    "plausible umami": "plausible",
+    "playwright": "playwright",
+    "pnpm": "pnpm",
+    "pocketbase": "pocketbase",
+    "polars": "polars",
+    "postgresql": "postgresql",
+    "posthog": "posthog",
+    "power bi looker": "power-bi",
+    "prefect": "prefect",
+    "prisma": "prisma",
+    "prompt ku tu phanesi kurumsal pratik": "prompt-library",
+    "pwa progressive web app": "pwa",
+    "python": "python",
+    "pytorch": "pytorch",
+    "qdrant": "qdrant",
+    "rabbitmq": "rabbitmq",
+    "radix ui primitives": "radix-ui",
+    "railway render": "railway",
+    "rate limiting abuse kontrolu": "rate-limiting",
+    "react": "react",
+    "react hook form": "react-hook-form",
+    "react native": "react-native",
+    "recharts": "recharts",
+    "redis valkey": "redis",
+    "redux toolkit": "redux-toolkit",
+    "remix react router 7": "remix",
+    "replicate": "replicate",
+    "replit agent": "replit-agent",
+    "resend": "resend",
+    "rest openapi": "openapi-rest",
+    "ruby on rails": "rails",
+    "rust": "rust",
+    "sanity": "sanity",
+    "sass scss": "sass",
+    "semgrep": "semgrep",
+    "sentry": "sentry",
+    "shadcn ui": "shadcn-ui",
+    "shopier papara i s yeri": "shopier",
+    "sigstore cosign sbom": "sigstore-cosign",
+    "snowflake": "snowflake",
+    "snyk": "snyk",
+    "socket io": "socketio",
+    "solidjs": "solidjs",
+    "sonarqube": "sonarqube",
+    "spring boot": "spring-boot",
+    "sqlalchemy": "sqlalchemy",
+    "sqlite": "sqlite",
+    "storybook": "storybook",
+    "strapi": "strapi",
+    "stripe": "stripe",
+    "styled components emotion": "styled-components",
+    "supabase": "supabase",
+    "svelte 5": "svelte",
+    "sveltekit": "sveltekit",
+    "swift swiftui": "swift-ios",
+    "tailwind css": "tailwindcss",
+    "tanstack query": "tanstack-query",
+    "tauri": "tauri",
+    "temporal": "temporal",
+    "terraform opentofu": "terraform",
+    "testing library": "testing-library",
+    "three js": "threejs",
+    "ticimax i deasoft t soft": "ticimax-ideasoft",
+    "trendyol hepsiburada n11 pazaryeri api leri": "trendyol-api",
+    "trino prestosql": "trino",
+    "trivy": "trivy",
+    "trpc": "trpc",
+    "turborepo": "turborepo",
+    "turso libsql": "turso",
+    "twilio": "twilio",
+    "typeorm": "typeorm",
+    "typescript": "typescript",
+    "unity": "unity",
+    "uploadthing": "uploadthing",
+    "v0 vercel": "v0",
+    "vanta drata": "vanta",
+    "vercel": "vercel",
+    "vercel ai sdk": "vercel-ai-sdk",
+    "vite": "vite",
+    "vitest": "vitest",
+    "vue 3": "vue",
+    "wazuh": "wazuh",
+    "windsurf": "windsurf",
+    "wordpress": "wordpress",
+    "yerli bulut turkcell tu rk telekom bulutistan vargonen": "turkiye-cloud",
+    "zod": "zod",
+    "zustand": "zustand"
+  },
+  "hosts": {
+    "agents.md": "agents-md",
+    "ai-sdk.dev": "vercel-ai-sdk",
+    "ai.google.dev": "google-gemini-api",
+    "aider.chat": "aider",
+    "airbnb.io": "lottie",
+    "airflow.apache.org": "apache-airflow",
+    "algolia.com": "algolia",
+    "alpinejs.dev": "alpinejs",
+    "angular.dev": "angular",
+    "ant.design": "ant-design",
+    "apidocs.parasut.com": "parasut",
+    "apizone.yurticikargo.com": "kargo-entegrasyon",
+    "auth0.com": "auth0",
+    "authjs.dev": "authjs",
+    "better-auth.com": "better-auth",
+    "biomejs.dev": "biome",
+    "braintrust.dev": "braintrust",
+    "bulutistan.com": "turkiye-cloud",
+    "bun.sh": "bun",
+    "capacitorjs.com": "capacitor",
+    "chakra-ui.com": "chakra-ui",
+    "clerk.com": "clerk",
+    "clickhouse.com": "clickhouse",
+    "cloudinary.com": "cloudinary",
+    "codeql.github.com": "codeql",
+    "coolify.io": "coolify",
+    "d3js.org": "d3js",
+    "debezium.io": "debezium",
+    "dev.iyzipay.com": "iyzico",
+    "dev.mysql.com": "mysql",
+    "dev.paytr.com": "paytr",
+    "developer.craftgate.io": "craftgate",
+    "developer.wordpress.org": "wordpress",
+    "developers.openai.com": "codex-cli",
+    "developers.trendyol.com": "trendyol-api",
+    "doc.rust-lang.org": "rust",
+    "docs.airbyte.com": "airbyte",
+    "docs.astro.build": "astro",
+    "docs.bullmq.io": "bullmq",
+    "docs.cline.bot": "cline",
+    "docs.convex.dev": "convex",
+    "docs.crewai.com": "crewai",
+    "docs.cursor.com": "cursor",
+    "docs.cypress.io": "cypress",
+    "docs.dagster.io": "dagster",
+    "docs.databricks.com": "databricks",
+    "docs.datadoghq.com": "datadog",
+    "docs.deno.com": "deno",
+    "docs.djangoproject.com": "django",
+    "docs.docker.com": "docker",
+    "docs.expo.dev": "expo",
+    "docs.flutter.dev": "flutter",
+    "docs.getdbt.com": "dbt",
+    "docs.godotengine.org": "godot",
+    "docs.greatexpectations.io": "great-expectations",
+    "docs.hetzner.com": "hetzner",
+    "docs.lemonsqueezy.com": "lemonsqueezy",
+    "docs.llamaindex.ai": "llamaindex",
+    "docs.lovable.dev": "lovable",
+    "docs.n8n.io": "n8n",
+    "docs.nestjs.com": "nestjs",
+    "docs.netlify.com": "netlify",
+    "docs.ollama.com": "ollama",
+    "docs.oracle.com": "java",
+    "docs.pinecone.io": "pinecone",
+    "docs.pola.rs": "polars",
+    "docs.prefect.io": "prefect",
+    "docs.python.org": "python",
+    "docs.railway.com": "railway",
+    "docs.replit.com": "replit-agent",
+    "docs.sentry.io": "sentry",
+    "docs.sigstore.dev": "sigstore-cosign",
+    "docs.snowflake.com": "snowflake",
+    "docs.snyk.io": "snyk",
+    "docs.solidjs.com": "solidjs",
+    "docs.sonarsource.com": "sonarqube",
+    "docs.spring.io": "spring-boot",
+    "docs.sqlalchemy.org": "sqlalchemy",
+    "docs.strapi.io": "strapi",
+    "docs.stripe.com": "stripe",
+    "docs.temporal.io": "temporal",
+    "docs.turso.tech": "turso",
+    "docs.unity3d.com": "unity",
+    "docs.uploadthing.com": "uploadthing",
+    "docs.windsurf.com": "windsurf",
+    "documentation.wazuh.com": "wazuh",
+    "duckdb.org": "duckdb",
+    "echarts.apache.org": "echarts",
+    "elastic.co": "elasticsearch",
+    "electronjs.org": "electron",
+    "elevenlabs.io": "elevenlabs",
+    "eslint.org": "eslint",
+    "expressjs.com": "expressjs",
+    "falco.org": "falco",
+    "fastapi.tiangolo.com": "fastapi",
+    "fastify.dev": "fastify",
+    "firebase.google.com": "firebase",
+    "fivetran.com": "fivetran",
+    "flask.palletsprojects.com": "flask",
+    "fly.io": "fly-io",
+    "genai.owasp.org": "llm-security",
+    "getbootstrap.com": "bootstrap",
+    "git-scm.com": "git",
+    "go.dev": "go",
+    "grafana.com": "grafana",
+    "graphql.org": "graphql",
+    "grpc.io": "grpc",
+    "gsap.com": "gsap",
+    "guides.rubyonrails.org": "rails",
+    "help.figma.com": "figma",
+    "heroicons.com": "heroicons",
+    "hexdocs.pm": "elixir-phoenix",
+    "hono.dev": "hono",
+    "htmx.org": "htmx",
+    "huggingface.co": "huggingface",
+    "iceberg.apache.org": "apache-iceberg",
+    "infisical.com": "infisical",
+    "inngest.com": "inngest",
+    "iys.org.tr": "iys",
+    "jotai.org": "jotai",
+    "kafka.apache.org": "kafka",
+    "kestra.io": "kestra",
+    "keycloak.org": "keycloak",
+    "kotlinlang.org": "kotlin",
+    "kubernetes.io": "kubernetes",
+    "kvkk.gov.tr": "kvkk-gdpr",
+    "kysely.dev": "kysely",
+    "langchain-ai.github.io": "langgraph",
+    "langfuse.com": "langfuse",
+    "laravel.com": "laravel",
+    "liveblocks.io": "liveblocks",
+    "lucide.dev": "lucide-icons",
+    "mantine.dev": "mantine",
+    "mastra.ai": "mastra",
+    "meilisearch.com": "meilisearch",
+    "metabase.com": "metabase",
+    "mlflow.org": "mlflow",
+    "modal.com": "modal",
+    "modelcontextprotocol.io": "mcp",
+    "mongodb.com": "mongodb",
+    "mongoosejs.com": "mongoose",
+    "motion.dev": "framer-motion",
+    "mui.com": "mui",
+    "neon.com": "neon",
+    "netgsm.com.tr": "netgsm",
+    "nextjs.org": "nextjs",
+    "nilvera.com": "e-fatura-turkiye",
+    "nodejs.org": "nodejs",
+    "nuxt.com": "nuxt",
+    "openrouter.ai": "openrouter",
+    "opentelemetry.io": "opentelemetry",
+    "orm.drizzle.team": "drizzle-orm",
+    "pandas.pydata.org": "pandas",
+    "payloadcms.com": "payload-cms",
+    "php.net": "php",
+    "pinia.vuejs.org": "pinia",
+    "platform.openai.com": "openai-sdk",
+    "plausible.io": "plausible",
+    "playwright.dev": "playwright",
+    "pnpm.io": "pnpm",
+    "pocketbase.io": "pocketbase",
+    "portswigger.net": "burp-suite",
+    "postgresql.org": "postgresql",
+    "posthog.com": "posthog",
+    "prisma.io": "prisma",
+    "python.langchain.com": "langchain",
+    "pytorch.org": "pytorch",
+    "qdrant.tech": "qdrant",
+    "rabbitmq.com": "rabbitmq",
+    "radix-ui.com": "radix-ui",
+    "react-hook-form.com": "react-hook-form",
+    "react.dev": "react",
+    "reactnative.dev": "react-native",
+    "recharts.org": "recharts",
+    "redis.io": "redis",
+    "redux-toolkit.js.org": "redux-toolkit",
+    "remix.run": "remix",
+    "replicate.com": "replicate",
+    "resend.com": "resend",
+    "sanity.io": "sanity",
+    "sass-lang.com": "sass",
+    "semgrep.dev": "semgrep",
+    "shopier.com": "shopier",
+    "socket.io": "socketio",
+    "spark.apache.org": "apache-spark",
+    "spec.openapis.org": "openapi-rest",
+    "sqlite.org": "sqlite",
+    "storybook.js.org": "storybook",
+    "styled-components.com": "styled-components",
+    "supabase.com": "supabase",
+    "superset.apache.org": "apache-superset",
+    "support.bolt.new": "bolt-new",
+    "tailwindcss.com": "tailwindcss",
+    "tanstack.com": "tanstack-query",
+    "tauri.app": "tauri",
+    "testing-library.com": "testing-library",
+    "threejs.org": "threejs",
+    "ticimax.com": "ticimax-ideasoft",
+    "trino.io": "trino",
+    "trivy.dev": "trivy",
+    "trpc.io": "trpc",
+    "turborepo.com": "turborepo",
+    "turkiye.gov.tr": "e-devlet-eimza",
+    "twilio.com": "twilio",
+    "typeorm.io": "typeorm",
+    "typescriptlang.org": "typescript",
+    "ui.shadcn.com": "shadcn-ui",
+    "v0.app": "v0",
+    "vanta.com": "vanta",
+    "vercel.com": "vercel",
+    "vite.dev": "vite",
+    "vitest.dev": "vitest",
+    "vuejs.org": "vue",
+    "web.dev": "pwa",
+    "zaproxy.org": "owasp-zap",
+    "zod.dev": "zod",
+    "zustand.docs.pmnd.rs": "zustand"
+  }
+}

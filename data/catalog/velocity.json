@@ -1,0 +1,336 @@
+{
+  "domain": "velocity-and-production-readiness",
+  "methodology": {
+    "updatedAt": "2026-09-07",
+    "status": "TAHMİN — ölçüm değil. Editör değerlendirmesi olarak etiketlenmelidir.",
+    "baseline": "Referans profil: o teknolojiyi bilen 1 deneyimli geliştirici + AI kodlama asistanı (Claude Code / Cursor sınıfı), tam zamanlı çalışma. Teknolojiyi ilk kez öğrenen biri için süreleri 2-3 katına çıkarın; 3+ kişilik ekipte koordinasyon nedeniyle süre lineer kısalmaz.",
+    "definitions": {
+      "timeToPrototype": "Tıklanabilir, ana akışı çalışan ama veri kalıcılığı/güvenliği eksik olabilen demo",
+      "timeToMvp": "Gerçek kullanıcının kaydolup temel değeri alabildiği, veri kalıcı, ödeme/auth çalışan sürüm",
+      "timeToProductionReady": "Ödeme alan, kişisel veri işleyen, gözlemlenebilir, yedekli, güvenlik denetiminden geçmiş sürüm",
+      "prototypeSpeed": "1-5 — fikirden çalışan demoya gitme hızı",
+      "productionReadiness": "1-5 — varsayılan kurulumun üretime ne kadar yakın geldiği (5 = kutudan çıktığı gibi neredeyse hazır)",
+      "productionGaps": "MVP'den üretime geçerken MUTLAKA eklenmesi gerekenler — atlanırsa gerçek risk doğar",
+      "opsBurden": "Üretimde ayakta tutmak için gereken sürekli operasyon eforu",
+      "hiddenCosts": "Başlangıçta görünmeyen, ölçekte ortaya çıkan maliyet ve emek kalemleri"
+    },
+    "criticalWarning": "PROTOTİP HIZI İLE ÜRETİME HAZIRLIK TERS ORANTILIDIR. Vibe coding araçları prototipte 5/5, üretime hazırlıkta 2/5 civarındadır. Ürün bu iki metriği AYRI göstermeli; tek bir 'hız' skoru kullanıcıyı yanıltır ve güvensiz sistemlerin canlıya çıkmasına yol açar."
+  },
+  "stacks": [
+    {
+      "slug": "vibe-coding-stack",
+      "timeToPrototype": "2-6 saat",
+      "timeToMvp": "2-5 gün",
+      "timeToProductionReady": "3-6 hafta",
+      "prototypeSpeed": 5,
+      "productionReadiness": 2,
+      "productionGaps": [
+        "Supabase RLS politikalarının tek tek denetlenmesi (en kritik madde)",
+        "Sunucu tarafı yetkilendirme — üretilen kod genelde sadece istemci tarafında kontrol eder",
+        "Rate limiting ve abuse koruması",
+        "Hata izleme (Sentry) ve loglama",
+        "Otomatik test — üretilen kodda genelde hiç yoktur",
+        "Veritabanı yedekleme ve geri dönüş provası",
+        "Sırların istemci bundle'ından temizlenmesi"
+      ],
+      "opsBurden": "düşük (platform yönetiyor)",
+      "hiddenCosts": ["AI kredi tüketimi karmaşıklıkla üstel artar", "Üretilen kodun refactor maliyeti", "Güvenlik denetimi için dışarıdan uzman"],
+      "verdict": "Fikir doğrulamada rakipsiz. Ancak MVP ile üretim arasındaki mesafe bu yığında en uzunudur — 'çalışıyor' ile 'canlıya çıkabilir' arasını 3-6 hafta olarak planlayın."
+    },
+    {
+      "slug": "nextjs-supabase",
+      "timeToPrototype": "4-8 saat",
+      "timeToMvp": "3-7 gün",
+      "timeToProductionReady": "2-4 hafta",
+      "prototypeSpeed": 5,
+      "productionReadiness": 3,
+      "productionGaps": ["RLS politika denetimi", "Rate limiting", "Sentry + yapılandırılmış log", "E2E test (Playwright)", "Yedekleme politikası", "Migration disiplini (panelden şema değiştirmeyi bırakmak)"],
+      "opsBurden": "düşük",
+      "hiddenCosts": ["Vercel bant genişliği", "Supabase compute yükseltmesi", "Bağlantı havuzu limitleri"],
+      "verdict": "Prototip hızı ile üretim ciddiyeti arasında en dengeli seçenek. Altta standart Postgres olduğu için ileride kendi altyapına taşıma yolu açık kalır."
+    },
+    {
+      "slug": "t3-stack",
+      "timeToPrototype": "1 gün",
+      "timeToMvp": "1-2 hafta",
+      "timeToProductionReady": "3-5 hafta",
+      "prototypeSpeed": 4,
+      "productionReadiness": 4,
+      "productionGaps": ["Rate limiting", "Arka plan iş kuyruğu", "Gözlemlenebilirlik", "Yedekleme", "Ödeme webhook güvenliği"],
+      "opsBurden": "düşük-orta",
+      "hiddenCosts": ["Serverless cold start", "Veritabanı bağlantı havuzu", "Vercel ölçek faturası"],
+      "verdict": "Tip güvenliği sayesinde MVP'den üretime geçiş en az sürprizli yığınlardan. Kurulum biraz daha uzun, karşılığında refactor güvenliği yüksek."
+    },
+    {
+      "slug": "laravel-livewire",
+      "timeToPrototype": "4-8 saat",
+      "timeToMvp": "3-7 gün",
+      "timeToProductionReady": "2-3 hafta",
+      "prototypeSpeed": 5,
+      "productionReadiness": 4,
+      "productionGaps": ["Kuyruk worker'larının süpervizör altına alınması", "Redis cache yapılandırması", "Yedekleme", "Güvenlik başlıkları ve rate limit"],
+      "opsBurden": "orta (sunucu yönetimi sende)",
+      "hiddenCosts": ["Sunucu bakımı", "PHP sürüm yükseltmeleri"],
+      "verdict": "Auth, kuyruk, cron ve ORM kutudan çıktığı için üretime hazırlık açısından en verimli yığınlardan. Türkiye'deki ajans ve KOBİ işleri için en ekonomik seçenek."
+    },
+    {
+      "slug": "django-htmx",
+      "timeToPrototype": "1 gün",
+      "timeToMvp": "1-2 hafta",
+      "timeToProductionReady": "2-3 hafta",
+      "prototypeSpeed": 4,
+      "productionReadiness": 5,
+      "productionGaps": ["DEBUG=False ve güvenlik ayarları", "Statik dosya sunumu", "Celery worker yönetimi", "Yedekleme"],
+      "opsBurden": "orta",
+      "hiddenCosts": ["Sunucu kaynağı", "Celery/Redis işletimi"],
+      "verdict": "Güvenlik varsayılanları ve hazır admin paneli sayesinde üretime en yakın gelen framework'lerden. AI özelliği eklenecek projelerde Python avantajı da var."
+    },
+    {
+      "slug": "rails-hotwire",
+      "timeToPrototype": "4-8 saat",
+      "timeToMvp": "3-7 gün",
+      "timeToProductionReady": "2-3 hafta",
+      "prototypeSpeed": 5,
+      "productionReadiness": 5,
+      "productionGaps": ["Sidekiq worker yönetimi", "Cache katmanı", "Yedekleme", "N+1 sorgu denetimi"],
+      "opsBurden": "orta",
+      "hiddenCosts": ["Sunucu maliyeti Node/Go'dan yüksek", "Ruby geliştirici bulma zorluğu"],
+      "verdict": "Tek kişinin tam ürün çıkarabildiği en olgun yığın. Scaffold ve konvansiyonlar üretim standartlarını zaten dayatır."
+    },
+    {
+      "slug": "mern",
+      "timeToPrototype": "4-8 saat",
+      "timeToMvp": "1-2 hafta",
+      "timeToProductionReady": "4-6 hafta",
+      "prototypeSpeed": 4,
+      "productionReadiness": 2,
+      "productionGaps": ["Auth'un sıfırdan güvenli kurulması (JWT saklama, refresh, revoke)", "Girdi doğrulama katmanı", "Rate limiting ve helmet", "İndeks tasarımı", "Veri tutarlılığı kuralları", "Test altyapısı"],
+      "opsBurden": "orta",
+      "hiddenCosts": ["Güvenlik açıklarının sonradan kapatılması", "Şemasız veri nedeniyle biriken veri temizliği borcu"],
+      "verdict": "Öğrenmek için iyi, üretim için en fazla ek iş gerektiren yığın: framework hiçbir güvenlik varsayılanı sunmaz, her şeyi siz kurarsınız."
+    },
+    {
+      "slug": "edge-stack",
+      "timeToPrototype": "1 gün",
+      "timeToMvp": "1-2 hafta",
+      "timeToProductionReady": "3-4 hafta",
+      "prototypeSpeed": 3,
+      "productionReadiness": 4,
+      "productionGaps": ["Gözlemlenebilirlik (Workers logging sınırlı)", "Uzun işler için ayrı servis", "D1/Turso yedekleme stratejisi"],
+      "opsBurden": "çok düşük",
+      "hiddenCosts": ["Node uyumsuzluğu nedeniyle kütüphane değiştirme emeği", "Debug zorluğu"],
+      "verdict": "Kurulumda daha yavaş, işletmede en ucuz ve en az bakım isteyen yığın. Ölçek büyüdükçe avantajı artar."
+    },
+    {
+      "slug": "ai-rag-stack",
+      "timeToPrototype": "1-2 gün",
+      "timeToMvp": "2-3 hafta",
+      "timeToProductionReady": "6-10 hafta",
+      "prototypeSpeed": 4,
+      "productionReadiness": 2,
+      "productionGaps": [
+        "Değerlendirme (eval) seti — prompt değişince kalite düşüşünü yakalamanın tek yolu",
+        "Prompt injection savunması ve çıktı doğrulama",
+        "Token maliyet tavanı ve kullanıcı bazlı rate limit",
+        "Yanıt önbelleği (prompt caching)",
+        "Gözlemlenebilirlik (Langfuse) ve maliyet izleme",
+        "Model sürüm sabitleme ve fallback sağlayıcı",
+        "Halüsinasyon için insan onayı akışı"
+      ],
+      "opsBurden": "orta-yüksek",
+      "hiddenCosts": ["Token faturası (en büyük sürpriz kalem)", "Eval seti hazırlama emeği", "Model güncellemelerinde yeniden ayar", "Vektör indeksi yeniden oluşturma"],
+      "verdict": "Demo 1 günde çıkar, güvenilir ürün 2 aya yaklaşır. Kategorideki en büyük hata: eval ve maliyet tavanı olmadan canlıya çıkmak."
+    },
+    {
+      "slug": "expo-supabase-mobile",
+      "timeToPrototype": "1 gün",
+      "timeToMvp": "2-3 hafta",
+      "timeToProductionReady": "5-8 hafta",
+      "prototypeSpeed": 4,
+      "productionReadiness": 3,
+      "productionGaps": ["Mağaza onay süreçleri (App Store 1-7 gün, red riski)", "Push bildirim altyapısı", "Çökme raporlama", "Offline davranış", "Cihaz matrisi testi", "Sürüm zorlama (force update) mekanizması"],
+      "opsBurden": "orta",
+      "hiddenCosts": ["Apple Developer + Google Play ücretleri", "EAS Build dakikaları", "Mağaza reddi kaynaklı gecikmeler", "Cihaz test havuzu"],
+      "verdict": "Kod tarafı hızlı; asıl gecikme mağaza süreçleridir. Mobil projelerde takvime her zaman 1-2 hafta mağaza payı ekleyin."
+    },
+    {
+      "slug": "jamstack-content",
+      "timeToPrototype": "2-4 saat",
+      "timeToMvp": "2-4 gün",
+      "timeToProductionReady": "1 hafta",
+      "prototypeSpeed": 5,
+      "productionReadiness": 5,
+      "productionGaps": ["SEO meta ve sitemap", "Analitik", "Form gönderimi için spam koruması", "Erişilebilirlik denetimi"],
+      "opsBurden": "çok düşük",
+      "hiddenCosts": ["Yok denecek kadar az"],
+      "verdict": "Üretime en hızlı ulaşan kategori. Dinamik veri ve kullanıcı hesabı yoksa en doğru tercih."
+    },
+    {
+      "slug": "self-hosted-stack",
+      "timeToPrototype": "1 gün",
+      "timeToMvp": "1-2 hafta",
+      "timeToProductionReady": "4-6 hafta",
+      "prototypeSpeed": 3,
+      "productionReadiness": 3,
+      "productionGaps": ["Otomatik yedekleme VE geri dönüş provası", "İzleme ve alarm", "Güvenlik güncellemeleri (otomatik yama)", "SSL yenileme", "Güvenlik duvarı ve SSH sıkılaştırma", "Tek sunucu = tek hata noktası riskinin kabulü"],
+      "opsBurden": "yüksek (tamamen sizde)",
+      "hiddenCosts": ["Sunucu bakımına giden geliştirici saati", "Gece yarısı olay müdahalesi", "Yedekten dönememe riski"],
+      "verdict": "Fatura en düşük, insan maliyeti en yüksek. Aylık 20 dolar tasarruf için haftada 3 saat harcanıyorsa hesap tutmaz — bunu kullanıcıya açıkça göstermek gerekir."
+    },
+    {
+      "slug": "go-microservices",
+      "timeToPrototype": "2-3 gün",
+      "timeToMvp": "3-5 hafta",
+      "timeToProductionReady": "8-12 hafta",
+      "prototypeSpeed": 2,
+      "productionReadiness": 4,
+      "productionGaps": ["Servis keşfi ve konfigürasyon yönetimi", "Dağıtık trace", "Servisler arası auth (mTLS)", "Şema/sözleşme sürümleme", "Dağıtık işlem stratejisi"],
+      "opsBurden": "yüksek",
+      "hiddenCosts": ["Platform ekibi ihtiyacı", "Dağıtık sistem hata ayıklama süresi", "Kubernetes işletme maliyeti"],
+      "verdict": "MVP için yanlış araç. Ancak trafik ve ekip büyüdüğünde birim maliyeti en düşük mimari. Monolitle başlayıp buraya geçmek genelde doğru yoldur."
+    },
+    {
+      "slug": "enterprise-java",
+      "timeToPrototype": "1 hafta",
+      "timeToMvp": "2-4 ay",
+      "timeToProductionReady": "4-8 ay",
+      "prototypeSpeed": 1,
+      "productionReadiness": 5,
+      "productionGaps": ["Genelde zaten kapsanır: güvenlik, denetim kaydı, işlem yönetimi standart gelir"],
+      "opsBurden": "yüksek",
+      "hiddenCosts": ["Ekip ve lisans maliyeti", "Onay/yönetişim süreçleri geliştirmeden uzun sürer"],
+      "verdict": "Hız için değil, denetlenebilirlik ve uzun ömür için seçilir. Regüle sektörde 'yavaş' bir kusur değil, gerekliliktir."
+    },
+    {
+      "slug": "dotnet-enterprise",
+      "timeToPrototype": "2-3 gün",
+      "timeToMvp": "3-6 hafta",
+      "timeToProductionReady": "2-4 ay",
+      "prototypeSpeed": 3,
+      "productionReadiness": 5,
+      "productionGaps": ["Azure kaynak yapılandırması", "Kimlik entegrasyonu (Entra ID)", "Yük testi"],
+      "opsBurden": "orta",
+      "hiddenCosts": ["Azure maliyeti", "Kurumsal lisanslar"],
+      "verdict": "Kurumsal gereksinimlerin çoğu framework içinde hazır geldiği için üretime hazırlık skoru yüksek; minimal API ile MVP hızı da fena değil."
+    }
+  ],
+  "technologies": [
+    {
+      "slug": "lovable",
+      "timeToPrototype": "30 dakika - 2 saat",
+      "timeToProductionReady": "3-6 hafta (kod devralındıktan sonra)",
+      "prototypeSpeed": 5,
+      "productionReadiness": 1,
+      "productionGaps": ["Güvenlik denetimi", "Kod tekrarının temizlenmesi", "Test yazımı", "Mimari düzeltme"],
+      "verdict": "Fikirden demoya en hızlı yol. Üretim için kodun devralınıp elden geçirilmesi bir varsayım değil, zorunluluktur."
+    },
+    {
+      "slug": "v0",
+      "timeToPrototype": "5-30 dakika (bileşen bazında)",
+      "timeToProductionReady": "doğrudan projeye taşınabilir",
+      "prototypeSpeed": 5,
+      "productionReadiness": 4,
+      "productionGaps": ["Tasarım tokenlerine uyarlama", "Erişilebilirlik kontrolü", "Gerçek veriye bağlama"],
+      "verdict": "Ürettiği kod standart shadcn/Tailwind olduğu için kategorisinde üretime en yakın çıktıyı veren araç."
+    },
+    {
+      "slug": "supabase",
+      "timeToPrototype": "15 dakika",
+      "timeToProductionReady": "1-3 hafta",
+      "prototypeSpeed": 5,
+      "productionReadiness": 3,
+      "productionGaps": ["RLS politikaları (KRİTİK)", "Migration'ların dosyaya alınması", "Yedekleme planı", "Bağlantı havuzu ayarı"],
+      "verdict": "Prototipte 15 dakikada backend verir. Üretimde tek belirleyici konu RLS'tir; onu doğru kurmadan canlıya çıkmak veri sızıntısı demektir."
+    },
+    {
+      "slug": "stripe",
+      "timeToPrototype": "1-2 saat",
+      "timeToProductionReady": "1-2 hafta",
+      "prototypeSpeed": 4,
+      "productionReadiness": 4,
+      "productionGaps": ["Webhook imza doğrulama", "Idempotency anahtarları", "Başarısız ödeme ve iade akışları", "Vergi yapılandırması", "Hesap doğrulama süreci"],
+      "verdict": "Checkout ile hızlı başlar; asıl iş abonelik yaşam döngüsü ve webhook güvenilirliğidir."
+    },
+    {
+      "slug": "iyzico",
+      "timeToPrototype": "yarım gün (test ortamı)",
+      "timeToProductionReady": "2-4 hafta",
+      "prototypeSpeed": 3,
+      "productionReadiness": 3,
+      "productionGaps": ["Üye iş yeri başvuru ve onay süreci", "3D Secure akışının tam testi", "İade/iptal akışları", "e-Fatura entegrasyonu"],
+      "verdict": "Teknik entegrasyondan çok evrak ve onay süreci zaman alır. Türkiye projelerinde ödeme başvurusunu ilk haftada başlatın."
+    },
+    {
+      "slug": "e-fatura-turkiye",
+      "timeToPrototype": "1-2 gün",
+      "timeToProductionReady": "3-6 hafta",
+      "prototypeSpeed": 2,
+      "productionReadiness": 2,
+      "productionGaps": ["Entegratör sözleşmesi ve mali mühür", "GİB test ortamı onayı", "Fatura senaryolarının doğrulanması", "İptal/iade fatura akışı"],
+      "verdict": "Türkiye projelerinde en çok küçümsenen kalem. Teknik iş kısa, bürokratik süreç uzun — projenin başında başlatılmalı."
+    },
+    {
+      "slug": "clerk",
+      "timeToPrototype": "20 dakika",
+      "timeToProductionReady": "3-5 gün",
+      "prototypeSpeed": 5,
+      "productionReadiness": 4,
+      "productionGaps": ["Üretim domaini yapılandırması", "Webhook ile kullanıcı senkronizasyonu", "Rol/izin modeli"],
+      "verdict": "Auth kategorisinde prototipten üretime mesafesi en kısa seçenek. Karşılığı kullanıcı başına maliyet ve veri sahipliğinden vazgeçmek."
+    },
+    {
+      "slug": "better-auth",
+      "timeToPrototype": "1-3 saat",
+      "timeToProductionReady": "1-2 hafta",
+      "prototypeSpeed": 4,
+      "productionReadiness": 4,
+      "productionGaps": ["E-posta doğrulama akışı", "Oturum güvenliği ayarları", "Rate limiting", "Şifre sıfırlama akışı"],
+      "verdict": "Clerk'ten yavaş başlar ama veri sende kalır ve kullanıcı başına maliyet yoktur. Uzun vadeli ürünlerde daha ekonomik."
+    },
+    {
+      "slug": "kubernetes",
+      "timeToPrototype": "2-5 gün",
+      "timeToProductionReady": "1-3 ay",
+      "prototypeSpeed": 1,
+      "productionReadiness": 3,
+      "productionGaps": ["RBAC sıkılaştırma", "Ağ politikaları", "Kaynak limitleri", "İzleme ve alarm", "Yedekleme (etcd + PV)", "Küme yükseltme prosedürü"],
+      "verdict": "MVP aşamasında kesinlikle önerilmez. Gerçek gereksinim çoklu servis + otomatik ölçekleme + adanmış platform kaynağı olduğunda anlamlıdır."
+    },
+    {
+      "slug": "playwright",
+      "timeToPrototype": "1-2 saat",
+      "timeToProductionReady": "1 hafta (anlamlı kapsam için)",
+      "prototypeSpeed": 4,
+      "productionReadiness": 5,
+      "productionGaps": ["CI'da kararlı çalışması için bekleme stratejisi", "Test verisi yönetimi"],
+      "verdict": "Üretime geçişi en çok hızlandıran yatırım. AI ajanı testi yazıp çalıştırarak kendi kendini doğrulayabildiği için erken kurulması ROI'si en yüksek adımdır."
+    },
+    {
+      "slug": "sentry",
+      "timeToPrototype": "15 dakika",
+      "timeToProductionReady": "yarım gün",
+      "prototypeSpeed": 5,
+      "productionReadiness": 5,
+      "productionGaps": ["Source map yükleme", "Gürültü filtreleme", "Alarm kuralları"],
+      "verdict": "Üretime hazırlık kontrol listesinde maliyet/fayda oranı en yüksek madde. Canlıya çıkmadan önce mutlaka kurulmalı."
+    },
+    {
+      "slug": "vanta",
+      "timeToPrototype": "-",
+      "timeToProductionReady": "3-6 ay (SOC 2 Type II gözlem penceresi dahil)",
+      "prototypeSpeed": 1,
+      "productionReadiness": 5,
+      "productionGaps": ["Politika dokümantasyonu", "Denetçi seçimi", "Gözlem dönemi bekleme süresi"],
+      "verdict": "Kurumsal müşteriye satış yapılacaksa satış sürecinden aylar önce başlatılmalı. Teknik değil takvim kısıtıdır."
+    },
+    {
+      "slug": "rust",
+      "timeToPrototype": "3-7 gün",
+      "timeToProductionReady": "değişken — ama derleyici çoğu üretim hatasını zaten engeller",
+      "prototypeSpeed": 1,
+      "productionReadiness": 5,
+      "productionGaps": ["Genelde az — bellek ve eşzamanlılık hataları derlemede yakalanır"],
+      "verdict": "Prototip hızı en düşük, üretim güvenilirliği en yüksek dil. AI destekli geliştirmede iterasyon maliyeti yüksek olduğu için MVP aşamasında önerilmez."
+    }
+  ]
+}

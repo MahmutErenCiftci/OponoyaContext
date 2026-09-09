@@ -1,0 +1,58 @@
+{
+  "name": "@devcontext/db",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "files": [
+    "dist",
+    "drizzle"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./schema": {
+      "types": "./dist/schema.d.ts",
+      "import": "./dist/schema.js"
+    },
+    "./config": {
+      "types": "./dist/config.d.ts",
+      "import": "./dist/config.js"
+    },
+    "./testing": {
+      "types": "./dist/testing.d.ts",
+      "import": "./dist/testing.js"
+    },
+    "./backup": {
+      "types": "./dist/backup.d.ts",
+      "import": "./dist/backup.js"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "build": "tsc -p tsconfig.build.json",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "pnpm build && node dist/migrate.js",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
+    "db:backup": "pnpm build && node dist/backup-cli.js backup",
+    "db:restore": "pnpm build && node dist/backup-cli.js restore",
+    "db:verify": "pnpm build && node dist/backup-cli.js verify",
+    "db:retention": "pnpm build && node dist/retention-cli.js"
+  },
+  "dependencies": {
+    "drizzle-orm": "0.45.2",
+    "pg": "8.23.0",
+    "zod": "4.5.4"
+  },
+  "devDependencies": {
+    "@types/pg": "8.23.1",
+    "drizzle-kit": "0.31.10",
+    "typescript": "npm:@typescript/typescript6@6.0.2",
+    "vitest": "5.0.0",
+    "@electric-sql/pglite": "0.5.8",
+    "@typescript/native": "npm:typescript@7.0.2"
+  }
+}

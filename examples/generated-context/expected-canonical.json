@@ -1,0 +1,180 @@
+{
+  "compilerVersion": "0.4.1",
+  "decisions": [
+    {
+      "constraints": {
+        "language": "typescript",
+        "priorities": [
+          "simplicity",
+          "maintainability"
+        ]
+      },
+      "decisionId": "d4",
+      "mode": "AI_DECIDE",
+      "origin": null,
+      "priority": 0,
+      "rationale": null,
+      "resource": null,
+      "shadowed": [],
+      "slot": "backend.framework",
+      "source": "project"
+    },
+    {
+      "constraints": {},
+      "decisionId": "d5",
+      "mode": "LOCKED",
+      "origin": null,
+      "priority": 0,
+      "rationale": null,
+      "resource": {
+        "archived": false,
+        "id": "pg",
+        "installCommand": null,
+        "name": "PostgreSQL",
+        "sourceUrl": null,
+        "type": "database"
+      },
+      "shadowed": [],
+      "slot": "database.primary",
+      "source": "project"
+    },
+    {
+      "constraints": {},
+      "decisionId": "d3",
+      "mode": "PREFERRED",
+      "origin": null,
+      "priority": 0,
+      "rationale": null,
+      "resource": {
+        "archived": false,
+        "id": "animate-toggle",
+        "installCommand": null,
+        "name": "Animate UI Toggle",
+        "sourceUrl": "https://animate-ui.com/docs/components/radix/toggle",
+        "type": "component"
+      },
+      "shadowed": [],
+      "slot": "frontend.component.toggle",
+      "source": "project"
+    },
+    {
+      "constraints": {},
+      "decisionId": "d1",
+      "mode": "LOCKED",
+      "origin": null,
+      "priority": 0,
+      "rationale": null,
+      "resource": {
+        "archived": false,
+        "id": "next",
+        "installCommand": null,
+        "name": "Next.js",
+        "sourceUrl": null,
+        "type": "framework"
+      },
+      "shadowed": [],
+      "slot": "frontend.framework",
+      "source": "project"
+    },
+    {
+      "constraints": {},
+      "decisionId": "d2",
+      "mode": "LOCKED",
+      "origin": null,
+      "priority": 0,
+      "rationale": null,
+      "resource": {
+        "archived": false,
+        "id": "shadcn",
+        "installCommand": null,
+        "name": "shadcn/ui",
+        "sourceUrl": null,
+        "type": "ui_library"
+      },
+      "shadowed": [],
+      "slot": "frontend.ui.base",
+      "source": "project"
+    }
+  ],
+  "project": {
+    "description": null,
+    "id": "restaurant-os",
+    "name": "RestaurantOS",
+    "platforms": [],
+    "priorities": [
+      "Fast MVP",
+      "Maintainability"
+    ],
+    "productType": null,
+    "slug": null,
+    "stage": "mvp"
+  },
+  "resources": [
+    {
+      "archived": false,
+      "attached": false,
+      "description": null,
+      "docsUrl": null,
+      "id": "animate-toggle",
+      "installCommand": null,
+      "name": "Animate UI Toggle",
+      "repoUrl": null,
+      "slots": [
+        "frontend.component.toggle"
+      ],
+      "slug": null,
+      "sourceUrl": "https://animate-ui.com/docs/components/radix/toggle",
+      "type": "component"
+    },
+    {
+      "archived": false,
+      "attached": false,
+      "description": null,
+      "docsUrl": null,
+      "id": "next",
+      "installCommand": null,
+      "name": "Next.js",
+      "repoUrl": null,
+      "slots": [
+        "frontend.framework"
+      ],
+      "slug": null,
+      "sourceUrl": null,
+      "type": "framework"
+    },
+    {
+      "archived": false,
+      "attached": false,
+      "description": null,
+      "docsUrl": null,
+      "id": "pg",
+      "installCommand": null,
+      "name": "PostgreSQL",
+      "repoUrl": null,
+      "slots": [
+        "database.primary"
+      ],
+      "slug": null,
+      "sourceUrl": null,
+      "type": "database"
+    },
+    {
+      "archived": false,
+      "attached": false,
+      "description": null,
+      "docsUrl": null,
+      "id": "shadcn",
+      "installCommand": null,
+      "name": "shadcn/ui",
+      "repoUrl": null,
+      "slots": [
+        "frontend.ui.base"
+      ],
+      "slug": null,
+      "sourceUrl": null,
+      "type": "ui_library"
+    }
+  ],
+  "rules": [],
+  "warnings": []
+}

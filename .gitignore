@@ -1,0 +1,17 @@
+node_modules
+.next
+.turbo
+dist
+coverage
+.env
+.env.local
+*.log
+.DS_Store
+*.tsbuildinfo
+playwright-report
+test-results
+.local
+backups
+packages/catalog/src/generated
+deploy/env/*.env
+!deploy/env/ci.env
