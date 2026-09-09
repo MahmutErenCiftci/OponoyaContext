@@ -21,11 +21,18 @@ const devOnly = [
   "AGENTS.md",
   "CLAUDE.md",
   "MANIFEST.json",
+  "README.main.md",
   "docs",
   "marketing",
   "prompts",
   "scripts/sync-main.mjs",
 ];
+
+/**
+ * `README.main.md` becomes `README.md` on the published branch, so that main
+ * never ships links into the `docs/` and `prompts/` trees it does not carry.
+ */
+const readmeSource = "README.main.md";
 
 function git(args, env = {}) {
   return execFileSync("git", args, {
@@ -61,7 +68,9 @@ let tree;
 try {
   const env = { GIT_INDEX_FILE: join(scratch, "index") };
   git(["read-tree", dev], env);
+  const readmeBlob = git(["rev-parse", `${dev}:${readmeSource}`]);
   git(["rm", "-r", "-f", "--cached", "--quiet", "--ignore-unmatch", "--", ...devOnly], env);
+  git(["update-index", "--add", "--cacheinfo", `100644,${readmeBlob},README.md`], env);
   tree = git(["write-tree"], env);
 } finally {
   rmSync(scratch, { recursive: true, force: true });
