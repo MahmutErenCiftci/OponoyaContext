@@ -3,6 +3,7 @@ import {
   aiStatusResponseSchema,
   aiSuggestionListResponseSchema,
   auditEventListResponseSchema,
+  auditPresenceResponseSchema,
   billingSummaryResponseSchema,
   legalConfigResponseSchema,
   authOptionsResponseSchema,
@@ -11,6 +12,7 @@ import {
   catalogOverviewResponseSchema,
   catalogStackListResponseSchema,
   catalogStackResponseSchema,
+  catalogSuggestionsResponseSchema,
   catalogTechnologyListResponseSchema,
   catalogTechnologyResponseSchema,
   contextStateResponseSchema,
@@ -33,12 +35,14 @@ import {
   type AiStatus,
   type AiSuggestion,
   type AuditEvent,
+  type AuditPresence,
   type BillingSummary,
   type LegalConfig,
   type CatalogLibraryLinks,
   type CatalogOverview,
   type CatalogStack,
   type CatalogStackSummary,
+  type CatalogSuggestions,
   type CatalogTechnology,
   type CatalogTechnologySummary,
   type ContextState,
@@ -150,6 +154,11 @@ export function getAuditEvents(cookieHeader: string, searchParams: URLSearchPara
   return readAsUser("/v1/audit", auditEventListResponseSchema, (data) => data.events, cookieHeader, apiUrl, searchParams);
 }
 
+/** Previous sign-in and newest activity for the overview greeting; null when unavailable. */
+export function getAuditPresence(cookieHeader: string, apiUrl?: string): Promise<AuditPresence | null> {
+  return readAsUser("/v1/audit/presence", auditPresenceResponseSchema, (data) => data.presence, cookieHeader, apiUrl);
+}
+
 /** Library page; null when the list could not be loaded (never an empty list pretending to be real). */
 export function getResourceList(cookieHeader: string, searchParams: URLSearchParams = new URLSearchParams(), apiUrl?: string): Promise<{ resources: Resource[]; total: number } | null> {
   return readAsUser("/v1/resources", resourceListResponseSchema, (data) => data, cookieHeader, apiUrl, searchParams);
@@ -236,6 +245,11 @@ export function getCatalogStacks(cookieHeader: string, apiUrl?: string): Promise
 
 export const getCatalogStack = cache((cookieHeader: string, slug: string, apiUrl?: string): Promise<CatalogStack | null> =>
   readAsUser(entityPath("/v1/catalog/stacks", slug), catalogStackResponseSchema, (data) => data.stack, cookieHeader, apiUrl));
+
+/** Read-only catalog picks for the overview, based on the Library; null when unavailable. */
+export function getCatalogSuggestions(cookieHeader: string, apiUrl?: string): Promise<CatalogSuggestions | null> {
+  return readAsUser("/v1/catalog/suggestions", catalogSuggestionsResponseSchema, (data) => data.suggestions, cookieHeader, apiUrl);
+}
 
 /** Catalog slug → Library Resource id for entries already saved; empty when unavailable. */
 export async function getCatalogLibraryLinks(cookieHeader: string, apiUrl?: string): Promise<CatalogLibraryLinks> {

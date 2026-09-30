@@ -2,6 +2,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { fromNodeHeaders } from "better-auth/node";
 import type { CurrentUser } from "@devcontext/contracts";
 import { applyRateLimitHeaders, rateLimitedError, ruleForRoute, type RateLimiter, type RateLimitPolicy } from "../../lib/rate-limit.js";
+import { signInAction } from "../audit/repository.js";
 import type { Telemetry } from "../telemetry/service.js";
 import type { AuthProvider } from "./service.js";
 
@@ -115,7 +116,14 @@ export async function registerAuthRoutes(app: FastifyInstance, auth: AuthProvide
           request.log.info({ category: "security", event: "auth_sign_up", userId, requestId: request.id }, "auth_sign_up");
         }
       } else if (url.pathname.endsWith("/sign-in/email")) {
-        request.log.info({ category: "security", event: "auth_sign_in", userId: readUserId(payload), requestId: request.id }, "auth_sign_in");
+        const userId = readUserId(payload);
+        request.log.info({ category: "security", event: "auth_sign_in", userId, requestId: request.id }, "auth_sign_in");
+        // Feeds the overview's "last sign-in" line; the row carries no address, agent or credential.
+        if (userId) {
+          await options.telemetry.record({ actorUserId: userId, requestId: request.id }, {
+            action: signInAction, entityType: "account", entityId: userId,
+          });
+        }
       }
     }
     return sendAuthResponse(response, payload, reply);

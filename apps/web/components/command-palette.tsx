@@ -42,7 +42,7 @@ function hrefFor(result: SearchResult) {
  * Workspace-wide search and quick actions. Opens with the header button or
  * Ctrl/Cmd+K; results are owner-scoped by the API and navigable by keyboard.
  */
-export function CommandPalette() {
+export function CommandPalette({ variant = "icon" }: { variant?: "icon" | "field" }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -134,9 +134,17 @@ export function CommandPalette() {
 
   return (
     <>
-      <button aria-haspopup="dialog" aria-label="Çalışma alanında ara" className="icon-button" onClick={() => setOpen(true)} title="Ara (Ctrl+K)" type="button">
-        <MagnifyingGlass aria-hidden size={24} />
-      </button>
+      {variant === "field" ? (
+        <button aria-haspopup="dialog" aria-label="Çalışma alanında ara" className="search-trigger" onClick={() => setOpen(true)} title="Ara (Ctrl+K)" type="button">
+          <MagnifyingGlass aria-hidden size={18} />
+          <span className="search-trigger-text">Ara veya hızlı işlem…</span>
+          <kbd>Ctrl K</kbd>
+        </button>
+      ) : (
+        <button aria-haspopup="dialog" aria-label="Çalışma alanında ara" className="icon-button" onClick={() => setOpen(true)} title="Ara (Ctrl+K)" type="button">
+          <MagnifyingGlass aria-hidden size={24} />
+        </button>
+      )}
       {open && (
         <div className="drawer-backdrop dialog-center" onMouseDown={(event) => { if (event.currentTarget === event.target) close(); }} role="presentation">
           <section aria-label="Çalışma alanında ara" aria-modal="true" className="dialog" role="dialog">

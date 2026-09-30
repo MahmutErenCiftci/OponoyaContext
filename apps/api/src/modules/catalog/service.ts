@@ -1,13 +1,16 @@
 import {
   productName,
   profileListQuerySchema,
+  resourceListQuerySchema,
   type CatalogLibraryAddResult,
   type CatalogOverview,
   type CatalogPresetDecision,
+  type CatalogReference,
   type CatalogStack,
   type CatalogStackLibraryResult,
   type CatalogStackProfileResult,
   type CatalogStackSummary,
+  type CatalogSuggestions,
   type CatalogTechnology,
   type CatalogTechnologyListQuery,
   type CatalogTechnologySummary,
@@ -41,6 +44,8 @@ export interface CatalogService {
   getStack(slug: string): CatalogStack;
   /** Catalog slug → active Resource id, for "already in your Library" states. */
   libraryLinks(ownerUserId: string): Promise<Record<string, string>>;
+  /** Read-only picks for the overview, derived from the Library's catalog technologies. */
+  suggestions(ownerUserId: string): Promise<CatalogSuggestions>;
   /** Idempotent: an active copy is returned as is, an archived copy is restored, otherwise a Resource is created. */
   addTechnology(ownerUserId: string, slug: string): Promise<CatalogLibraryAddResult>;
   addStack(ownerUserId: string, slug: string): Promise<CatalogStackLibraryResult>;
@@ -107,6 +112,68 @@ export function toResourceInput(technology: CatalogTechnology): CreateResourceIn
       learningCurve: technology.learningCurve,
       aiBuildability: technology.aiBuildability,
     },
+  };
+}
+
+const suggestionLimits = { technologies: 10, stacks: 4, because: 2 };
+
+/** "Sample · Next.js" and "nextjs" both fold to "nextjs". */
+function foldName(name: string) {
+  return name.replace(/^sample\s*·\s*/i, "").normalize("NFKD").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "");
+}
+
+let nameIndex: Map<string, string> | null = null;
+/** Folded catalog technology name (and slug) → slug; built once, the catalog is static. */
+function catalogSlugByName() {
+  nameIndex ??= new Map(listTechnologies().flatMap((item) => [[foldName(item.name), item.slug], [foldName(item.slug), item.slug]] as const));
+  return nameIndex;
+}
+
+/**
+ * Deterministic overview picks. A technology that pairs with something in the
+ * Library outranks an alternative to it; ties keep the catalog's curated order.
+ * Stacks rank by how many of their known technologies the Library already
+ * holds; an empty Library gets the first curated stacks as starters.
+ */
+export function suggestFromLibrary(owned: ReadonlySet<string>): CatalogSuggestions {
+  const summaries = listTechnologies();
+  const order = new Map(summaries.map((item, index) => [item.slug, index]));
+  const candidates = new Map<string, { score: number; reason: "pairs_with" | "alternative"; because: CatalogReference[] }>();
+  function consider(reference: CatalogReference, from: CatalogReference, reason: "pairs_with" | "alternative") {
+    if (!reference.known || owned.has(reference.slug)) return;
+    const candidate = candidates.get(reference.slug) ?? { score: 0, reason, because: [] };
+    candidate.score += reason === "pairs_with" ? 2 : 1;
+    if (reason === "pairs_with") candidate.reason = reason;
+    if (!candidate.because.some((item) => item.slug === from.slug)) candidate.because.push(from);
+    candidates.set(reference.slug, candidate);
+  }
+  for (const slug of owned) {
+    const technology = getTechnology(slug);
+    if (!technology) continue;
+    const from: CatalogReference = { slug, name: technology.name, known: true };
+    for (const reference of technology.pairsWith) consider(reference, from, "pairs_with");
+    for (const reference of technology.alternatives) consider(reference, from, "alternative");
+  }
+  const bySlug = new Map(summaries.map((item) => [item.slug, item]));
+  const technologies = [...candidates.entries()]
+    .sort(([a, left], [b, right]) => right.score - left.score || (order.get(a) ?? 0) - (order.get(b) ?? 0))
+    .slice(0, suggestionLimits.technologies)
+    .flatMap(([slug, candidate]) => {
+      const technology = bySlug.get(slug);
+      return technology ? [{ technology, reason: candidate.reason, because: candidate.because.slice(0, suggestionLimits.because) }] : [];
+    });
+
+  const stacks = listStacks().map((stack, index) => {
+    const known = new Set(getStack(stack.slug)?.layers.flatMap((layer) => layer.technologies).filter((item) => item.known).map((item) => item.slug) ?? []);
+    const matched = [...known].filter((slug) => owned.has(slug)).length;
+    return { stack, matched, complete: known.size > 0 && matched === known.size, index };
+  });
+  const ranked = owned.size === 0
+    ? stacks
+    : stacks.filter((item) => item.matched > 0 && !item.complete).sort((a, b) => b.matched - a.matched || a.index - b.index);
+  return {
+    technologies,
+    stacks: ranked.slice(0, suggestionLimits.stacks).map(({ stack, matched }) => ({ stack, matched })),
   };
 }
 
@@ -188,6 +255,19 @@ export function createCatalogService(resources: ResourceService, profiles: Profi
     async libraryLinks(ownerUserId) {
       const links = await resources.listCatalogLinks(ownerUserId);
       return Object.fromEntries(links.filter((link) => !link.archived).map((link) => [link.catalogSlug, link.resourceId]));
+    },
+    async suggestions(ownerUserId) {
+      const [links, library] = await Promise.all([
+        resources.listCatalogLinks(ownerUserId),
+        resources.list(ownerUserId, resourceListQuerySchema.parse({ limit: 100 })),
+      ]);
+      const owned = new Set(links.filter((link) => !link.archived).map((link) => link.catalogSlug));
+      // Resources saved by hand or from samples count too when their name is a catalog technology's name.
+      for (const resource of library.resources) {
+        const slug = catalogSlugByName().get(foldName(resource.name));
+        if (slug) owned.add(slug);
+      }
+      return suggestFromLibrary(owned);
     },
     addTechnology,
     addStack,

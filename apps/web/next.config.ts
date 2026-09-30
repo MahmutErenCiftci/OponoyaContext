@@ -34,6 +34,8 @@ const privateHeaders = [{ key: "X-Robots-Tag", value: "noindex, nofollow" }];
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  // Development only: the default bottom-left badge would cover the sidebar's bottom buttons.
+  devIndicators: { position: "bottom-right" },
   // Self-contained server for the container image (apps/web/Dockerfile copies .next/standalone + static + public).
   output: "standalone",
   outputFileTracingRoot: workspaceRoot,

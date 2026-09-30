@@ -1,7 +1,9 @@
 import type { CurrentUser } from "@devcontext/contracts";
+import { cookies } from "next/headers";
 import type { ReactNode } from "react";
+import { parseSidebarCollapsed, sidebarCookieName } from "../../lib/sidebar";
 import { readTheme } from "../../lib/theme-server";
-import { WorkspaceNavigation } from "./workspace-navigation";
+import { WorkspaceFrame } from "./workspace-navigation";
 
 export type WorkspaceSection = "Overview" | "Library" | "Catalog" | "Projects" | "Profiles" | "Recipes" | "Plan" | "Settings";
 
@@ -10,11 +12,10 @@ export async function WorkspaceShell({ user, active, children }: {
   active: WorkspaceSection | null;
   children: ReactNode;
 }) {
+  const collapsed = parseSidebarCollapsed((await cookies()).get(sidebarCookieName)?.value);
   return (
-    <div className="workspace-shell">
-      <a className="skip-link" href="#workspace-content">İçeriğe geç</a>
-      <WorkspaceNavigation active={active} theme={await readTheme()} user={user} />
-      <main id="workspace-content">{children}</main>
-    </div>
+    <WorkspaceFrame active={active} initialCollapsed={collapsed} theme={await readTheme()} user={user}>
+      {children}
+    </WorkspaceFrame>
   );
 }

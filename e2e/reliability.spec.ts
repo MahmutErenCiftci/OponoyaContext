@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { unavailableWebUrl } from "../playwright.config";
-import { addResource, createProjectFromWizard, noHorizontalOverflow, openNewProject, projectSections, signUp, skipFirstRun, workspaceNav } from "./support/workspace";
+import { addResource, createProjectFromWizard, noHorizontalOverflow, openActivity, openNewProject, projectSections, signUp, skipFirstRun, workspaceNav } from "./support/workspace";
 
 test("an unreachable API leaves the user with a clear, retryable screen instead of a sign-in bounce", async ({ page }, testInfo) => {
   await page.goto(`${unavailableWebUrl}/`);
@@ -40,7 +40,9 @@ test("recoverable failures: a failed compile can be retried, unknown entities ar
 
   await signUp(page, "Reliability Tester", email);
   await skipFirstRun(page);
-  await expect(page.getByRole("list", { name: "Son etkinlikler" })).toContainText("Çalışma alanı oluşturuldu");
+  // A first visit shows no "last sign-in" line; the full trail is in Settings.
+  await expect(page.getByRole("list", { name: "Son ziyaretin" })).toHaveCount(0);
+  await expect(await openActivity(page)).toContainText("Çalışma alanı oluşturuldu");
 
   await sidebar.getByRole("link", { name: "Kütüphane" }).click();
   await addResource(page, { name: "Fastify", type: "framework", url: "https://fastify.dev" });
@@ -82,7 +84,7 @@ test("recoverable failures: a failed compile can be retried, unknown entities ar
   await page.getByRole("link", { name: "Genel bakışa dön" }).click();
   await expect(page).toHaveURL(/\/workspace$/);
 
-  const activity = page.getByRole("list", { name: "Son etkinlikler" });
+  const activity = await openActivity(page);
   await expect(activity).toContainText("Talimatlar oluşturuldu");
   await expect(activity).toContainText("Proje oluşturuldu");
   await expect(activity).toContainText("Kaynak kaydedildi");

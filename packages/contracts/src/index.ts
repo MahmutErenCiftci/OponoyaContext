@@ -806,6 +806,18 @@ export type AuditEventListQuery = z.infer<typeof auditEventListQuerySchema>;
 
 export const auditEventListResponseSchema = z.object({ events: z.array(auditEventSchema) });
 
+/**
+ * Overview greeting inputs. `previousSignInAt` is the sign-in before the
+ * current one (null on a first visit); `lastActivity` is the newest audit
+ * event that is not a sign-in.
+ */
+export const auditPresenceSchema = z.object({
+  previousSignInAt: z.iso.datetime().nullable(),
+  lastActivity: auditEventSchema.nullable(),
+});
+export type AuditPresence = z.infer<typeof auditPresenceSchema>;
+export const auditPresenceResponseSchema = z.object({ presence: auditPresenceSchema });
+
 // ---------------------------------------------------------------------------
 // V1 recipes, onboarding, samples and portability (Handoff 9)
 // ---------------------------------------------------------------------------
@@ -1349,6 +1361,33 @@ export const catalogStackSchema = catalogStackSummarySchema.extend({
   velocity: catalogVelocitySchema.nullable(),
 });
 export type CatalogStack = z.infer<typeof catalogStackSchema>;
+
+/**
+ * Read-only catalog suggestions built from the technologies already in the
+ * Library: companions (`pairs_with`) first, then alternatives. `because` names
+ * the Library technologies that led to the suggestion. Nothing is added to
+ * the Library until the user does it explicitly.
+ */
+export const catalogTechnologySuggestionSchema = z.object({
+  technology: catalogTechnologySummarySchema,
+  reason: z.enum(["pairs_with", "alternative"]),
+  because: z.array(catalogReferenceSchema),
+});
+export type CatalogTechnologySuggestion = z.infer<typeof catalogTechnologySuggestionSchema>;
+
+/** `matched` counts the stack's known technologies already in the Library (0 for starter picks). */
+export const catalogStackSuggestionSchema = z.object({
+  stack: catalogStackSummarySchema,
+  matched: z.number().int().nonnegative(),
+});
+export type CatalogStackSuggestion = z.infer<typeof catalogStackSuggestionSchema>;
+
+export const catalogSuggestionsSchema = z.object({
+  technologies: z.array(catalogTechnologySuggestionSchema),
+  stacks: z.array(catalogStackSuggestionSchema),
+});
+export type CatalogSuggestions = z.infer<typeof catalogSuggestionsSchema>;
+export const catalogSuggestionsResponseSchema = z.object({ suggestions: catalogSuggestionsSchema });
 
 export const catalogDomainInfoSchema = z.object({
   id: catalogDomainSchema,

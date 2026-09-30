@@ -2,6 +2,7 @@ import type { AuditEvent } from "@devcontext/contracts";
 
 const labels: Record<string, string> = {
   "account.created": "Çalışma alanı oluşturuldu",
+  "account.signed_in": "Oturum açıldı",
   "account.password_changed": "Şifre değiştirildi",
   "account.export_downloaded": "Hesap verileri indirildi",
   "account.deletion_blocked": "Hesap silme tamamlanamadı",

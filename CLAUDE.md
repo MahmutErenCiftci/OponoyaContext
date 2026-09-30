@@ -46,11 +46,27 @@ only one numbered handoff prompt at a time.
   record. The owner deferred writing tests for new slices until the product is
   complete (2026-09-09); keep existing suites green.
 - The web UI follows the design pack in `../claude-ui-handoff` (27 reference
-  screens, `DESIGN_SYSTEM.md`, `DOMAIN_BINDINGS.md`): Turkish copy, horizontal
-  top navigation, right-hand drawers (`components/drawer.tsx`), the four-step
-  full-page project wizard and shared components under `apps/web/components`.
-  New screens reuse those pieces; do not reintroduce a left sidebar or PNG
-  backgrounds.
+  screens, `DESIGN_SYSTEM.md`, `DOMAIN_BINDINGS.md`): Turkish copy, right-hand
+  drawers (`components/drawer.tsx`), the four-step full-page project wizard and
+  shared components under `apps/web/components`. Navigation changed by owner
+  decision on 2026-09-30 (`app/workspace/workspace-navigation.tsx`): work
+  sections live in a collapsible left sidebar (drawer on phones), learning and
+  discovery (Katalog, Yenilikler; later guides or community) live in the slim
+  top bar next to search, theme and account. Desktop (≥1024px) renders at 90 %
+  through `zoom` on `html` (owner found 100 % oversized); full-height rules
+  divide viewport units by `--ui-zoom`. Overview news entries live in
+  `apps/web/lib/announcements.ts` (shipped changes only). New screens reuse
+  those pieces; do not add PNG backgrounds.
+- Public development plan (owner decisions 2026-09-30, `apps/web/lib/roadmap.ts`,
+  shown on the Plan page): nothing is charged while the product is in
+  development; a Free account stays permanently; Pro arrives with V2 at a fixed
+  14,99 $ with a 4,99 $ development discount until the product is complete and
+  has real users; the newest AI features and enterprise usage/pricing come after
+  V3. These are display texts only — `modules/billing/plans.ts` and the billing
+  provider are unchanged. While no AI provider is configured, AI actions
+  (suggestions, consent, stack suggestion) render faded with "Yakında · Pro"
+  (`components/coming-soon.tsx`); compiled "AI talimatları" and the AI_DECIDE
+  decision mode are core features and stay active.
   A compiler semantic change must bump `COMPILER_VERSION` (now 0.4.3), regenerate
   golden snapshots and `examples/generated-context`. Export adapters treat user
   text as data (report 45): keep using the `inline`/`paragraph`/`codeSpan`
