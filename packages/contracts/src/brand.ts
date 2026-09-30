@@ -10,7 +10,7 @@
  * This module has no dependencies, so browser code that only needs the name
  * (`@devcontext/contracts/brand`) does not pull every schema and Zod along.
  */
-export const productName = "DevContext";
+export const productName = "Oponoya";
 export const productTagline = "Teknolojilerini bir kez anlat. Her projede hatırlansın.";
 export const productDescription = "Araçlarını, tercihlerini ve kurallarını kodlama ajanlarının anlayacağı talimatlara dönüştür.";
 /** Single-letter mark used in the logo tile and the app icon. */

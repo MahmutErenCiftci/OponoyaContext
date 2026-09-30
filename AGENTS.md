@@ -70,6 +70,19 @@ After coding:
 4. Note migrations/config changes.
 5. Update roadmap/backlog status if appropriate.
 
+## Product name
+
+The product is **Oponoya** (owner decision 2026-09-30), served from
+`oponoya.com`. Everything people see — UI, page titles, icons and monogram,
+legal pages, the AI system prompt and the header of exported context files —
+comes from `productName` in `packages/contracts/src/brand.ts` and
+`GENERATOR_NAME` in the context compiler (a test keeps them equal); rename there,
+never by hand in screens. Technical identifiers keep the old `devcontext` name
+on purpose and must not be renamed: the `@devcontext/*` package scope, the
+cookie prefix, the portable JSON format id `"devcontext"` (changing it would
+reject every earlier export), database and image names, and the repository
+folder. Historical reports in `docs/` keep the name they were written under.
+
 ## Branches
 
 `dev` is the working branch and holds the complete repository. `main` is the

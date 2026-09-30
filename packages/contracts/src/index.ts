@@ -901,7 +901,8 @@ export type SampleCounts = z.infer<typeof sampleCountsSchema>;
 export const sampleInstallResponseSchema = z.object({ settings: workspaceSettingsSchema, created: z.boolean(), counts: sampleCountsSchema });
 export const sampleRemoveResponseSchema = z.object({ settings: workspaceSettingsSchema, removed: sampleCountsSchema });
 
-// Portable DevContext JSON (format "devcontext", version 1).
+// Portable Oponoya JSON (format "devcontext", version 1). The format id predates
+// the rename to Oponoya and stays: changing it would reject every earlier export.
 
 export const portableFormat = "devcontext";
 export const portableVersion = 1;
@@ -1004,7 +1005,7 @@ export const portableCompatibilityRuleSchema = z.object({
 export type PortableCompatibilityRule = z.infer<typeof portableCompatibilityRuleSchema>;
 
 /**
- * The user's structured DevContext data. Refs are opaque per-document keys
+ * The user's structured Oponoya data. Refs are opaque per-document keys
  * (exports use entity ids), never database ids on import. History (context
  * versions, export events, audit trail) and anything account-related are
  * deliberately absent.

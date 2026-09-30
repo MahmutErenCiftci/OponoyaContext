@@ -51,7 +51,7 @@ only one numbered handoff prompt at a time.
   full-page project wizard and shared components under `apps/web/components`.
   New screens reuse those pieces; do not reintroduce a left sidebar or PNG
   backgrounds.
-  A compiler semantic change must bump `COMPILER_VERSION` (now 0.4.2), regenerate
+  A compiler semantic change must bump `COMPILER_VERSION` (now 0.4.3), regenerate
   golden snapshots and `examples/generated-context`. Export adapters treat user
   text as data (report 45): keep using the `inline`/`paragraph`/`codeSpan`
   helpers for anything a user, an import or an AI proposal wrote.

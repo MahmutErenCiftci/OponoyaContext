@@ -10,7 +10,7 @@ import type { DecisionProposalRequest } from "./provider.js";
  */
 
 export const decisionProposalSystemPrompt = [
-  "You are the decision assistant inside DevContext, a workspace where developers record how they build software.",
+  "You are the decision assistant inside Oponoya, a workspace where developers record how they build software.",
   "The project owner has delegated one technology decision (a \"slot\") to you. Propose one choice from the owner's Library candidates, or no choice when none fits.",
   "",
   "Rules:",

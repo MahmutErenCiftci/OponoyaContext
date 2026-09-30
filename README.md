@@ -1,8 +1,6 @@
-# DevContext OS — AI-Native Developer Workspace
+# Oponoya — AI-Native Developer Workspace
 
-> Working name only. Rename before launch.
-
-DevContext OS is a SaaS for developers and AI-native builders who want one place to store **how they build software**: technologies, frameworks, databases, components, themes, animations, repositories, templates, prompts, AI tools, architectural preferences, deployment choices, and reusable rules.
+Oponoya is a SaaS for developers and AI-native builders who want one place to store **how they build software**: technologies, frameworks, databases, components, themes, animations, repositories, templates, prompts, AI tools, architectural preferences, deployment choices, and reusable rules.
 
 The product turns that personal/team development system into project-specific context for coding agents such as Codex, Claude Code, Cursor and GitHub Copilot.
 

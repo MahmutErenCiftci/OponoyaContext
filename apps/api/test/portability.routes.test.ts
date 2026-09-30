@@ -49,7 +49,7 @@ function portability(): PortabilityService {
     exportWorkspace: vi.fn(async (ownerUserId) => ({ ...emptyDocument, resources: ownerUserId === ownerA ? [{ ref: "r1", name: "Next.js", type: "framework" as const, description: null, sourceUrl: null, docsUrl: null, repoUrl: null, installCommand: null, notes: null, metadata: {}, tags: [], favorite: false, archived: false, preference: null }] : [] })),
     importWorkspace: vi.fn(async (_ownerUserId, request, idempotencyKey) => {
       const document = request.document as { version?: number };
-      if (document.version === 2) throw Object.assign(new Error("Import document is invalid"), { statusCode: 400, details: [{ path: ["document", "version"], code: "unsupported_version" }], publicMessage: "This file uses DevContext export version 2, which is newer than this app supports (version 1). Update the app before importing it." });
+      if (document.version === 2) throw Object.assign(new Error("Import document is invalid"), { statusCode: 400, details: [{ path: ["document", "version"], code: "unsupported_version" }], publicMessage: "This file uses Oponoya export version 2, which is newer than this app supports (version 1). Update the app before importing it." });
       const replay = idempotencyKey === "00000000-0000-4000-8000-000000000096";
       return { summary: { ...summary, strategy: request.strategy, dryRun: request.dryRun }, applied: !request.dryRun, created: !request.dryRun && !replay };
     }),

@@ -6,10 +6,10 @@
  * Bump COMPILER_VERSION whenever ordering or semantics of the canonical object
  * change and document it in docs/09_CONTEXT_COMPILER.md.
  */
-export const COMPILER_VERSION = "0.4.2";
+export const COMPILER_VERSION = "0.4.3";
 
 /** Product name printed in export headers; kept equal to `productName` in @devcontext/contracts (asserted by the API tests). */
-export const GENERATOR_NAME = "DevContext";
+export const GENERATOR_NAME = "Oponoya";
 
 export type DecisionMode = "LOCKED" | "PREFERRED" | "AI_DECIDE" | "DISABLED";
 

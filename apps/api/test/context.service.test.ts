@@ -79,7 +79,7 @@ describe("Context service", () => {
 
     const first = await service.compile(ownerA, projectA);
     expect(compileResponseSchema.parse(first).created).toBe(true);
-    expect(first.version).toMatchObject({ version: 1, compilerVersion: "0.4.2", decisionCount: 1, warningCount: 0 });
+    expect(first.version).toMatchObject({ version: 1, compilerVersion: "0.4.3", decisionCount: 1, warningCount: 0 });
     expect(first.version.canonical.decisions[0]).toMatchObject({ slot: "frontend.framework", mode: "PREFERRED", source: "global" });
     expect(first.version.previews.map((preview) => preview.target)).toEqual(["generic", "agents", "claude", "cursor", "copilot"]);
     expect(first.version.previews.find((preview) => preview.target === "agents")?.content).toContain("Prefer Next.js");
