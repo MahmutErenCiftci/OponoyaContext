@@ -43,6 +43,7 @@
   --radius: 7px;
   --radius-panel: 10px;
   --drawer-width: 600px;
+  --ease-out: cubic-bezier(.2, .8, .2, 1);
 }
 :root[data-theme="dark"] {
   color-scheme: dark;
@@ -175,7 +176,7 @@ img { max-width: 100%; height: auto; }
   community) plus search and the account live in a slim top bar that tucks
   away while scrolling down.
 */
-.workspace-shell { --sidebar-width: 252px; --sidebar-collapsed: 76px; --topbar-height: 60px; --ease-out: cubic-bezier(.2, .8, .2, 1); display: flex; min-height: calc(100vh / var(--ui-zoom, 1)); }
+.workspace-shell { --sidebar-width: 252px; --sidebar-collapsed: 76px; --topbar-height: 60px; display: flex; min-height: calc(100vh / var(--ui-zoom, 1)); }
 .workspace-column { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
 .workspace-column > main { flex: 1 0 auto; }
 
@@ -247,8 +248,8 @@ img { max-width: 100%; height: auto; }
 .topbar .header-menu-panel { top: calc(100% + 10px); }
 
 @media (max-width: 900px) {
-  .sidebar { position: fixed; top: 0; bottom: 0; left: 0; z-index: 55; width: min(300px, 86vw); height: auto; transform: translateX(-100%); transition: transform .3s var(--ease-out), box-shadow .3s ease; overflow-y: auto; }
-  .workspace-shell[data-mobile-nav="open"] .sidebar { transform: none; box-shadow: var(--shadow); }
+  .sidebar { position: fixed; top: 0; bottom: 0; left: 0; z-index: 55; width: min(300px, 86vw); height: auto; transform: translateX(-100%); visibility: hidden; transition: transform .3s var(--ease-out), box-shadow .3s ease, visibility 0s linear .3s; overflow-y: auto; }
+  .workspace-shell[data-mobile-nav="open"] .sidebar { transform: none; visibility: visible; box-shadow: var(--shadow); transition: transform .3s var(--ease-out), box-shadow .3s ease, visibility 0s; }
   .sidebar-close { display: inline-grid; }
   .sidebar-toggle { display: none; }
   .sidebar-discover { display: grid; }
@@ -508,7 +509,7 @@ details.disclosure > .disclosure-body { padding: 4px 0 20px; display: grid; gap:
 .wizard-main { border: 1px solid var(--line); border-radius: var(--radius-panel); padding: 28px; display: grid; gap: 22px; min-width: 0; }
 .wizard-main.plain { border: 0; padding: 0; }
 .wizard-main h2 { font-size: 20px; }
-.wizard-summary { border: 1px solid var(--line); border-radius: var(--radius-panel); background: var(--subtle); padding: 28px; display: grid; gap: 18px; position: sticky; top: calc(var(--header-height) + 24px); }
+.wizard-summary { border: 1px solid var(--line); border-radius: var(--radius-panel); background: var(--subtle); padding: 28px; display: grid; gap: 18px; position: sticky; top: calc(var(--topbar-height, 60px) + 24px); }
 .wizard-summary h3 { font-size: 22px; }
 .wizard-summary .divider { margin: 4px 0; }
 .wizard-summary dt { color: var(--muted); font-size: 14px; font-weight: 500; }
@@ -648,12 +649,12 @@ details.disclosure > .disclosure-body { padding: 4px 0 20px; display: grid; gap:
 
 /* Settings */
 .settings-layout { display: grid; grid-template-columns: 270px minmax(0, 1fr); gap: 56px; margin-top: 32px; }
-.settings-nav { display: grid; gap: 4px; align-self: start; position: sticky; top: calc(var(--header-height) + 24px); border-right: 1px solid var(--line); padding-right: 16px; }
+.settings-nav { display: grid; gap: 4px; align-self: start; position: sticky; top: calc(var(--topbar-height, 60px) + 24px); border-right: 1px solid var(--line); padding-right: 16px; }
 .settings-nav a { display: flex; align-items: center; gap: 14px; min-height: 52px; padding: 8px 16px; border-radius: var(--radius); color: var(--ink); font-size: 16px; }
 .settings-nav a:hover { background: var(--subtle); }
 .settings-nav a[aria-current="true"] { background: var(--accent-soft); color: var(--accent-text); font-weight: 600; }
 .settings-body { display: grid; gap: 0; min-width: 0; max-width: 1024px; }
-.settings-section { padding: 8px 0 36px; border-bottom: 1px solid var(--line); margin-bottom: 36px; scroll-margin-top: calc(var(--header-height) + 24px); }
+.settings-section { padding: 8px 0 36px; border-bottom: 1px solid var(--line); margin-bottom: 36px; scroll-margin-top: calc(var(--topbar-height, 60px) + 24px); }
 .settings-section:last-child { border-bottom: 0; margin-bottom: 0; }
 .settings-section > h2 { font-size: 22px; }
 .settings-section > .lead { color: var(--muted); margin-top: 8px; margin-bottom: 22px; }
@@ -924,9 +925,9 @@ details.disclosure > .disclosure-body { padding: 4px 0 20px; display: grid; gap:
 .centered-panel p { color: var(--muted); }
 
 /* Overview (2026-09-30): banner, greeting, project / technology / suggestion rails and news */
-.overview { display: grid; gap: 34px; }
-.overview > .checklist-panel, .overview > .first-run-compact { margin-top: 0; }
-.overview > .first-run { margin-top: 0; }
+.overview-page { display: grid; gap: 34px; }
+.overview-page > .checklist-panel, .overview-page > .first-run-compact { margin-top: 0; }
+.overview-page > .first-run { margin-top: 0; }
 
 .announcement-banner { position: relative; overflow: hidden; display: flex; align-items: center; gap: 14px; padding: 10px 12px 10px 14px; border: 1px solid var(--accent-soft-border); border-radius: 12px; background: var(--accent-soft); animation: overview-drop .5s var(--ease-out) both; }
 .announcement-banner > * { position: relative; }
@@ -936,8 +937,8 @@ details.disclosure > .disclosure-body { padding: 4px 0 20px; display: grid; gap:
 .announcement-banner p { flex: 1; min-width: 0; font-size: 14px; }
 .announcement-summary { color: var(--muted); }
 .announcement-link { flex-shrink: 0; display: inline-flex; align-items: center; gap: 6px; color: var(--accent-text); font-size: 14px; font-weight: 600; }
-.announcement-link svg, .overview .text-link svg { transition: transform .2s var(--ease-out); }
-.announcement-link:hover svg, .overview .text-link:hover svg { transform: translateX(3px); }
+.announcement-link svg, .overview-page .text-link svg { transition: transform .2s var(--ease-out); }
+.announcement-link:hover svg, .overview-page .text-link:hover svg { transform: translateX(3px); }
 .announcement-close { flex-shrink: 0; width: 30px; height: 30px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 8px; background: transparent; color: var(--muted); }
 .announcement-close:hover { background: var(--surface); color: var(--ink); }
 
@@ -1043,7 +1044,7 @@ details.disclosure > .disclosure-body { padding: 4px 0 20px; display: grid; gap:
   .overview-hero-art { display: none; }
 }
 @media (max-width: 700px) {
-  .overview { gap: 26px; }
+  .overview-page { gap: 26px; }
   .overview-hero { padding: 22px 20px; }
   .overview-hero h1 { font-size: 28px; }
   .carousel-item { --pv: 1.15; }
@@ -1055,8 +1056,9 @@ details.disclosure > .disclosure-body { padding: 4px 0 20px; display: grid; gap:
 
 /* Coming-soon AI features and the development plan (2026-09-30) */
 .soon-badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 999px; background: var(--preferred-soft); color: var(--preferred); font-size: 11px; font-weight: 700; letter-spacing: .01em; white-space: nowrap; }
-.ai-soon { display: grid; gap: 10px; padding: 16px 18px; border: 1px dashed var(--line-strong); border-radius: var(--radius-panel); background: var(--subtle); opacity: .72; filter: saturate(.7); transition: opacity .2s ease, filter .2s ease; }
-.ai-soon:hover, .ai-soon:focus-within { opacity: .9; filter: none; }
+.ai-soon { display: grid; gap: 10px; padding: 16px 18px; border: 1px dashed var(--line-strong); border-radius: var(--radius-panel); background: var(--subtle); }
+.ai-soon-head .mark, .ai-soon-head .soon-badge, .ai-soon-foot .button { opacity: .6; }
+.ai-soon-head strong { color: var(--ink-2); }
 .ai-soon-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .ai-soon-head .mark { color: var(--muted); }
 .ai-soon p { color: var(--muted); font-size: 14px; }

@@ -166,7 +166,7 @@ export default async function WorkspacePage() {
 
   return (
     <WorkspaceShell active="Overview" user={user}>
-      <section className="page overview">
+      <section className="page overview-page">
         {showBanner && featured && <AnnouncementBanner announcement={featured} />}
 
         <header className="overview-hero">

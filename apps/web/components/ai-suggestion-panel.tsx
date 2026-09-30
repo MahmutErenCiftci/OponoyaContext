@@ -80,7 +80,7 @@ export function AiSuggestionPanel({ projectId, slot, status, onAccepted }: {
     return (
       <section aria-labelledby="ai-panel-title" className="ai-panel">
         <h3 id="ai-panel-title"><Sparkle aria-hidden size={20} />AI önerisi</h3>
-        <p className="muted small">Bu karar AI’a bırakıldı. Kütüphanenden somut bir öneri almak için <Link className="text-link" href="/workspace/settings?section=privacy">Ayarlar › Gizlilik ve veriler</Link>’den AI önerilerine izin ver. İzin vermeden hiçbir veri gönderilmez.</p>
+        <p className="muted small">Bu karar AI’a bırakıldı. Kütüphanenden somut bir öneri almak için <Link className="text-link" href="/workspace/settings?section=settings-privacy">Ayarlar › Gizlilik ve veriler</Link>’den AI önerilerine izin ver. İzin vermeden hiçbir veri gönderilmez.</p>
       </section>
     );
   }

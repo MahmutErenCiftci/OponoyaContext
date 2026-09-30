@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { contextVersions, count, projects, resources, users, type Database } from "@devcontext/db";
 import { createTestDatabase } from "@devcontext/db/testing";
 import { createAuditRepository, type AuditRepository } from "../src/modules/audit/repository.js";
+import { createCatalogService, suggestFromLibrary } from "../src/modules/catalog/service.js";
 import { createCompatibilityRepository } from "../src/modules/compatibility/repository.js";
 import { createCompatibilityService, type CompatibilityService } from "../src/modules/compatibility/service.js";
 import { createContextRepository } from "../src/modules/context/repository.js";
@@ -123,6 +124,10 @@ describe("cross-user isolation matrix", () => {
     expect(await decisionsService.listGlobal(ownerB)).toEqual([]);
     expect(await workspace.summary(ownerB)).toEqual({ resources: 1, favorites: 0, projects: 1, profiles: 0, compiledProjects: 0, contextVersions: 0, exports: 0 });
     expect(await audit.list(ownerB, { limit: 20 })).toEqual([]);
+    // Overview reads: owner A's sign-ins, activity and Library never shape owner B's greeting or suggestions.
+    expect(await audit.presence(ownerB)).toEqual({ previousSignInAt: null, lastActivity: null });
+    const suggestionsB = await createCatalogService(resourcesService, profilesService).suggestions(ownerB);
+    expect(suggestionsB).toEqual(suggestFromLibrary(new Set()));
     expect(await audit.list(ownerB, { entityId: projectId, limit: 20 })).toEqual([]);
   });
 

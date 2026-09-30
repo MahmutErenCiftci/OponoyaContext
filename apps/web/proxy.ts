@@ -32,6 +32,7 @@ export function proxy(request: NextRequest) {
   requestHeaders.set("content-security-policy", policy);
   const response = NextResponse.next({ request: { headers: requestHeaders } });
   response.headers.set("content-security-policy", policy);
+  if (https) response.headers.set("strict-transport-security", "max-age=63072000; includeSubDomains");
   return response;
 }
 
