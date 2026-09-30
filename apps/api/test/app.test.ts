@@ -30,6 +30,7 @@ function fakeAuth(): AuthProvider {
     },
     async verifyPassword() { return true; },
     async deleteUser() { return { setCookie: [] }; },
+    async changePassword() { return { setCookie: [] }; },
   };
 }
 
@@ -85,6 +86,17 @@ describe("API foundation", () => {
     expect(apiErrorSchema.parse(response.json()).error.code).toBe("SERVICE_UNAVAILABLE");
     expect(response.body).not.toContain("private credentials");
   });
+  it("fails readiness while draining without touching the database", async () => {
+    const app = await createApp();
+    const query = vi.spyOn(app.database.pool, "query");
+    app.readiness.draining = true;
+    const response = await app.inject("/ready");
+    expect(response.statusCode).toBe(503);
+    expect(apiErrorSchema.parse(response.json()).error).toMatchObject({ code: "SERVICE_UNAVAILABLE", message: "Shutting down" });
+    expect(query).not.toHaveBeenCalled();
+    // Liveness stays green so the orchestrator lets in-flight requests finish instead of killing the process.
+    expect((await app.inject("/health")).statusCode).toBe(200);
+  });
   it("closes the database pool with the application", async () => {
     const app = await createApp();
     const close = vi.spyOn(app.database, "close");
@@ -112,5 +124,26 @@ describe("API foundation", () => {
     for (const secret of ["super-secret", "private_data", "secret-token"]) {
       expect(failed.body + malformed.body + logs.join("")).not.toContain(secret);
     }
+  });
+  it("answers values the database cannot store with 400 instead of a server error", async () => {
+    const logs: string[] = [];
+    const stream = new Writable({ write(chunk, _encoding, callback) { logs.push(String(chunk)); callback(); } });
+    const app = Fastify({ logger: { stream }, logController: new LogController({ disableRequestLogging: true }) });
+    apps.push(app);
+    registerErrorHandlers(app);
+    // Drizzle wraps the driver error: the SQLSTATE sits on the cause, the message carries the bound values.
+    const queryError = (code: string) => Object.assign(new Error("Failed query: insert into resources ... params: x\u0000-private-value"), { cause: Object.assign(new Error("invalid byte sequence"), { code }) });
+    app.get("/nul", () => { throw queryError("22021"); });
+    app.get("/json-nul", () => { throw queryError("22P05"); });
+    app.get("/overflow", () => { throw queryError("22003"); });
+    app.get("/unique", () => { throw queryError("23505"); });
+    for (const url of ["/nul", "/json-nul", "/overflow"]) {
+      const response = await app.inject(url);
+      expect(response.statusCode, url).toBe(400);
+      expect(apiErrorSchema.parse(response.json()).error).toMatchObject({ code: "VALIDATION_ERROR", details: [{ path: [], code: "invalid_value" }] });
+    }
+    // Other database failures stay server errors.
+    expect((await app.inject("/unique")).statusCode).toBe(500);
+    expect(logs.join("")).not.toContain("private-value");
   });
 });

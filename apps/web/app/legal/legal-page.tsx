@@ -6,6 +6,7 @@ import { ThemeToggle } from "../../components/theme-toggle";
 import { getLegalConfig } from "../../lib/api";
 import { loadSession } from "../../lib/server-session";
 import { readTheme } from "../../lib/theme-server";
+import { BrandMark } from "../../components/brand-mark";
 
 /** Human names of the configuration keys the operator still has to supply. */
 export const placeholderLabels: Record<string, string> = {
@@ -45,7 +46,7 @@ export async function LegalPage({ current, title, children }: {
   return (
     <main>
       <header className="site-header">
-        <Link className="brand" href="/"><span className="brand-mark">D</span><span>DevContext</span></Link>
+        <Link className="brand" href="/"><BrandMark /></Link>
         <nav aria-label="Yasal belgeler"><Link aria-current={current === "terms" ? "page" : undefined} href="/legal/terms">Kullanım Şartları</Link><Link aria-current={current === "privacy" ? "page" : undefined} href="/legal/privacy">Gizlilik Politikası</Link></nav>
         <div className="right">
           <ThemeToggle initialTheme={theme} />

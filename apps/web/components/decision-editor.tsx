@@ -1,12 +1,13 @@
 "use client";
 
-import { decisionModeSchema, resourceListResponseSchema, type DecisionMode, type DecisionRecord, type Resource } from "@devcontext/contracts";
+import { decisionModeSchema, resourceListResponseSchema, type AiStatus, type DecisionMode, type DecisionRecord, type ProjectDecisionView, type Resource } from "@devcontext/contracts";
 import { Info, MagnifyingGlass } from "@phosphor-icons/react/dist/ssr";
 import { useEffect, useId, useState, type FormEvent } from "react";
 import { modeDescriptions, modeLabels, readConstraints, slotLabel, writeConstraints, type DecisionConstraints } from "../lib/decision-slots";
 import { readApiError } from "../lib/errors";
 import { typeLabels } from "../lib/resource-labels";
 import { catalogSlugFor } from "../lib/logos";
+import { AiSuggestionPanel } from "./ai-suggestion-panel";
 import { ChipField } from "./chip-field";
 import { ModeIcon } from "./decision-badge";
 import { DrawerFrame } from "./drawer";
@@ -39,7 +40,7 @@ const tone: Record<DecisionMode, string> = { LOCKED: "tone-locked", PREFERRED: "
  * resource and saves `resourceId: null`; every other mode needs a resource.
  */
 export function DecisionEditor<TSaved, TRemoved>({
-  slot, record, isOverride, library, endpoint, inherited, scopeNote, removeLabel, parseSaved, parseRemoved, onClose, onSaved, onRemoved,
+  slot, record, isOverride, library, endpoint, inherited, scopeNote, removeLabel, parseSaved, parseRemoved, onClose, onSaved, onRemoved, ai,
 }: {
   slot: string;
   /** Decision currently shown for the slot (explicit or inherited); null for a new slot. */
@@ -58,6 +59,8 @@ export function DecisionEditor<TSaved, TRemoved>({
   onClose(): void;
   onSaved(result: TSaved): void;
   onRemoved(result: TRemoved): void;
+  /** Project scope only: AI proposals for a slot that is currently delegated. */
+  ai?: { projectId: string; status: AiStatus; onAccepted(view: ProjectDecisionView): void } | undefined;
 }) {
   const id = useId();
   const [draft, setDraft] = useState<DecisionDraft>(() => draftFromRecord(record, readConstraints(record?.constraints ?? {})));
@@ -193,7 +196,10 @@ export function DecisionEditor<TSaved, TRemoved>({
       </fieldset>
 
       {delegated ? (
-        <p className="note" role="note"><Info aria-hidden size={20} />Bu kararda kaynak seçilmez. Coding agent aşağıdaki kısıtlar içinde en uygun seçeneği belirler ve gerekçesini yazar.</p>
+        <>
+          <p className="note" role="note"><Info aria-hidden size={20} />Bu kararda kaynak seçilmez. Coding agent aşağıdaki kısıtlar içinde en uygun seçeneği belirler ve gerekçesini yazar.</p>
+          {ai?.status.available && record?.mode === "AI_DECIDE" && <AiSuggestionPanel onAccepted={ai.onAccepted} projectId={ai.projectId} slot={slot} status={ai.status} />}
+        </>
       ) : (
         <div className="field">
           <label htmlFor={`${id}-resource`}>Kaynak *</label>

@@ -1,4 +1,7 @@
-import { z } from "zod";
+// Namespace import: lets bundlers drop the parts of Zod (locales, JSON Schema) that are never referenced.
+import * as z from "zod";
+
+export * from "./brand.js";
 
 export const healthResponseSchema = z.object({
   ok: z.literal(true),
@@ -11,6 +14,10 @@ export const currentUserSchema = z.object({
   name: z.string().min(1),
   image: z.string().nullable(),
 });
+
+/** `GET /v1/auth/options`: optional sign-in features of this deployment. */
+export const authOptionsResponseSchema = z.object({ options: z.object({ passwordReset: z.boolean() }) });
+export type AuthOptions = z.infer<typeof authOptionsResponseSchema>["options"];
 
 export const currentUserResponseSchema = z.object({
   user: currentUserSchema,
@@ -76,9 +83,12 @@ export const resourceTypeSchema = z.enum([
 
 export type ResourceType = z.infer<typeof resourceTypeSchema>;
 
-/** Reference URLs: HTTP(S) only and bounded so a stored link can never carry a payload-sized value. */
+/** Stored version numbers are PostgreSQL int4. */
+const versionNumberSchema = z.number().int().positive().max(2_147_483_647);
+
+/** Reference URLs: HTTP(S) only and bounded; an unparsable value is a validation issue, never an exception. */
 const httpUrlSchema = z.url().max(2_048).refine(
-  (value) => ["http:", "https:"].includes(new URL(value).protocol),
+  (value) => ["http:", "https:"].includes(URL.parse(value)?.protocol ?? ""),
   "Only HTTP and HTTPS URLs are supported",
 );
 
@@ -512,13 +522,39 @@ export const contextVersionListResponseSchema = z.object({
   versions: z.array(contextVersionSummarySchema),
 });
 
+/** Freshness of one Project's context for lists and headers: no canonical, no previews. */
+export const projectContextStatusSchema = z.object({
+  projectId: z.uuid(),
+  stale: z.boolean(),
+  draftWarningCount: z.number().int().nonnegative(),
+  latest: z.object({
+    version: z.number().int().positive(),
+    createdAt: z.iso.datetime(),
+    warningCount: z.number().int().nonnegative(),
+  }).nullable(),
+});
+export type ProjectContextStatus = z.infer<typeof projectContextStatusSchema>;
+
+/** `GET /v1/projects/context-status?ids=a,b,c`; foreign or missing ids are simply absent from the answer. */
+export const projectContextStatusQuerySchema = z.object({
+  ids: z.string().trim().min(1).max(50 * 37).transform((value, context) => {
+    const ids = [...new Set(value.split(",").map((item) => item.trim()).filter(Boolean))];
+    if (ids.length > 50 || !ids.every((id) => z.uuid().safeParse(id).success)) {
+      context.addIssue({ code: "custom", message: "Expected up to 50 comma-separated project ids" });
+      return z.NEVER;
+    }
+    return ids;
+  }),
+});
+export const projectContextStatusResponseSchema = z.object({ statuses: z.array(projectContextStatusSchema) });
+
 export const contextVersionResponseSchema = z.object({
   version: contextVersionSchema,
 });
 
 export const createExportSchema = z.object({
   target: exportTargetSchema,
-  version: z.number().int().positive().optional(),
+  version: versionNumberSchema.optional(),
 });
 export type CreateExportInput = z.infer<typeof createExportSchema>;
 
@@ -716,8 +752,8 @@ export const contextDiffSchema = z.object({
 export type ContextDiff = z.infer<typeof contextDiffSchema>;
 
 export const contextDiffQuerySchema = z.object({
-  from: z.coerce.number().int().positive().optional(),
-  to: z.coerce.number().int().positive().optional(),
+  from: z.coerce.number().pipe(versionNumberSchema).optional(),
+  to: z.coerce.number().pipe(versionNumberSchema).optional(),
 });
 
 /** `from`/`diff` are null when the Project has fewer than two versions to compare. */
@@ -743,7 +779,7 @@ export type WorkspaceSummary = z.infer<typeof workspaceSummarySchema>;
 // ---------------------------------------------------------------------------
 
 /** Aggregate an audit event belongs to; decisions are recorded against their Project or Profile. */
-export const auditEntityTypeSchema = z.enum(["account", "resource", "project", "profile", "recipe", "compatibility_rule", "workspace"]);
+export const auditEntityTypeSchema = z.enum(["account", "resource", "project", "profile", "recipe", "compatibility_rule", "workspace", "ai_suggestion"]);
 export type AuditEntityType = z.infer<typeof auditEntityTypeSchema>;
 
 /**
@@ -1067,6 +1103,8 @@ export const planFeaturesSchema = z.object({
   diff: z.boolean(),
   /** Context versions visible in history. */
   historyLimit: z.number().int().positive(),
+  /** AI suggestions per UTC calendar month; only meaningful when the deployment has an AI provider. */
+  aiSuggestionsPerMonth: z.number().int().nonnegative(),
 });
 export type PlanFeatures = z.infer<typeof planFeaturesSchema>;
 
@@ -1164,7 +1202,8 @@ export const billingSummarySchema = z.object({
 export type BillingSummary = z.infer<typeof billingSummarySchema>;
 export const billingSummaryResponseSchema = z.object({ billing: billingSummarySchema });
 
-export const billingRedirectResponseSchema = z.object({ url: z.url() });
+/** Provider redirects: absolute HTTP(S) only, so a response can never make the browser run a javascript: URL. */
+export const billingRedirectResponseSchema = z.object({ url: z.url({ protocol: /^https?$/ }) });
 export const billingReconcileResponseSchema = z.object({ entitlement: entitlementSchema, subscription: subscriptionViewSchema });
 
 export const billingWebhookStatusSchema = z.enum(["processed", "duplicate", "ignored", "unmatched"]);
@@ -1392,6 +1431,114 @@ export const catalogStackProfileResponseSchema = z.object({
 export type CatalogStackProfileResult = z.infer<typeof catalogStackProfileResponseSchema>;
 
 // ---------------------------------------------------------------------------
+// AI assistance (V1.5 groundwork). AI proposes, the user decides: a proposal
+// is stored as a pending suggestion and only an explicit accept turns it into
+// a Project decision. Off unless the operator configures a provider and the
+// user opts in; plan quotas bound the cost.
+// ---------------------------------------------------------------------------
+
+export const aiProviderIdSchema = z.enum(["anthropic", "fake"]);
+export type AiProviderId = z.infer<typeof aiProviderIdSchema>;
+
+export const aiEffortSchema = z.enum(["low", "medium", "high", "xhigh", "max"]);
+export type AiEffort = z.infer<typeof aiEffortSchema>;
+
+export const aiConfidenceSchema = z.enum(["low", "medium", "high"]);
+export type AiConfidence = z.infer<typeof aiConfidenceSchema>;
+
+/** Content-free reasons an AI request did not produce a suggestion. */
+export const aiFailureCodeSchema = z.enum([
+  "ai_unavailable",
+  "ai_rate_limited",
+  "ai_timeout",
+  "ai_refused",
+  "ai_invalid_output",
+  "ai_misconfigured",
+]);
+export type AiFailureCode = z.infer<typeof aiFailureCodeSchema>;
+
+export const aiSuggestionKindSchema = z.enum(["decision_proposal"]);
+export type AiSuggestionKind = z.infer<typeof aiSuggestionKindSchema>;
+
+/** `stale`: the slot was no longer delegated (or the choice unusable) when the user tried to accept. */
+export const aiSuggestionStatusSchema = z.enum(["pending", "accepted", "rejected", "stale"]);
+export type AiSuggestionStatus = z.infer<typeof aiSuggestionStatusSchema>;
+
+/** Validated, length-bounded proposal as stored; resource ids always belong to the owner's Library. */
+export const aiDecisionProposalSchema = z.object({
+  resourceId: z.uuid().nullable(),
+  rationale: z.string().max(500),
+  alternatives: z.array(z.object({ resourceId: z.uuid(), reason: z.string().max(240) })).max(3),
+  risks: z.array(z.string().max(240)).max(5),
+  confidence: aiConfidenceSchema,
+});
+export type AiDecisionProposal = z.infer<typeof aiDecisionProposalSchema>;
+
+export const aiSuggestionSchema = z.object({
+  id: z.uuid(),
+  projectId: z.uuid(),
+  kind: aiSuggestionKindSchema,
+  slot: z.string(),
+  status: aiSuggestionStatusSchema,
+  proposal: aiDecisionProposalSchema,
+  /** The proposed Library Resource, resolved for display; null when the AI found no fit or it is gone. */
+  resource: resourceReferenceSchema.nullable(),
+  alternatives: z.array(z.object({ resource: resourceReferenceSchema, reason: z.string() })),
+  /** Compatibility and archive warnings the choice would raise in the active stack, computed when proposed. */
+  warnings: z.array(compileWarningSchema),
+  provider: aiProviderIdSchema,
+  model: z.string(),
+  createdAt: z.iso.datetime(),
+  decidedAt: z.iso.datetime().nullable(),
+});
+export type AiSuggestion = z.infer<typeof aiSuggestionSchema>;
+
+export const aiQuotaSchema = z.object({
+  limit: z.number().int().nonnegative(),
+  used: z.number().int().nonnegative(),
+  remaining: z.number().int().nonnegative(),
+  /** Start of the next UTC calendar month. */
+  resetsAt: z.iso.datetime(),
+});
+export type AiQuota = z.infer<typeof aiQuotaSchema>;
+
+export const aiStatusSchema = z.object({
+  /** A provider is configured for this deployment. */
+  available: z.boolean(),
+  provider: aiProviderIdSchema.nullable(),
+  model: z.string().nullable(),
+  /** The user allowed sending project context to the provider. */
+  consented: z.boolean(),
+  consentedAt: z.iso.datetime().nullable(),
+  quota: aiQuotaSchema,
+});
+export type AiStatus = z.infer<typeof aiStatusSchema>;
+export const aiStatusResponseSchema = z.object({ ai: aiStatusSchema });
+
+export const updateAiConsentSchema = z.object({ consent: z.boolean() });
+export type UpdateAiConsentInput = z.infer<typeof updateAiConsentSchema>;
+
+export const requestAiSuggestionSchema = z.object({ slot: decisionSlotSchema });
+export type RequestAiSuggestionInput = z.infer<typeof requestAiSuggestionSchema>;
+
+/** Accepting turns the proposal into an explicit Project decision in this mode. */
+export const acceptAiSuggestionSchema = z.object({ mode: z.enum(["PREFERRED", "LOCKED"]).default("PREFERRED") });
+export type AcceptAiSuggestionInput = z.infer<typeof acceptAiSuggestionSchema>;
+
+export const aiSuggestionListQuerySchema = z.object({
+  status: z.enum([...aiSuggestionStatusSchema.options, "all"]).default("pending"),
+  limit: z.coerce.number().int().min(1).max(50).default(20),
+});
+export type AiSuggestionListQuery = z.infer<typeof aiSuggestionListQuerySchema>;
+
+export const aiSuggestionResponseSchema = z.object({ suggestion: aiSuggestionSchema });
+export const aiSuggestionListResponseSchema = z.object({ suggestions: z.array(aiSuggestionSchema) });
+export const acceptAiSuggestionResponseSchema = z.object({
+  suggestion: aiSuggestionSchema,
+  decision: projectDecisionViewSchema,
+});
+
+// ---------------------------------------------------------------------------
 // Account lifecycle, structured data export and legal surfaces (Handoff 11)
 // ---------------------------------------------------------------------------
 
@@ -1422,6 +1569,7 @@ export const accountStoredCountsSchema = z.object({
   exports: z.number().int().nonnegative(),
   auditEvents: z.number().int().nonnegative(),
   importRequests: z.number().int().nonnegative(),
+  aiSuggestions: z.number().int().nonnegative(),
   sessions: z.number().int().nonnegative(),
 });
 export type AccountStoredCounts = z.infer<typeof accountStoredCountsSchema>;
@@ -1436,14 +1584,21 @@ export const accountIntegrationsSchema = z.object({
     /** A provider customer exists, so cancellation happens through the provider portal or at deletion. */
     linked: z.boolean(),
   }),
-  /** Connected external services other than billing; this build has none (no GitHub, no AI provider). */
+  /** Connected external services other than billing; this build has none (no GitHub). The AI provider is reported under `processing`. */
   external: z.array(z.object({ id: z.string(), name: z.string(), connectedAt: z.iso.datetime().nullable() })),
 });
 export type AccountIntegrations = z.infer<typeof accountIntegrationsSchema>;
 
 export const accountProcessingSchema = z.object({
-  /** No request ever leaves the API for an AI provider; compilation is deterministic and local. */
-  externalAi: z.literal(false),
+  /**
+   * True only when the operator configured an AI provider AND this user opted
+   * in; even then data leaves the API only when the user asks for a suggestion.
+   * Compilation itself is always deterministic and local.
+   */
+  externalAi: z.boolean(),
+  /** Configured AI provider for this deployment (`null` when AI is off). */
+  aiProvider: aiProviderIdSchema.nullable(),
+  aiConsentedAt: z.iso.datetime().nullable(),
   /** Imported URLs, prompts, rules and install commands are stored as text and never fetched or executed. */
   importedContentStoredAsData: z.literal(true),
 });
@@ -1466,6 +1621,14 @@ export const deleteAccountRequestSchema = z.object({
   confirmation: z.string().trim().min(1).max(254),
 });
 export type DeleteAccountRequest = z.infer<typeof deleteAccountRequestSchema>;
+
+/** Password change for the signed-in user; every other session is signed out. */
+export const changePasswordRequestSchema = z.object({
+  currentPassword: z.string().min(1).max(128),
+  newPassword: z.string().min(8).max(128),
+}).refine((value) => value.newPassword !== value.currentPassword, { path: ["newPassword"], message: "The new password must differ from the current one" });
+export type ChangePasswordRequest = z.infer<typeof changePasswordRequestSchema>;
+export const changePasswordResponseSchema = z.object({ changed: z.literal(true), otherSessionsRevoked: z.literal(true) });
 export const deleteAccountResponseSchema = z.object({ deleted: z.literal(true), deletion: accountDeletionViewSchema });
 
 export const accountExportFormat = "devcontext-account";
@@ -1486,6 +1649,7 @@ export const accountExportSchema = z.object({
     onboardingChoice: onboardingChoiceSchema.nullable(),
     sampleVersion: z.string().nullable(),
     sampleInstalledAt: z.iso.datetime().nullable(),
+    aiConsentedAt: z.iso.datetime().nullable(),
   }),
   subscription: z.object({
     plan: planIdSchema,
@@ -1506,6 +1670,8 @@ export const accountExportSchema = z.object({
   })),
   exports: z.array(z.object({ projectId: z.uuid(), target: z.string(), createdAt: z.iso.datetime() })),
   auditEvents: z.array(auditEventSchema),
+  /** AI suggestions with their proposals and outcomes; empty while AI is off. */
+  aiSuggestions: z.array(aiSuggestionSchema),
 });
 export type AccountExport = z.infer<typeof accountExportSchema>;
 
@@ -1526,7 +1692,9 @@ export const legalConfigSchema = z.object({
     jurisdiction: z.string().nullable(),
   }),
   processing: z.object({
-    externalAi: z.literal(false),
+    /** An AI provider is configured; it only receives data from users who opted in and asked for a suggestion. */
+    externalAi: z.boolean(),
+    aiProvider: aiProviderIdSchema.nullable(),
     billingProvider: z.string().nullable(),
     billingTestMode: z.boolean(),
     hostingRegion: z.string().nullable(),

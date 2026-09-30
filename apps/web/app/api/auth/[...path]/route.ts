@@ -1,33 +1,21 @@
 import type { NextRequest } from "next/server";
-import { getApiBaseUrl } from "../../../../lib/api";
+import { proxyToApi } from "../../../../lib/proxy";
 
-type RouteContext = { params: Promise<{ path: string[] }> };
+/**
+ * Only the Better Auth endpoints the UI uses are reachable from the browser.
+ * Everything else (user deletion, profile updates, session listing) goes
+ * through the API's own routes, where the product rules live. The two
+ * password-reset endpoints pass here and are refused by the API (404) while
+ * no e-mail sender is configured there.
+ */
+const allowed = new Set(["POST sign-in/email", "POST sign-up/email", "POST sign-out", "POST request-password-reset", "POST reset-password"]);
 
-async function proxyAuthRequest(request: NextRequest, context: RouteContext) {
+export async function POST(request: NextRequest, context: { params: Promise<{ path: string[] }> }) {
   const { path } = await context.params;
-  const target = new URL(`/api/auth/${path.map(encodeURIComponent).join("/")}`, getApiBaseUrl());
-  target.search = request.nextUrl.search;
-
-  const headers = new Headers(request.headers);
-  headers.delete("host");
-  headers.delete("content-length");
-  const init: RequestInit = {
-    method: request.method,
-    headers,
-    redirect: "manual",
-  };
-  if (!["GET", "HEAD"].includes(request.method)) init.body = await request.arrayBuffer();
-
-  try {
-    const upstream = await fetch(target, init);
-    const responseHeaders = new Headers(upstream.headers);
-    responseHeaders.delete("set-cookie");
-    for (const cookie of upstream.headers.getSetCookie()) responseHeaders.append("set-cookie", cookie);
-    return new Response(upstream.body, { status: upstream.status, headers: responseHeaders });
-  } catch {
-    return Response.json({ message: "Authentication service is unavailable." }, { status: 502 });
-  }
+  return proxyToApi(request, path, {
+    prefix: "/api/auth",
+    unavailableMessage: "Giriş hizmetine şu an ulaşılamıyor.",
+    maxBodyBytes: 16_384,
+    allow: (method, segments) => allowed.has(`${method} ${segments.join("/")}`),
+  });
 }
-
-export const GET = proxyAuthRequest;
-export const POST = proxyAuthRequest;

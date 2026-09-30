@@ -17,7 +17,7 @@ import {
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import Markdown from "react-markdown";
+import Markdown, { type Components } from "react-markdown";
 import {
   ArrowRight,
   ArrowsClockwise,
@@ -39,11 +39,25 @@ import { catalogSlugFor } from "../../../../../lib/logos";
 import { modeLabels, originLabel, slotLabel } from "../../../../../lib/decision-slots";
 import { readApiError } from "../../../../../lib/errors";
 import { formatDate, formatDateTime, pluralCount } from "../../../../../lib/resource-labels";
+import { warningTitles } from "../../../../../lib/warning-labels";
 
 type Tab = ExportTarget | "canonical";
 type View = "document" | "diff";
 type DiffResult = { from: ContextVersionSummary | null; to: ContextVersionSummary | null; diff: ContextDiff | null };
 type DiffState = DiffResult | null | "loading" | { error: string };
+
+/**
+ * Links inside a preview come from Library entries and rules (possibly from an
+ * imported file): only absolute http(s) links become anchors, and they open in
+ * a new tab without access to this window. Anything else stays plain text.
+ */
+const markdownComponents: Components = {
+  a({ href, children }) {
+    const url = typeof href === "string" ? URL.parse(href) : null;
+    if (!url || !["http:", "https:"].includes(url.protocol)) return <span>{children}</span>;
+    return <a href={url.toString()} rel="noopener noreferrer nofollow" target="_blank">{children}</a>;
+  },
+};
 
 const agentOptions: Array<{ id: Tab; label: string }> = [
   { id: "agents", label: "Codex" },
@@ -81,6 +95,11 @@ function summaryOf(version: ContextVersion): ContextVersionSummary {
 
 function downloadName(fileName: string) {
   return fileName.split("/").pop() ?? fileName;
+}
+
+/** The browser drops folders from a download name, so a nested target says where it belongs in the repository. */
+function placementHint(fileName: string) {
+  return fileName.includes("/") ? ` Deponda ${fileName} yoluna kaydet.` : "";
 }
 
 function saveBlob(blob: Blob, name: string) {
@@ -200,7 +219,7 @@ function DiffView({ result, versions, from, to, onRange, raw, onRaw, rawText, on
               <li className="changed">
                 <div><span className="diff-kind"><ArrowsClockwise aria-hidden size={20} />Değişti</span><small>Derleyici sürümü</small></div>
                 <TextSide label={beforeLabel} value={diff.compilerVersion.before} />
-                <span className="diff-arrow" aria-hidden="true"><ArrowRight size={22} /></span>
+                <span className="diff-arrow" aria-hidden="true"><ArrowRight aria-hidden size={22} /></span>
                 <TextSide label={afterLabel} sub="Çıktı biçimi kararlar değişmese de farklı olabilir." value={diff.compilerVersion.after} />
               </li>
             )}
@@ -208,7 +227,7 @@ function DiffView({ result, versions, from, to, onRange, raw, onRaw, rawText, on
               <li className="changed" key={change.field}>
                 <div><span className="diff-kind"><ArrowsClockwise aria-hidden size={20} />Değişti</span><small>{projectFieldLabels[change.field] ?? change.field}</small></div>
                 <TextSide label={beforeLabel} value={change.before ?? null} />
-                <span className="diff-arrow" aria-hidden="true"><ArrowRight size={22} /></span>
+                <span className="diff-arrow" aria-hidden="true"><ArrowRight aria-hidden size={22} /></span>
                 <TextSide label={afterLabel} value={change.after ?? null} />
               </li>
             ))}
@@ -222,7 +241,7 @@ function DiffView({ result, versions, from, to, onRange, raw, onRaw, rawText, on
                   <small>{slotLabel(change.slot)} kararı <code className="code">{change.slot}</code></small>
                 </div>
                 <DecisionSide decision={change.before} label={beforeLabel} />
-                <span className="diff-arrow" aria-hidden="true"><ArrowRight size={22} /></span>
+                <span className="diff-arrow" aria-hidden="true"><ArrowRight aria-hidden size={22} /></span>
                 <DecisionSide decision={change.after} label={afterLabel} />
               </li>
             ))}
@@ -230,7 +249,7 @@ function DiffView({ result, versions, from, to, onRange, raw, onRaw, rawText, on
               <li className="added" key={`rule-added-${rule}`}>
                 <div><span className="diff-kind"><PlusCircle aria-hidden size={20} />Eklendi</span><small>Proje kuralı</small></div>
                 <TextSide label={beforeLabel} value={null} />
-                <span className="diff-arrow" aria-hidden="true"><ArrowRight size={22} /></span>
+                <span className="diff-arrow" aria-hidden="true"><ArrowRight aria-hidden size={22} /></span>
                 <TextSide label={afterLabel} sub="Kural" value={rule} />
               </li>
             ))}
@@ -238,7 +257,7 @@ function DiffView({ result, versions, from, to, onRange, raw, onRaw, rawText, on
               <li className="removed" key={`rule-removed-${rule}`}>
                 <div><span className="diff-kind"><MinusCircle aria-hidden size={20} />Kaldırıldı</span><small>Proje kuralı</small></div>
                 <TextSide label={beforeLabel} sub="Kural" value={rule} />
-                <span className="diff-arrow" aria-hidden="true"><ArrowRight size={22} /></span>
+                <span className="diff-arrow" aria-hidden="true"><ArrowRight aria-hidden size={22} /></span>
                 <TextSide label={afterLabel} value={null} />
               </li>
             ))}
@@ -246,7 +265,7 @@ function DiffView({ result, versions, from, to, onRange, raw, onRaw, rawText, on
               <li className="added" key={`res-added-${resource.id}`}>
                 <div><span className="diff-kind"><PlusCircle aria-hidden size={20} />Eklendi</span><small>Referans kaynak</small></div>
                 <TextSide label={beforeLabel} value={null} />
-                <span className="diff-arrow" aria-hidden="true"><ArrowRight size={22} /></span>
+                <span className="diff-arrow" aria-hidden="true"><ArrowRight aria-hidden size={22} /></span>
                 <TextSide label={afterLabel} sub={resource.type} value={resource.name} />
               </li>
             ))}
@@ -254,7 +273,7 @@ function DiffView({ result, versions, from, to, onRange, raw, onRaw, rawText, on
               <li className="removed" key={`res-removed-${resource.id}`}>
                 <div><span className="diff-kind"><MinusCircle aria-hidden size={20} />Kaldırıldı</span><small>Referans kaynak</small></div>
                 <TextSide label={beforeLabel} sub={resource.type} value={resource.name} />
-                <span className="diff-arrow" aria-hidden="true"><ArrowRight size={22} /></span>
+                <span className="diff-arrow" aria-hidden="true"><ArrowRight aria-hidden size={22} /></span>
                 <TextSide label={afterLabel} value={null} />
               </li>
             ))}
@@ -262,7 +281,7 @@ function DiffView({ result, versions, from, to, onRange, raw, onRaw, rawText, on
               <li className="changed" key={`warn-added-${index}`}>
                 <div><span className="diff-kind"><PlusCircle aria-hidden size={20} />Yeni uyarı</span><small><code className="code">{warning.code}</code></small></div>
                 <TextSide label={beforeLabel} value={null} />
-                <span className="diff-arrow" aria-hidden="true"><ArrowRight size={22} /></span>
+                <span className="diff-arrow" aria-hidden="true"><ArrowRight aria-hidden size={22} /></span>
                 <TextSide label={afterLabel} value={warning.message} />
               </li>
             ))}
@@ -270,7 +289,7 @@ function DiffView({ result, versions, from, to, onRange, raw, onRaw, rawText, on
               <li className="added" key={`warn-removed-${index}`}>
                 <div><span className="diff-kind"><CheckCircle aria-hidden size={20} />Çözüldü</span><small><code className="code">{warning.code}</code></small></div>
                 <TextSide label={beforeLabel} value={warning.message} />
-                <span className="diff-arrow" aria-hidden="true"><ArrowRight size={22} /></span>
+                <span className="diff-arrow" aria-hidden="true"><ArrowRight aria-hidden size={22} /></span>
                 <TextSide label={afterLabel} value={null} />
               </li>
             ))}
@@ -430,7 +449,7 @@ export function ContextClient({ project, initial, versions: initialVersions, exp
     try {
       const text = tab === "canonical" ? content : (await recordExport(tab, viewing.version)).content;
       saveBlob(new Blob([text], { type: tab === "canonical" ? "application/json" : "text/markdown" }), downloadName(fileName));
-      setNotice(`${downloadName(fileName)} indirildi (sürüm ${viewing.version}).`);
+      setNotice(`${downloadName(fileName)} indirildi (sürüm ${viewing.version}).${placementHint(fileName)}`);
     } catch (error) {
       setNotice(error instanceof Error && error.message ? error.message : "İndirme başarısız. Tekrar dene.");
     } finally {
@@ -487,7 +506,7 @@ export function ContextClient({ project, initial, versions: initialVersions, exp
           <h3 id="context-warnings">Sürüm {viewing.version} için {pluralCount(viewing.canonical.warnings.length, "uyarı")}</h3>
           <ul>
             {viewing.canonical.warnings.map((warning, index) => (
-              <li key={`${warning.code}-${index}`}><code>{warning.code}</code><span>{warning.message}</span></li>
+              <li key={`${warning.code}-${index}`}><code>{warning.code}</code><span><strong>{warningTitles[warning.code]}:</strong> {warning.message}</span></li>
             ))}
           </ul>
           <p>Uyarılar kararlarını değiştirmez. Teknoloji yığınında veya Kütüphane’de düzelt ve yeniden oluştur.</p>
@@ -537,9 +556,9 @@ export function ContextClient({ project, initial, versions: initialVersions, exp
           <div className="doc-pane">
             <div className="doc-toolbar">
               <h3>AI talimatları</h3>
-              <span className="chip mono">{downloadName(fileName)}</span>
+              <span className="chip mono" title="Depodaki yolu">{fileName}</span>
               <span className="spacer" />
-              <select aria-label="Coding agent" className="select inline" onChange={(event) => { const value = event.target.value; if (value === "diff") { setView("diff"); return; } setTab(value as Tab); }} value={tab}>
+              <select aria-label="Kodlama ajanı" className="select inline" onChange={(event) => { const value = event.target.value; if (value === "diff") { setView("diff"); return; } setTab(value as Tab); }} value={tab}>
                 {agentOptions.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}
                 <option value="diff">Sürüm farkları</option>
               </select>
@@ -568,7 +587,7 @@ export function ContextClient({ project, initial, versions: initialVersions, exp
             <div aria-label="Talimat önizlemesi" role="region">
               {raw || tab === "canonical"
                 ? <pre className="raw-preview" tabIndex={0}>{content}</pre>
-                : <article className="document"><Markdown disallowedElements={["img"]} skipHtml>{content}</Markdown></article>}
+                : <article className="document"><Markdown components={markdownComponents} disallowedElements={["img"]} skipHtml>{content}</Markdown></article>}
             </div>
             <p className="doc-foot">{formatDateTime(viewing.createdAt)} tarihinde oluşturuldu. İndirilen dosya derleyicinin özgün çıktısını içerir.</p>
             <aside className="context-side">

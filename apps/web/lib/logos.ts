@@ -8,9 +8,25 @@ const hosts = manifest.hosts as Record<string, string | undefined>;
 
 export const logoSource = { name: manifest.source, version: manifest.version, license: manifest.license };
 
+/**
+ * Own-property lookups only: resource metadata and names are user data, and a
+ * key such as `constructor` must never resolve to an Object.prototype member.
+ */
+function own<T>(table: Record<string, T | undefined>, key: string): T | null {
+  return Object.hasOwn(table, key) ? table[key] ?? null : null;
+}
+
+function isLogoEntry(value: unknown): value is LogoEntry {
+  return typeof value === "object" && value !== null
+    && typeof (value as LogoEntry).icon === "string"
+    && typeof (value as LogoEntry).title === "string"
+    && typeof (value as LogoEntry).hex === "string";
+}
+
 export function logoForSlug(slug: string | null | undefined): LogoEntry | null {
   if (!slug) return null;
-  return logos[slug] ?? null;
+  const entry = own(logos, slug);
+  return isLogoEntry(entry) ? entry : null;
 }
 
 export function normalizeLogoName(name: string) {
@@ -19,11 +35,7 @@ export function normalizeLogoName(name: string) {
 
 function hostOf(url: string | null | undefined) {
   if (!url) return null;
-  try {
-    return new URL(url).hostname.toLowerCase().replace(/^www\./, "");
-  } catch {
-    return null;
-  }
+  return URL.parse(url)?.hostname.toLowerCase().replace(/^www\./, "") ?? null;
 }
 
 export type LogoSubject = {
@@ -42,14 +54,15 @@ export type LogoSubject = {
  */
 export function catalogSlugFor(subject: LogoSubject): string | null {
   const fromMetadata = subject.metadata?.catalogSlug;
-  if (typeof fromMetadata === "string" && fromMetadata in logos) return fromMetadata;
+  if (typeof fromMetadata === "string" && logoForSlug(fromMetadata)) return fromMetadata;
   for (const url of [subject.sourceUrl, subject.docsUrl, subject.repoUrl]) {
     const host = hostOf(url);
-    const slug = host ? hosts[host] : undefined;
-    if (slug) return slug;
+    const slug = host ? own(hosts, host) : null;
+    if (slug && logoForSlug(slug)) return slug;
   }
   const plainName = subject.name.replace(/^sample\s*·\s*/i, "");
-  return names[normalizeLogoName(plainName)] ?? null;
+  const slug = own(names, normalizeLogoName(plainName));
+  return slug && logoForSlug(slug) ? slug : null;
 }
 
 /** Relative luminance (0..1) of a six-digit hex colour. */
@@ -63,15 +76,37 @@ export function luminance(hex: string) {
   return 0.2126 * channel((value >> 16) & 255) + 0.7152 * channel((value >> 8) & 255) + 0.0722 * channel(value & 255);
 }
 
-/** Brand colours that would vanish on a theme's background fall back to the text colour. */
+export function contrastRatio(a: number, b: number) {
+  const [light, dark] = a > b ? [a, b] : [b, a];
+  return (light + 0.05) / (dark + 0.05);
+}
+
+/**
+ * Luminance of the surfaces logos sit on: the light theme's `--surface` and
+ * the dark theme's `--surface` token in app/globals.css. Keep them in step.
+ */
+const lightSurface = luminance("ffffff");
+const darkSurface = luminance("111419");
+/** Below this a brand colour reads as a faint smudge; the mark is drawn in the text colour instead. */
+export const minimumLogoContrast = 2;
+
+/** Brand colours that would vanish on a theme's surface fall back to that theme's text colour (`--ink`). */
 export function logoColors(hex: string) {
-  const light = luminance(hex);
+  const brand = luminance(hex);
   return {
-    onDark: light < 0.08 ? "var(--text)" : `#${hex}`,
-    onLight: light > 0.6 ? "var(--text)" : `#${hex}`,
+    onDark: contrastRatio(brand, darkSurface) < minimumLogoContrast ? "var(--ink)" : `#${hex}`,
+    onLight: contrastRatio(brand, lightSurface) < minimumLogoContrast ? "var(--ink)" : `#${hex}`,
   };
 }
 
+/** Up to two initials, letters and digits only ("dbt (Data Build Tool)" → "DD", never "D("). */
 export function monogram(name: string) {
-  return name.replace(/^sample\s*·\s*/i, "").split(/[\s/·+]+/).filter(Boolean).map((part) => part[0]).join("").slice(0, 2).toUpperCase();
+  const initials = name
+    .replace(/^sample\s*·\s*/i, "")
+    .split(/[^\p{L}\p{N}]+/u)
+    .filter(Boolean)
+    .map((part) => part[0]!)
+    .join("")
+    .slice(0, 2);
+  return initials ? initials.toLocaleUpperCase("tr") : "?";
 }

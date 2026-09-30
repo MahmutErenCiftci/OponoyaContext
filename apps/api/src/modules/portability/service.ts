@@ -1,4 +1,5 @@
 import {
+  productName,
   portableDocumentSchema,
   portableLimits,
   portableFormat,
@@ -86,7 +87,13 @@ export interface PortabilityRepository {
 export interface PortabilityService {
   exportWorkspace(ownerUserId: string): Promise<PortableDocument>;
   /** Validates, plans and (unless `dryRun`) applies the document. Replays a stored summary for a repeated key. */
-  importWorkspace(ownerUserId: string, request: ImportRequest, idempotencyKey?: string): Promise<{ summary: ImportSummary; applied: boolean; created: boolean }>;
+  importWorkspace(
+    ownerUserId: string,
+    request: ImportRequest,
+    idempotencyKey?: string,
+    /** Runs once on the final plan before anything is written (plan limits); throwing aborts the import. */
+    beforeApply?: (summary: ImportSummary) => Promise<void>,
+  ): Promise<{ summary: ImportSummary; applied: boolean; created: boolean }>;
 }
 
 // ---------------------------------------------------------------------------
@@ -94,6 +101,14 @@ export interface PortabilityService {
 // ---------------------------------------------------------------------------
 
 type Detail = { path: string[]; code: string };
+
+/**
+ * Structural bounds applied before schema validation. A complete export at
+ * every `portableLimits` maximum stays well inside them; anything larger is
+ * not a DevContext document and is refused without allocating per node.
+ */
+export const maxPortableNodes = 1_500_000;
+export const maxPortableArrayLength = 10_000;
 
 function validationError(details: Detail[], publicMessage?: string) {
   return Object.assign(new Error("Import document is invalid"), { statusCode: 400, details, ...(publicMessage ? { publicMessage } : {}) });
@@ -106,34 +121,56 @@ function validationError(details: Detail[], publicMessage?: string) {
  */
 export function validatePortableDocument(raw: unknown): PortableDocument {
   if (typeof raw !== "object" || raw === null) {
-    throw validationError([{ path: ["document"], code: "invalid_type" }], "The import file must be a DevContext JSON document.");
+    throw validationError([{ path: ["document"], code: "invalid_type" }], `The import file must be a ${productName} JSON document.`);
+  }
+  // Top-level lists are checked first: an oversized list is refused before anything walks it.
+  for (const key of ["resources", "profiles", "recipes", "projects", "compatibilityRules"] as const) {
+    const list = (raw as Record<string, unknown>)[key];
+    if (Array.isArray(list) && list.length > portableLimits[key]) {
+      throw validationError([{ path: ["document", key], code: "too_big" }], `The import file has more ${key} than one import accepts (${portableLimits[key]}).`);
+    }
   }
   // Iterative walk precedes Zod refinements/JSON.stringify so deep input cannot
-  // overflow their stacks. The route also bounds bytes before JSON parsing.
-  const pending: Array<{ value: unknown; depth: number; leaving?: boolean }> = [{ value: raw, depth: 0 }];
+  // overflow their stacks. Only objects are queued and every container is
+  // counted before its children are, so memory stays proportional to a
+  // legitimate document however the bytes are arranged.
+  const pending: Array<{ value: object; depth: number; leaving?: boolean }> = [{ value: raw, depth: 0 }];
   const seen = new Set<object>();
+  let nodes = 0;
+  const tooLarge = () => validationError([{ path: ["document"], code: "too_big" }], "The import file has more entries than an export can contain.");
   while (pending.length) {
     const { value, depth, leaving } = pending.pop()!;
-    if (value === null || typeof value !== "object") continue;
     if (leaving) { seen.delete(value); continue; }
     if (depth > portableLimits.jsonDepth || seen.has(value)) {
       throw validationError([{ path: ["document"], code: "json_depth" }], "The import file is nested too deeply or contains circular references.");
     }
     seen.add(value);
     pending.push({ value, depth, leaving: true });
-    for (const child of Object.values(value)) pending.push({ value: child, depth: depth + 1 });
+    if (Array.isArray(value)) {
+      if (value.length > maxPortableArrayLength) throw tooLarge();
+      nodes += value.length;
+      if (nodes > maxPortableNodes) throw tooLarge();
+      for (const child of value) if (child !== null && typeof child === "object") pending.push({ value: child, depth: depth + 1 });
+    } else {
+      for (const key in value) {
+        nodes += 1;
+        if (nodes > maxPortableNodes) throw tooLarge();
+        const child = (value as Record<string, unknown>)[key];
+        if (child !== null && typeof child === "object") pending.push({ value: child, depth: depth + 1 });
+      }
+    }
   }
   if (Buffer.byteLength(JSON.stringify(raw), "utf8") > portableLimits.documentBytes) {
     throw Object.assign(new Error("Portable document too large"), { statusCode: 413, publicMessage: "Portable files are limited to 32 MiB." });
   }
   const candidate = raw as { format?: unknown; version?: unknown };
   if (candidate.format !== portableFormat) {
-    throw validationError([{ path: ["document", "format"], code: "unsupported_format" }], `The file is not a DevContext export (expected format "${portableFormat}").`);
+    throw validationError([{ path: ["document", "format"], code: "unsupported_format" }], `The file is not a ${productName} export (expected format "${portableFormat}").`);
   }
   if (typeof candidate.version === "number" && candidate.version > portableVersion) {
     throw validationError(
       [{ path: ["document", "version"], code: "unsupported_version" }],
-      `This file uses DevContext export version ${candidate.version}, which is newer than this app supports (version ${portableVersion}). Update the app before importing it.`,
+      `This file uses ${productName} export version ${candidate.version}, which is newer than this app supports (version ${portableVersion}). Update the app before importing it.`,
     );
   }
   const parsed = portableDocumentSchema.safeParse(raw);
@@ -427,7 +464,7 @@ export function createPortabilityService(repository: PortabilityRepository, now:
       }
     },
 
-    async importWorkspace(ownerUserId, request, idempotencyKey) {
+    async importWorkspace(ownerUserId, request, idempotencyKey, beforeApply) {
       if (idempotencyKey && !request.dryRun) {
         const replay = await repository.findImport(ownerUserId, idempotencyKey);
         if (replay) return { summary: replay, applied: true, created: false };
@@ -437,6 +474,7 @@ export function createPortabilityService(repository: PortabilityRepository, now:
       const plan = planImport(existing, document, request.strategy);
       if (request.dryRun) return { summary: plan.summary, applied: false, created: false };
       const summary: ImportSummary = { ...plan.summary, dryRun: false };
+      if (beforeApply) await beforeApply(summary);
       const result = await repository.applyImport(ownerUserId, { ...plan, summary }, idempotencyKey ?? null);
       if (!result.created && idempotencyKey) {
         const stored = await repository.findImport(ownerUserId, idempotencyKey);

@@ -1,5 +1,3 @@
-@import url("https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap");
-
 /*
   DevContext design system (hybrid design, 2026-09-08). Light is the reference
   palette from the approved screens; dark maps the same semantic tokens onto the
@@ -37,9 +35,8 @@
   --overlay: rgba(24, 31, 45, .28);
   --shadow: 0 12px 32px rgba(16, 19, 24, .08);
   --shadow-drawer: -12px 0 40px rgba(16, 19, 24, .12);
-  --logo-tone: var(--logo-on-light);
-  --font-ui: "Manrope", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-code: "DM Mono", "Cascadia Code", Consolas, ui-monospace, monospace;
+  --font-ui: var(--font-manrope), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-code: var(--font-dm-mono), "Cascadia Code", Consolas, ui-monospace, monospace;
   --header-height: 78px;
   --gutter: 36px;
   --control: 46px;
@@ -79,7 +76,6 @@
   --overlay: rgba(3, 4, 6, .72);
   --shadow: 0 12px 32px rgba(0, 0, 0, .4);
   --shadow-drawer: -12px 0 40px rgba(0, 0, 0, .5);
-  --logo-tone: var(--logo-on-dark);
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
@@ -114,7 +110,6 @@
     --overlay: rgba(3, 4, 6, .72);
     --shadow: 0 12px 32px rgba(0, 0, 0, .4);
     --shadow-drawer: -12px 0 40px rgba(0, 0, 0, .5);
-    --logo-tone: var(--logo-on-dark);
   }
 }
 
@@ -231,6 +226,7 @@ img { max-width: 100%; height: auto; }
 .status-label { display: inline-flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 500; white-space: nowrap; }
 .status-label.ok { color: var(--success); }
 .status-label.warn { color: var(--warning); }
+.status-label.error { color: var(--danger); white-space: normal; }
 .status-label.none { color: var(--muted-2); }
 .status-label small { color: var(--muted); font-weight: 400; }
 .note { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: var(--radius); background: var(--subtle); color: var(--muted); font-size: 14px; line-height: 1.5; }
@@ -252,7 +248,8 @@ img { max-width: 100%; height: auto; }
 .field textarea, textarea.input { min-height: 120px; resize: vertical; line-height: 1.55; }
 .field input:focus, .field select:focus, .field textarea:focus, .input:focus, .select:focus { outline: 2px solid var(--focus); outline-offset: 2px; }
 .field input[aria-invalid="true"], .input[aria-invalid="true"] { border-color: var(--danger); }
-.select, .field select { appearance: none; padding-right: 40px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%23505c73' stroke-width='1.8' viewBox='0 0 16 16'%3E%3Cpath d='M4 6l4 4 4-4'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; cursor: pointer; }
+/* Chevron drawn with theme tokens (two gradient triangles), so it keeps its contrast in both themes. */
+.select, .field select { appearance: none; padding-right: 40px; background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%); background-position: calc(100% - 21px) 52%, calc(100% - 16px) 52%; background-size: 5px 5px, 5px 5px; background-repeat: no-repeat; cursor: pointer; }
 .select.inline { width: auto; min-width: 150px; }
 .field-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
 .search { position: relative; display: flex; align-items: center; min-height: var(--control); border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); padding: 0 14px; gap: 10px; color: var(--muted); }
@@ -328,6 +325,8 @@ details.disclosure > .disclosure-body { padding: 4px 0 20px; display: grid; gap:
 .mark.plain { border: 0; background: transparent; }
 .mark.tone { background: var(--subtle); }
 .tech-monogram { display: inline-grid; place-items: center; font: 700 12px var(--font-code); letter-spacing: .02em; line-height: 1; }
+/* Outside a logo tile the monogram gets its own tile, so a missing brand mark still reads as a deliberate mark. */
+:not(.mark) > .tech-monogram { border-radius: 6px; background: var(--subtle-2); color: var(--ink-2); }
 .tech-logo { display: inline-block; flex: 0 0 auto; background-color: var(--logo-on-light); -webkit-mask: var(--logo-image) center / contain no-repeat; mask: var(--logo-image) center / contain no-repeat; }
 :root[data-theme="dark"] .tech-logo { background-color: var(--logo-on-dark); }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .tech-logo { background-color: var(--logo-on-dark); } }
@@ -344,6 +343,7 @@ details.disclosure > .disclosure-body { padding: 4px 0 20px; display: grid; gap:
 .star-button { width: 40px; height: 40px; display: inline-grid; place-items: center; border: 0; border-radius: var(--radius); background: transparent; color: var(--muted); }
 .star-button:hover { background: var(--subtle-2); }
 .star-button.active { color: var(--preferred); }
+.load-more { display: flex; justify-content: center; margin: 16px 0 4px; }
 .result-count { margin-top: 18px; color: var(--muted); font-size: 15px; }
 
 /* Cards and grids */
@@ -500,6 +500,24 @@ details.disclosure > .disclosure-body { padding: 4px 0 20px; display: grid; gap:
 .warning-panel li { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; font-size: 14px; }
 .warning-panel code { font-size: 12px; color: var(--warning); padding-top: 2px; }
 .warning-panel p { margin-top: 8px; color: var(--muted); font-size: 13px; }
+
+/* AI suggestions (V1.5 groundwork): proposal card in the decision drawer and the consent row in Settings. */
+.ai-panel { display: grid; gap: 12px; padding: 16px 18px; border: 1px dashed var(--accent-soft-border); border-radius: var(--radius-panel); background: var(--accent-soft); }
+.ai-panel h3 { display: flex; align-items: center; gap: 8px; font-size: 15px; color: var(--accent-text); }
+.ai-panel .button { justify-self: start; }
+.ai-proposal { display: grid; gap: 10px; font-size: 14px; line-height: 1.55; color: var(--ink-2); }
+.ai-proposal .identity { display: flex; align-items: center; gap: 10px; }
+.ai-proposal h4 { font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.ai-proposal ul { display: grid; gap: 4px; padding-left: 18px; margin: 0; }
+.ai-proposal .actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.ai-warnings { list-style: none; padding: 0 !important; }
+.ai-warnings li { display: flex; gap: 8px; align-items: flex-start; color: var(--warning); }
+.ai-consent { display: grid; gap: 10px; margin-top: 14px; padding: 14px 16px; border: 1px solid var(--line); border-radius: var(--radius-panel); background: var(--surface); }
+.ai-consent .identity { display: flex; align-items: center; gap: 12px; }
+.ai-consent .grow { flex: 1; min-width: 0; }
+.ai-consent p { display: flex; gap: 8px; align-items: flex-start; }
+.switch { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.switch input { width: 18px; height: 18px; margin: 0; accent-color: var(--success); }
 
 /* Diff */
 .diff-controls { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-top: 24px; }
@@ -792,6 +810,7 @@ details.disclosure > .disclosure-body { padding: 4px 0 20px; display: grid; gap:
 .code-preview .ln { display: inline-block; width: 28px; color: var(--success); }
 .code-preview .hl { color: var(--success); }
 .auth-form-region { display: grid; align-content: center; padding: 96px 90px; }
+.auth-form-region.auth-single { justify-content: center; min-height: calc(100vh - 82px); }
 .auth-form { width: min(100%, 486px); display: grid; gap: 22px; }
 .auth-form h1 { font-size: 32px; }
 .auth-form .alt { color: var(--muted); font-size: 16px; }
@@ -936,6 +955,8 @@ details.disclosure > .disclosure-body { padding: 4px 0 20px; display: grid; gap:
   .dashboard-greeting { flex-direction: column; }
   .stack-strip { flex-wrap: nowrap; }
   .catalog-toolbar { align-items: stretch; flex-direction: column; }
+  /* In a column the 260px flex basis would become the search field's height. */
+  .catalog-toolbar .search { flex: 0 0 auto; }
   .import-foot { flex-direction: column; align-items: stretch; }
   .unavailable { margin-top: 60px; }
   .unavailable h1 { font-size: 26px; }

@@ -1,11 +1,17 @@
-import { copyFileSync, constants, existsSync } from "node:fs";
+import { randomBytes } from "node:crypto";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { pnpm, root, run } from "./run.mjs";
+
+const placeholder = "replace-with-at-least-32-random-characters";
 
 try {
   const envFile = join(root, ".env");
   if (!existsSync(envFile)) {
-    copyFileSync(join(root, ".env.example"), envFile, constants.COPYFILE_EXCL);
+    // Every documented placeholder secret gets its own random value, so a fresh checkout never runs on a shared secret.
+    const template = readFileSync(join(root, ".env.example"), "utf8");
+    const filled = template.split(placeholder).reduce((text, part) => `${text}${randomBytes(36).toString("base64url")}${part}`);
+    writeFileSync(envFile, filled, { flag: "wx", mode: 0o600 });
     process.loadEnvFile(envFile);
   }
   const pgControl = join(root, ".local/postgres/pgsql/bin/pg_ctl.exe");

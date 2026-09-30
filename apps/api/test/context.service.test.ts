@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { CompileInput } from "@devcontext/context-compiler";
-import { compileResponseSchema, contextStateResponseSchema, exportResponseSchema } from "@devcontext/contracts";
+import { GENERATOR_NAME, type CompileInput } from "@devcontext/context-compiler";
+import { compileResponseSchema, contextStateResponseSchema, exportResponseSchema, productName } from "@devcontext/contracts";
 import {
   createContextService,
   type ContextRepository,
@@ -27,6 +27,11 @@ function createRepository() {
   const repository: ContextRepository = {
     async projectExists(ownerUserId, projectId) { return owns(ownerUserId, projectId); },
     async loadCompileInput(ownerUserId, projectId) { return owns(ownerUserId, projectId) ? structuredClone(input) : null; },
+    async loadCompileInputs(ownerUserId, projectIds) { return new Map(projectIds.filter((id) => owns(ownerUserId, id)).map((id) => [id, structuredClone(input)])); },
+    async latestSummaries(ownerUserId, projectIds) {
+      const latest = versions.at(-1);
+      return new Map(latest ? projectIds.filter((id) => owns(ownerUserId, id)).map((id) => [id, { projectId: id, version: latest.version, contentHash: latest.contentHash, createdAt: latest.createdAt, warningCount: 0 }]) : []);
+    },
     async latestVersion(ownerUserId, projectId) { return owns(ownerUserId, projectId) ? versions.at(-1) ?? null : null; },
     async listVersions(ownerUserId, projectId) { return owns(ownerUserId, projectId) ? [...versions].reverse() : []; },
     async findVersion(ownerUserId, projectId, version) { return owns(ownerUserId, projectId) ? versions.find((row) => row.version === version) ?? null : null; },
@@ -60,6 +65,11 @@ function createRepository() {
 }
 
 describe("Context service", () => {
+  it("prints the product name in export headers", () => {
+    // The compiler is dependency-free, so it keeps its own copy of the brand.
+    expect(GENERATOR_NAME).toBe(productName);
+  });
+
   it("compiles a canonical version, suppresses duplicates and numbers changes monotonically", async () => {
     const fixture = createRepository();
     const service = createContextService(fixture.repository);
@@ -69,7 +79,7 @@ describe("Context service", () => {
 
     const first = await service.compile(ownerA, projectA);
     expect(compileResponseSchema.parse(first).created).toBe(true);
-    expect(first.version).toMatchObject({ version: 1, compilerVersion: "0.4.1", decisionCount: 1, warningCount: 0 });
+    expect(first.version).toMatchObject({ version: 1, compilerVersion: "0.4.2", decisionCount: 1, warningCount: 0 });
     expect(first.version.canonical.decisions[0]).toMatchObject({ slot: "frontend.framework", mode: "PREFERRED", source: "global" });
     expect(first.version.previews.map((preview) => preview.target)).toEqual(["generic", "agents", "claude", "cursor", "copilot"]);
     expect(first.version.previews.find((preview) => preview.target === "agents")?.content).toContain("Prefer Next.js");

@@ -137,7 +137,7 @@ export function ProjectWizard({ project, decisions, library, profiles, recipes, 
     const controller = new AbortController();
     void (async () => {
       try {
-        const response = await fetch(`/api/recipes/${recipeId}`, { cache: "no-store", signal: controller.signal });
+        const response = await fetch(`/api/recipes/${encodeURIComponent(recipeId)}`, { cache: "no-store", signal: controller.signal });
         if (!response.ok) return;
         const loaded = recipeResponseSchema.parse(await response.json()).recipe;
         if (!controller.signal.aborted) setRecipeDetails(loaded);
@@ -530,7 +530,7 @@ export function ProjectWizard({ project, decisions, library, profiles, recipes, 
                 </div>
               </details>
               <fieldset style={{ border: 0, margin: 0, padding: 0, display: "grid", gap: 12 }}>
-                <legend className="field-label" style={{ fontSize: 18, fontWeight: 600 }}>AI’ya bırakılan özgürlük</legend>
+                <legend className="field-label" style={{ fontSize: 18, fontWeight: 600 }}>AI’a bırakılan özgürlük</legend>
                 <div className="radio-grid three">
                   {(Object.keys(presetCopy) as Preset[]).map((option) => (
                     <label className={`radio-card tone-success${preset === option ? " selected" : ""}`} key={option} style={{ background: "var(--surface)" }}>

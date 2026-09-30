@@ -21,24 +21,24 @@ function actor(request: FastifyRequest) {
  * raw body inside its own content-type scope.
  */
 export async function registerBillingRoutes(app: FastifyInstance, billing: BillingService) {
-  app.get("/v1/billing", { preHandler: app.authenticate }, async (request) => ({
+  app.get("/v1/billing", { onRequest: app.authenticate }, async (request) => ({
     billing: await billing.summary(ownerId(request)),
   }));
 
-  app.post("/v1/billing/checkout", { preHandler: app.authenticate }, async (request) => {
+  app.post("/v1/billing/checkout", { onRequest: app.authenticate }, async (request) => {
     const user = request.currentUser!;
     const result = await billing.checkout(user.id, user.email);
     await app.telemetry.record(actor(request), { action: "billing.checkout_started", entityType: "account", entityId: user.id, metadata: { provider: billing.provider.id } });
     return result;
   });
 
-  app.post("/v1/billing/portal", { preHandler: app.authenticate }, async (request) => {
+  app.post("/v1/billing/portal", { onRequest: app.authenticate }, async (request) => {
     const result = await billing.portal(ownerId(request));
     await app.telemetry.record(actor(request), { action: "billing.portal_opened", entityType: "account", entityId: ownerId(request), metadata: { provider: billing.provider.id } });
     return result;
   });
 
-  app.post("/v1/billing/reconcile", { preHandler: app.authenticate }, async (request) => {
+  app.post("/v1/billing/reconcile", { onRequest: app.authenticate }, async (request) => {
     const result = await billing.reconcile(ownerId(request));
     await app.telemetry.record(actor(request), {
       action: "billing.reconciled", entityType: "account", entityId: ownerId(request),
@@ -66,13 +66,13 @@ export async function registerBillingRoutes(app: FastifyInstance, billing: Billi
   });
 
   if (billing.provider.testMode) {
-    app.post("/v1/billing/test/checkout/:sessionId", { preHandler: app.authenticate }, async (request) => {
+    app.post("/v1/billing/test/checkout/:sessionId", { onRequest: app.authenticate }, async (request) => {
       const { sessionId } = sessionParamsSchema.parse(request.params);
       const { outcome } = billingTestCheckoutSchema.parse(request.body ?? {});
       return billing.testCheckout(ownerId(request), sessionId, outcome);
     });
 
-    app.post("/v1/billing/test/portal", { preHandler: app.authenticate }, async (request) => {
+    app.post("/v1/billing/test/portal", { onRequest: app.authenticate }, async (request) => {
       const { action } = billingTestPortalSchema.parse(request.body ?? {});
       return billing.testPortal(ownerId(request), action);
     });

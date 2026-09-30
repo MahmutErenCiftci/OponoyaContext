@@ -2,7 +2,7 @@
 
 import { Archive, ArrowCounterClockwise, ArrowRight, FolderSimple, MagnifyingGlass, PencilSimple, Plus } from "@phosphor-icons/react/dist/ssr";
 import {
-  contextStateResponseSchema,
+  projectContextStatusResponseSchema,
   projectDecisionsResponseSchema,
   projectListResponseSchema,
   projectStageSchema,
@@ -20,13 +20,16 @@ import { PageHead } from "../../../components/page-heading";
 import { RowMenu } from "../../../components/row-menu";
 import { ContextStatusLabel } from "../../../components/status-label";
 import { TechLogo } from "../../../components/tech-logo";
-import { contextStatus, type ContextStatus } from "../../../lib/context-status";
+import { contextStatusFrom, type ContextStatus } from "../../../lib/context-status";
 import { responseError } from "../../../lib/errors";
 import { catalogSlugFor } from "../../../lib/logos";
 import { formatDateTime, stageLabels } from "../../../lib/resource-labels";
 import { ProjectWizard } from "./project-wizard";
 
 type StatusView = "active" | "archived";
+
+/** Rows per request, matching the server-rendered first page; the API caps a page at 100. */
+const pageSize = 50;
 type Editor = { kind: "closed" } | { kind: "create" } | { kind: "edit"; project: Project };
 
 function ProjectRow({ project, status, onEdit, onArchive, onRestore }: {
@@ -91,6 +94,8 @@ export function ProjectsClient({ initial, initialStatuses, library, profiles, re
   const [status, setStatus] = useState<StatusView>("active");
   const [editor, setEditor] = useState<Editor>(editOnLoad ? { kind: "edit", project: editOnLoad } : openCreateOnLoad ? { kind: "create" } : { kind: "closed" });
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [busyId, setBusyId] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
@@ -99,27 +104,32 @@ export function ProjectsClient({ initial, initialStatuses, library, profiles, re
     return () => window.clearTimeout(timeout);
   }, [notice]);
 
+  /** One batch request refreshes the freshness of every listed project, so edits show up immediately. */
   async function loadStatuses(items: Project[]) {
-    const missing = items.filter((item) => !(item.id in statuses));
-    if (missing.length === 0) return;
-    const entries = await Promise.all(missing.map(async (item) => {
-      try {
-        const response = await fetch(`/api/projects/${item.id}/context`, { cache: "no-store" });
-        if (!response.ok) return [item.id, contextStatus(null)] as const;
-        const parsed = contextStateResponseSchema.safeParse(await response.json());
-        return [item.id, contextStatus(parsed.success ? parsed.data : null)] as const;
-      } catch {
-        return [item.id, contextStatus(null)] as const;
-      }
-    }));
-    setStatuses((previous) => ({ ...previous, ...Object.fromEntries(entries) }));
+    if (items.length === 0) return;
+    try {
+      const params = new URLSearchParams({ ids: items.slice(0, 50).map((item) => item.id).join(",") });
+      const response = await fetch(`/api/projects/context-status?${params}`, { cache: "no-store" });
+      if (!response.ok) return;
+      const parsed = projectContextStatusResponseSchema.safeParse(await response.json());
+      if (!parsed.success) return;
+      const byId = new Map(parsed.data.statuses.map((item) => [item.projectId, item]));
+      setStatuses((previous) => ({ ...previous, ...Object.fromEntries(items.map((item) => [item.id, contextStatusFrom(byId.get(item.id))])) }));
+    } catch {
+      // Keep the last known statuses; the next list load retries.
+    }
+  }
+
+  function listParams(values: { search: string; status: StatusView; stage: string }) {
+    const params = new URLSearchParams({ status: values.status, limit: String(pageSize) });
+    if (values.search) params.set("q", values.search);
+    if (values.stage) params.set("stage", values.stage);
+    return params;
   }
 
   async function load(next: { search?: string; status?: StatusView; stage?: string } = {}) {
     const values = { search: next.search ?? search, status: next.status ?? status, stage: next.stage ?? stage };
-    const params = new URLSearchParams({ status: values.status });
-    if (values.search) params.set("q", values.search);
-    if (values.stage) params.set("stage", values.stage);
+    const params = listParams(values);
     setLoading(true);
     try {
       const response = await fetch(`/api/projects?${params}`, { cache: "no-store" });
@@ -135,14 +145,44 @@ export function ProjectsClient({ initial, initialStatuses, library, profiles, re
     }
   }
 
-  async function mutate(project: Project, action: "archive" | "restore") {
-    const response = await fetch(`/api/projects/${project.id}${action === "restore" ? "/restore" : ""}`, { method: action === "restore" ? "POST" : "DELETE" });
-    if (!response.ok) {
-      setNotice(await responseError(response));
-      return;
+  /** Appends the next page; rows already listed are not repeated. */
+  async function loadMore() {
+    if (loadingMore) return;
+    setLoadingMore(true);
+    try {
+      const params = listParams({ search, status, stage });
+      params.set("offset", String(projects.length));
+      const response = await fetch(`/api/projects?${params}`, { cache: "no-store" });
+      if (!response.ok) throw new Error("Failed to load projects");
+      const result = projectListResponseSchema.parse(await response.json());
+      const seen = new Set(projects.map((item) => item.id));
+      const added = result.projects.filter((item) => !seen.has(item.id));
+      setProjects((previous) => [...previous, ...added]);
+      setTotal(result.total);
+      void loadStatuses(added);
+    } catch {
+      setNotice("Daha fazla proje yüklenemedi. Tekrar dene.");
+    } finally {
+      setLoadingMore(false);
     }
-    setNotice(action === "restore" ? `${project.name} geri yüklendi.` : `${project.name} arşive taşındı. Bağlı Kütüphane kaynaklarına dokunulmadı.`);
-    await load();
+  }
+
+  async function mutate(project: Project, action: "archive" | "restore") {
+    if (busyId) return;
+    setBusyId(project.id);
+    try {
+      const response = await fetch(`/api/projects/${project.id}${action === "restore" ? "/restore" : ""}`, { method: action === "restore" ? "POST" : "DELETE" });
+      if (!response.ok) {
+        setNotice(await responseError(response));
+        return;
+      }
+      setNotice(action === "restore" ? `${project.name} geri yüklendi.` : `${project.name} arşive taşındı. Bağlı Kütüphane kaynaklarına dokunulmadı.`);
+      await load();
+    } catch {
+      setNotice("Proje hizmetine ulaşılamıyor. Tekrar dene.");
+    } finally {
+      setBusyId(null);
+    }
   }
 
   function clearQueryString() {
@@ -162,7 +202,6 @@ export function ProjectsClient({ initial, initialStatuses, library, profiles, re
     setEditor({ kind: "closed" });
     clearQueryString();
     setNotice(`${project.name} kaydedildi.`);
-    router.refresh();
     void load();
   }
 
@@ -234,9 +273,16 @@ export function ProjectsClient({ initial, initialStatuses, library, profiles, re
           </table>
         </div>
       )}
+      {!loading && projects.length > 0 && projects.length < total && (
+        <div className="load-more">
+          <button className="button" disabled={loadingMore} onClick={() => void loadMore()} type="button">
+            {loadingMore ? "Yükleniyor…" : `Daha fazla göster (${total - projects.length} kaldı)`}
+          </button>
+        </div>
+      )}
       {!loading && projects.length === 0 && (
         <div className="empty">
-          <span className="mark xl"><FolderSimple size={34} /></span>
+          <span className="mark xl"><FolderSimple aria-hidden size={34} /></span>
           <h2>{emptyTitle}</h2>
           <p>
             {status === "archived"

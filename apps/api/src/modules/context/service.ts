@@ -19,6 +19,7 @@ import {
   type ContextVersionSummary,
   type CreateExportInput,
   type ExportEvent,
+  type ProjectContextStatus,
 } from "@devcontext/contracts";
 
 export type ContextVersionRow = {
@@ -39,10 +40,16 @@ export type ExportEventRow = {
   createdAt: Date;
 };
 
+/** Latest stored version of a Project without its canonical JSON. */
+export type LatestVersionSummary = { projectId: string; version: number; contentHash: string; createdAt: Date; warningCount: number };
+
 export interface ContextRepository {
   projectExists(ownerUserId: string, projectId: string): Promise<boolean>;
   /** Every owner-scoped input the compiler needs, or `null` when the Project is not the owner's. */
   loadCompileInput(ownerUserId: string, projectId: string): Promise<CompileInput | null>;
+  /** The same inputs for many Projects with one set of queries; foreign or missing ids are absent. */
+  loadCompileInputs(ownerUserId: string, projectIds: string[]): Promise<Map<string, CompileInput>>;
+  latestSummaries(ownerUserId: string, projectIds: string[]): Promise<Map<string, LatestVersionSummary>>;
   latestVersion(ownerUserId: string, projectId: string): Promise<ContextVersionRow | null>;
   listVersions(ownerUserId: string, projectId: string, limit: number): Promise<ContextVersionRow[]>;
   findVersion(ownerUserId: string, projectId: string, version: number): Promise<ContextVersionRow | null>;
@@ -96,15 +103,19 @@ export function toContextVersion(row: ContextVersionRow): ContextVersion {
   };
 }
 
+/** Summary for lists: counts read straight from the stored canonical, which this API wrote and validated. */
 export function toVersionSummary(row: ContextVersionRow): ContextVersionSummary {
-  const canonical = canonicalContextSchema.parse(row.canonical);
+  const count = (key: "decisions" | "warnings") => {
+    const value = row.canonical[key];
+    return Array.isArray(value) ? value.length : 0;
+  };
   return {
     id: row.id,
     version: row.version,
     compilerVersion: row.compilerVersion,
     contentHash: row.contentHash,
-    decisionCount: canonical.decisions.length,
-    warningCount: canonical.warnings.length,
+    decisionCount: count("decisions"),
+    warningCount: count("warnings"),
     createdAt: row.createdAt.toISOString(),
   };
 }
@@ -125,7 +136,10 @@ export function toExportEvent(row: ExportEventRow): ExportEvent {
 export interface ContextService {
   compile(ownerUserId: string, projectId: string): Promise<{ version: ContextVersion; created: boolean }>;
   current(ownerUserId: string, projectId: string): Promise<ContextState>;
-  listVersions(ownerUserId: string, projectId: string): Promise<ContextVersionSummary[]>;
+  /** Freshness of many Projects at once for lists: one compile each, no canonical parsing or previews. */
+  statuses(ownerUserId: string, projectIds: string[]): Promise<ProjectContextStatus[]>;
+  /** Newest first, at most `limit` (the plan's visible history) and never more than the stored maximum. */
+  listVersions(ownerUserId: string, projectId: string, limit?: number): Promise<ContextVersionSummary[]>;
   getVersion(ownerUserId: string, projectId: string, version: number): Promise<ContextVersion>;
   export(ownerUserId: string, projectId: string, input: CreateExportInput, idempotencyKey?: string): Promise<{
     export: ContextVersion["previews"][number] & { contextVersion: number; contentHash: string };
@@ -223,9 +237,25 @@ export function createContextService(repository: ContextRepository): ContextServ
         draftWarnings: draft.warnings,
       };
     },
-    async listVersions(ownerUserId, projectId) {
+    async statuses(ownerUserId, projectIds) {
+      const [inputs, latest] = await Promise.all([
+        repository.loadCompileInputs(ownerUserId, projectIds),
+        repository.latestSummaries(ownerUserId, projectIds),
+      ]);
+      return [...inputs.entries()].map(([projectId, input]) => {
+        const draft = compileDraft(input);
+        const stored = latest.get(projectId) ?? null;
+        return {
+          projectId,
+          stale: !stored || stored.contentHash !== draft.hash,
+          draftWarningCount: draft.warnings.length,
+          latest: stored ? { version: stored.version, createdAt: stored.createdAt.toISOString(), warningCount: stored.warningCount } : null,
+        };
+      });
+    },
+    async listVersions(ownerUserId, projectId, limit = historyLimit) {
       await ensureProject(ownerUserId, projectId);
-      return (await repository.listVersions(ownerUserId, projectId, historyLimit)).map(toVersionSummary);
+      return (await repository.listVersions(ownerUserId, projectId, Math.min(limit, historyLimit))).map(toVersionSummary);
     },
     async getVersion(ownerUserId, projectId, version) {
       await ensureProject(ownerUserId, projectId);
@@ -242,8 +272,8 @@ export function createContextService(repository: ContextRepository): ContextServ
         if (input.version === undefined) throw notCompiledError();
         throw notFoundError("Context version not found");
       }
-      const version = toContextVersion(row);
-      const preview = version.previews.find((item) => item.target === input.target)!;
+      // Only the requested target is rendered; the other four previews are not needed to record an export.
+      const preview = renderExport(input.target, canonicalContextSchema.parse(row.canonical));
       const recorded = await repository.recordExport(ownerUserId, projectId, row.id, input.target, preview.fileName, idempotencyKey ?? null);
       if (!recorded) throw notFoundError();
       return {

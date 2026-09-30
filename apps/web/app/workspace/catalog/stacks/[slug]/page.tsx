@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { CheckCircle, Warning } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
@@ -10,7 +11,13 @@ import { ServiceUnavailable } from "../../../unavailable";
 import { WorkspaceShell } from "../../../workspace-shell";
 import { StackActions } from "../../catalog-actions";
 
-export const dynamic = "force-dynamic";
+/** The entity name in the tab title; the lookup is shared with the page through the per-request cache. */
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const session = await loadSession();
+  const stack = session.status === "authenticated" ? await getCatalogStack(session.cookieHeader, slug) : null;
+  return { title: stack ? stack.name : "Hazır stack" };
+}
 
 function ScoreBar({ label, value, production = false }: { label: string; value: number | null; production?: boolean }) {
   if (value === null) return null;

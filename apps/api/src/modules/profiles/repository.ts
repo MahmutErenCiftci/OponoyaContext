@@ -16,9 +16,11 @@ import {
   projects,
   resources,
   type RepositoryDatabase, type Database,
+  readAll,
+  containsPattern,
 } from "@devcontext/db";
 import { assertResourcesActive, resourceColumns, toDecisionRecord } from "../decisions/repository.js";
-import type { DecisionValues } from "../decisions/service.js";
+import { assertDecisionCapacity, type DecisionValues } from "../decisions/service.js";
 import { idempotencyKeyConflictError, type ProfileRepository } from "./service.js";
 
 type ProfileRow = typeof profiles.$inferSelect;
@@ -41,13 +43,13 @@ function toSummary(row: ProfileRow, decisionCount: number, projectCount: number)
 
 async function countsFor(executor: Executor, ids: string[]) {
   if (ids.length === 0) return { decisions: new Map<string, number>(), projects: new Map<string, number>() };
-  const [decisionRows, projectRows] = await Promise.all([
-    executor
+  const [decisionRows, projectRows] = await readAll(executor, [
+    () => executor
       .select({ profileId: profileDecisions.profileId, value: count() })
       .from(profileDecisions)
       .where(inArray(profileDecisions.profileId, ids))
       .groupBy(profileDecisions.profileId),
-    executor
+    () => executor
       .select({ profileId: projectProfiles.profileId, value: count() })
       .from(projectProfiles)
       .where(inArray(projectProfiles.profileId, ids))
@@ -86,7 +88,7 @@ async function getById(executor: Executor, ownerUserId: string, profileId: strin
     .where(and(eq(profiles.ownerUserId, ownerUserId), eq(profiles.id, profileId)))
     .limit(1);
   if (!row) return null;
-  const [decisionRows, counts] = await Promise.all([decisionQuery(executor, ownerUserId, profileId), countsFor(executor, [row.id])]);
+  const [decisionRows, counts] = await readAll(executor, [() => decisionQuery(executor, ownerUserId, profileId), () => countsFor(executor, [row.id])]);
   const origin = { id: row.id, name: row.name, priority: 0 };
   return {
     ...toSummary(row, counts.decisions.get(row.id) ?? 0, counts.projects.get(row.id) ?? 0),
@@ -111,13 +113,13 @@ export function createProfileRepository(database: RepositoryDatabase): ProfileRe
       if (query.archived === "archived") conditions.push(isNotNull(profiles.archivedAt));
       if (query.type) conditions.push(eq(profiles.type, query.type));
       if (query.q) {
-        const pattern = `%${query.q}%`;
+        const pattern = containsPattern(query.q);
         conditions.push(or(ilike(profiles.name, pattern), ilike(profiles.description, pattern))!);
       }
       const where = and(...conditions);
-      const [rows, totalRows] = await Promise.all([
-        database.db.select().from(profiles).where(where).orderBy(desc(profiles.updatedAt), profiles.name).limit(query.limit).offset(query.offset),
-        database.db.select({ value: count() }).from(profiles).where(where),
+      const [rows, totalRows] = await readAll(database.db, [
+        () => database.db.select().from(profiles).where(where).orderBy(desc(profiles.updatedAt), profiles.name).limit(query.limit).offset(query.offset),
+        () => database.db.select({ value: count() }).from(profiles).where(where),
       ]);
       const counts = await countsFor(database.db, rows.map((row) => row.id));
       return {
@@ -170,6 +172,8 @@ export function createProfileRepository(database: RepositoryDatabase): ProfileRe
       return database.db.transaction(async (transaction) => {
         if (!(await ownsProfile(transaction, ownerUserId, profileId))) return null;
         await assertResourcesActive(transaction, ownerUserId, [values.resourceId]);
+        const existing = await transaction.select({ slot: profileDecisions.slot }).from(profileDecisions).where(eq(profileDecisions.profileId, profileId));
+        assertDecisionCapacity(existing.map((row) => row.slot), [slot]);
         await transaction
           .insert(profileDecisions)
           .values({ profileId, slot, ...values })

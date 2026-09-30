@@ -25,7 +25,7 @@ test("free limits are enforced by the API, and the test-mode provider upgrades, 
   await expect(page.getByRole("heading", { name: "Abonelik" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Free plan" })).toBeVisible();
   await expect(page.getByLabel("3 / 3 aktif projeler kullanıldı")).toBeVisible();
-  await expect(page.getByRole("table")).toContainText("Cursor rules (.mdc) dışa aktarımı");
+  await expect(page.getByRole("table")).toContainText("Cursor kuralları (.mdc) dışa aktarımı");
   await expect(page.getByText("Test modu · gerçek ödeme yok")).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath("billing-free-desktop.png"), fullPage: true });
 

@@ -44,7 +44,7 @@ Handoff 4 implementation: `docs/32_PROJECTS_HANDOFF.md`.
 - [x] inheritance preview (wizard inherited summary, Stack provenance)
 - [x] review step with locked/preferred/delegated/disabled summary
 - [x] AI freedom presets (initializers only)
-- [x] ten-step progressive wizard with engineering rules
+- [x] progressive wizard with engineering rules (shipped as the four-step full-page wizard of the design pack, report 41)
 
 Handoff 7 implementation: `docs/35_COMPOSER_HANDOFF.md`.
 
@@ -79,7 +79,7 @@ Handoff 8A implementation: `docs/36_V0_3_USABILITY_HANDOFF.md`.
 ## P0 — V1 activation and portability
 - [x] Recipe CRUD, decisions and profile attachments (Handoff 9)
 - [x] apply a Recipe by reference with Project > Recipe > Profile > Global precedence
-- [x] save Project as Recipe
+- [x] save Project as Recipe (API in Handoff 9; project menu action "Tarif olarak kaydet" in report 45)
 - [x] first-run choices with skip/resume and settings controls
 - [x] optional, versioned, removable sample data
 - [x] portable JSON export (no secrets) and validated dry-run import with skip/copy/replace

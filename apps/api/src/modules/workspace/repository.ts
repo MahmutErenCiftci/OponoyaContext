@@ -12,6 +12,7 @@ import {
   resources,
   workspaceSettings,
   type RepositoryDatabase,
+  readAll,
 } from "@devcontext/db";
 
 export type WorkspaceSettingsRow = {
@@ -70,16 +71,16 @@ export function createWorkspaceRepository(database: RepositoryDatabase): Workspa
     },
 
     async summary(ownerUserId) {
-      const [resourceRows, favoriteRows, projectRows, profileRows, versionRows, exportRows] = await Promise.all([
-        database.db.select({ value: count() }).from(resources).where(and(eq(resources.ownerUserId, ownerUserId), isNull(resources.archivedAt))),
-        database.db.select({ value: count() }).from(resources).where(and(eq(resources.ownerUserId, ownerUserId), isNull(resources.archivedAt), eq(resources.favorite, true))),
-        database.db.select({ value: count() }).from(projects).where(and(eq(projects.ownerUserId, ownerUserId), eq(projects.status, "active"))),
-        database.db.select({ value: count() }).from(profiles).where(and(eq(profiles.ownerUserId, ownerUserId), isNull(profiles.archivedAt))),
-        database.db
+      const [resourceRows, favoriteRows, projectRows, profileRows, versionRows, exportRows] = await readAll(database.db, [
+        () => database.db.select({ value: count() }).from(resources).where(and(eq(resources.ownerUserId, ownerUserId), isNull(resources.archivedAt))),
+        () => database.db.select({ value: count() }).from(resources).where(and(eq(resources.ownerUserId, ownerUserId), isNull(resources.archivedAt), eq(resources.favorite, true))),
+        () => database.db.select({ value: count() }).from(projects).where(and(eq(projects.ownerUserId, ownerUserId), eq(projects.status, "active"))),
+        () => database.db.select({ value: count() }).from(profiles).where(and(eq(profiles.ownerUserId, ownerUserId), isNull(profiles.archivedAt))),
+        () => database.db
           .select({ versions: count(), projects: countDistinct(contextVersions.projectId) })
           .from(contextVersions)
           .innerJoin(projects, and(eq(contextVersions.projectId, projects.id), eq(projects.ownerUserId, ownerUserId))),
-        database.db
+        () => database.db
           .select({ value: count() })
           .from(exportEvents)
           .innerJoin(projects, and(eq(exportEvents.projectId, projects.id), eq(projects.ownerUserId, ownerUserId))),

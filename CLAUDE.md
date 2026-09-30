@@ -22,7 +22,7 @@ only one numbered handoff prompt at a time.
   numbered implementation report and passing acceptance evidence.
 - Handoffs 1–12 are complete (reports 27–43; report 39 is the catalog slice and
   report 41 is the design-pack UI integration, so later reports are offset by
-  two from the prompt names). Migrations 0000–0008 are applied and covered by
+  two from the prompt names). Migrations 0000–0009 are applied and covered by
   tests; never regenerate them. The launch gate `docs/44_V1_LAUNCH_GATE.md`
   (2026-09-09) is **BLOCKED** on owner-only items (hosting, managed
   PostgreSQL, DNS/TLS, monitoring, repository publication, legal approval);
@@ -51,8 +51,10 @@ only one numbered handoff prompt at a time.
   full-page project wizard and shared components under `apps/web/components`.
   New screens reuse those pieces; do not reintroduce a left sidebar or PNG
   backgrounds.
-  A compiler semantic change must bump `COMPILER_VERSION` (now 0.4.1), regenerate
-  golden snapshots and `examples/generated-context`.
+  A compiler semantic change must bump `COMPILER_VERSION` (now 0.4.2), regenerate
+  golden snapshots and `examples/generated-context`. Export adapters treat user
+  text as data (report 45): keep using the `inline`/`paragraph`/`codeSpan`
+  helpers for anything a user, an import or an AI proposal wrote.
 - Plan limits and features live only in `apps/api/src/modules/billing/plans.ts`
   and are enforced through `app.entitlements` in route handlers (create, restore,
   clone, import, export, bundle, diff); route tests that are not about plans
@@ -85,6 +87,20 @@ only one numbered handoff prompt at a time.
   Windows App Control blocks the native pnpm binary, `.local/runtime/pnpm.cmd`
   runs `pnpm run|exec|--filter|-r` through `pnpm-shim.mjs` (no installs); the
   real launcher is kept as `pnpm-native.cmd`.
+- Report 45 (`docs/45_PRODUCTION_HARDENING_REPORT.md`, 2026-09-26) records the
+  production hardening pass: security fixes, performance work, AI groundwork
+  (`AI_PROVIDER=none` by default; activating a real provider is an owner
+  decision that also needs the Privacy text and subprocessors), password
+  change, migration 0009 and the remaining owner decisions. Product identity
+  lives in `packages/contracts/src/brand.ts` (`productName` etc.) and
+  `GENERATOR_NAME` in the compiler; an API test keeps them equal.
+  `WEB_PROXY_SECRET` must match on the API and the web service. Per-entity
+  decisions (80) and compatibility rules (500) are bounded like the portable
+  format. Password reset runs through Better Auth behind
+  `modules/email/sender.ts` (`EMAIL_PROVIDER=none` by default; `log` is
+  development-only); its routes are proxied only when a sender exists, and a
+  real e-mail provider is an owner decision. Report 46 lists the researched
+  product gaps and recommendations.
 - At the end of each handoff, update the execution plan and create the exact report
   required by that prompt. Never mark production-ready without a GO decision in
   `docs/44_V1_LAUNCH_GATE.md`.

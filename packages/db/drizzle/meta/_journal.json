@@ -64,6 +64,13 @@
       "when": 1788984739827,
       "tag": "0008_account_deletions",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1790396758126,
+      "tag": "0009_ai_suggestions_and_fk_indexes",
+      "breakpoints": true
     }
   ]
 }

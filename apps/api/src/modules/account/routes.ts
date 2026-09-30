@@ -1,6 +1,6 @@
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import { fromNodeHeaders } from "better-auth/node";
-import { deleteAccountRequestSchema } from "@devcontext/contracts";
+import { changePasswordRequestSchema, deleteAccountRequestSchema } from "@devcontext/contracts";
 import { deletionCodeOf, type AccountService } from "./service.js";
 
 function currentUser(request: FastifyRequest) {
@@ -20,12 +20,12 @@ function actor(request: FastifyRequest) {
 export async function registerAccountRoutes(app: FastifyInstance, account: AccountService) {
   app.get("/v1/legal", async () => ({ legal: account.legal() }));
 
-  app.get("/v1/account", { preHandler: app.authenticate }, async (request) => ({
+  app.get("/v1/account", { onRequest: app.authenticate }, async (request) => ({
     account: await account.summary(currentUser(request)),
   }));
 
   /** Structured export: portable workspace plus account, subscription state, compiled versions, exports and audit trail. No secrets. */
-  app.get("/v1/account/export", { preHandler: app.authenticate }, async (request, reply) => {
+  app.get("/v1/account/export", { onRequest: app.authenticate }, async (request, reply) => {
     const document = await account.exportAccount(currentUser(request));
     await app.telemetry.record(actor(request), {
       action: "account.export_downloaded", entityType: "account", entityId: currentUser(request).id,
@@ -41,11 +41,26 @@ export async function registerAccountRoutes(app: FastifyInstance, account: Accou
   });
 
   /**
+   * Password change: the current password is checked by Better Auth, every
+   * other session is signed out and this browser receives a fresh session
+   * cookie. Rate limited with the other password-checked actions.
+   */
+  app.put("/v1/account/password", { onRequest: app.authenticate }, async (request, reply) => {
+    const input = changePasswordRequestSchema.parse(request.body ?? {});
+    const user = currentUser(request);
+    const result = await app.auth.changePassword(fromNodeHeaders(request.headers), input.currentPassword, input.newPassword);
+    await app.telemetry.record(actor(request), { action: "account.password_changed", entityType: "account", entityId: user.id, metadata: { otherSessionsRevoked: true } });
+    request.log.info({ category: "security", event: "password_changed", userId: user.id, requestId: request.id }, "password_changed");
+    if (result.setCookie.length > 0) reply.header("set-cookie", result.setCookie);
+    return { changed: true, otherSessionsRevoked: true };
+  });
+
+  /**
    * Deliberate deletion: typed e-mail plus password. A blocked external step
    * answers 409 with a content-free code and leaves a retryable ledger row; a
    * success clears the session cookie and answers with the completed state.
    */
-  app.delete("/v1/account", { preHandler: app.authenticate }, async (request, reply) => {
+  app.delete("/v1/account", { onRequest: app.authenticate }, async (request, reply) => {
     const input = deleteAccountRequestSchema.parse(request.body ?? {});
     const user = currentUser(request);
     try {

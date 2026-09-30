@@ -42,6 +42,7 @@ function auth(): AuthProvider {
     },
     async verifyPassword() { return true; },
     async deleteUser() { return { setCookie: [] }; },
+    async changePassword() { return { setCookie: [] }; },
   };
 }
 

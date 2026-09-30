@@ -29,6 +29,23 @@ function publicMessageOf(error: unknown): string | null {
   return typeof error.publicMessage === "string" ? error.publicMessage : null;
 }
 
+/**
+ * PostgreSQL rejects some values the contracts let through (a NUL character
+ * in text or JSON, an integer beyond int4, an unparsable literal). Those are
+ * the client's input, not a server fault: they answer 400 like any other
+ * validation failure, and nothing about the value is echoed or logged.
+ */
+const invalidInputSqlStates = new Set(["22001", "22003", "22007", "22008", "22021", "22P02", "22P05", "2201E"]);
+
+function databaseStateOf(error: unknown): string | null {
+  let current: unknown = error;
+  for (let depth = 0; depth < 3 && typeof current === "object" && current !== null; depth += 1) {
+    if ("code" in current && typeof current.code === "string" && /^[0-9A-Z]{5}$/.test(current.code)) return current.code;
+    current = "cause" in current ? current.cause : null;
+  }
+  return null;
+}
+
 export function registerErrorHandlers(app: FastifyInstance) {
   app.setNotFoundHandler((request, reply) =>
     reply.code(404).send(envelope("NOT_FOUND", "Route not found", request.id)),
@@ -57,6 +74,16 @@ export function registerErrorHandlers(app: FastifyInstance) {
       };
       const [code, message] = known[status] ?? ["BAD_REQUEST", "Request could not be accepted"];
       return reply.code(status).send(envelope(code, publicMessageOf(error) ?? message, request.id, detailsOf(error)));
+    }
+    // A dependency the API relies on (the AI provider) is unavailable: an expected, explained outage, not a defect.
+    if (status === 503 && publicMessageOf(error)) {
+      request.log.warn({ requestId: request.id, category: "dependency_unavailable", details: detailsOf(error) ?? null }, "Dependency unavailable");
+      return reply.code(503).send(envelope("SERVICE_UNAVAILABLE", publicMessageOf(error)!, request.id, detailsOf(error)));
+    }
+    const sqlState = databaseStateOf(error);
+    if (sqlState && invalidInputSqlStates.has(sqlState)) {
+      request.log.info({ requestId: request.id, category: "invalid_input", sqlState }, "Input rejected by the database");
+      return reply.code(400).send(envelope("VALIDATION_ERROR", "Request contains a value that cannot be stored", request.id, [{ path: [], code: "invalid_value" }]));
     }
     // Exception messages may contain SQL, request bodies or credentials, so the
     // structured summary carries the error class, driver code, constraint and

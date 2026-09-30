@@ -134,8 +134,10 @@ User must be able to:
 - **Backups**: encrypted logical backups keep deleted rows until they expire
   (`BACKUP_RETENTION_DAYS`, placeholder until set); deleted accounts are never
   restored from backups.
-- **Disclosures**: external AI processing is off by construction (the API
-  never calls an AI provider); imported URLs, prompts, rules and install
+- **Disclosures**: external AI processing is off unless a provider is
+  configured (`AI_PROVIDER=none` by default, report 45); even then nothing is
+  sent before the user consents in Settings, and `GET /v1/legal` and
+  `GET /v1/account` report whether a provider is active; imported URLs, prompts, rules and install
   commands are stored as text and never fetched or executed; only the session
   and theme cookies exist. Settings and the Privacy page state all of this
   from configuration, not from copy.
@@ -162,3 +164,52 @@ User must be able to:
 - Readiness fails during drain so no request reaches a stopping process; the
   pool is bounded per instance and pressure is logged without connection
   details.
+
+## Production hardening review (report 45, 2026-09-26)
+
+A full review of the current code found 2 High, 4 Medium, 7 Low and 8 Info
+items; all High and Medium items are fixed and covered by tests:
+
+- ReDoS in error redaction (High): messages are truncated before bounded,
+  keyword-anchored patterns run; query errors are summarized from their cause.
+- Import memory blow-up (High): structural bounds (node count, array lengths,
+  depth) are checked before the full walk; one import per user at a time.
+- Password-free deletion through Better Auth (Medium): only sign-in, sign-up
+  and sign-out are proxied; deletion and password change go through the
+  account service, which verifies the password.
+- Spoofable rate-limit identity (Medium): `TRUST_PROXY` trusts private
+  networks or explicit CIDRs only; the web proxy asserts the client address
+  with `WEB_PROXY_SECRET`; Better Auth reads the verified address.
+- Body parsing before authentication (Medium): `app.authenticate` runs in
+  `onRequest`; request timeout 30 s; the web proxy caps bodies and times out.
+- Unbounded data driving compiles (Medium): expensive routes (compile,
+  context, diff, versions, bundle, exports, account export) share the
+  `expensive` bucket; decisions per entity and compatibility rules are bounded
+  like the portable format.
+- Low/Info: export structure injection (compiler 0.4.2), malformed URLs and
+  NUL/int4 overflow now answer 400, production guards keyed on
+  `APP_ENV ?? NODE_ENV` with placeholder and TLS checks, Fetch-Metadata check
+  on downloads with side effects, no `text/plain` parser, LIKE wildcards
+  escaped, Better Auth logs through the redacting logger, bounded fake billing
+  state, owner-only backup files.
+- Web: nonce-based Content-Security-Policy per request (`apps/web/proxy.ts`),
+  self-hosted fonts (no third-party font requests), a single hardened `/api/*`
+  proxy with header allow-lists.
+- Release hygiene: `scripts/sync-main.mjs` no longer links `dev` history into
+  `main`; `.gitignore` covers every `.env.*` except the example;
+  `scripts/verify-bundle.mjs` also looks for `WEB_PROXY_SECRET`, the proxy
+  header and `AI_API_KEY`.
+
+Password reset (report 45) is implemented behind an e-mail sender boundary:
+the request never reveals whether an address exists, the one-time token lives
+one hour, a reset ends every session, the link goes straight to the web app
+(no redirect parameter), and the routes are not reachable without a sender.
+Only a development "log" sender exists; a real provider is an owner decision.
+
+Accepted and open (owner decisions): a real e-mail provider (until then no one
+can reset a forgotten password in production), e-mail verification (sign-up
+still reveals an existing address);
+plan-limit checks can race with parallel creates (small overage only); an
+Idempotency-Key equal to a foreign UUID can reveal that the id exists
+(122-bit random ids make this impractical); the existing `main` history still
+contains `dev` commits until it is republished with `--fresh`.

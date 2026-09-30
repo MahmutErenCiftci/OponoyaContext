@@ -62,6 +62,7 @@ export function unlimitedEntitlements(): EntitlementService {
     async assertExportTarget() {},
     async assertFeature() {},
     async historyLimit() { return 50; },
+    async aiMonthlyQuota() { return 1_000; },
   };
 }
 

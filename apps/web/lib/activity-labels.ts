@@ -2,6 +2,15 @@ import type { AuditEvent } from "@devcontext/contracts";
 
 const labels: Record<string, string> = {
   "account.created": "Çalışma alanı oluşturuldu",
+  "account.password_changed": "Şifre değiştirildi",
+  "account.export_downloaded": "Hesap verileri indirildi",
+  "account.deletion_blocked": "Hesap silme tamamlanamadı",
+  "account.ai_consent_granted": "AI önerilerine izin verildi",
+  "account.ai_consent_revoked": "AI önerileri kapatıldı",
+  "ai.suggestion_created": "AI önerisi istendi",
+  "ai.suggestion_accepted": "AI önerisi kabul edildi",
+  "ai.suggestion_rejected": "AI önerisi reddedildi",
+  "ai.suggestion_failed": "AI önerisi alınamadı",
   "resource.created": "Kaynak kaydedildi",
   "resource.preference_changed": "Kütüphane kuralı değişti",
   "resource.archived": "Kaynak arşivlendi",
@@ -71,7 +80,9 @@ export function activityDetail(event: AuditEvent) {
 
 export function activityHref(event: AuditEvent): string | null {
   if (event.action.startsWith("billing.")) return "/workspace/billing";
-  if (event.entityType === "workspace") return "/workspace/settings";
+  if (event.entityType === "workspace" || event.entityType === "account") return "/workspace/settings";
+  // AI suggestions live on the Project's stack page; the suggestion id itself has no page.
+  if (event.entityType === "ai_suggestion") return typeof event.metadata.projectId === "string" ? `/workspace/projects/${event.metadata.projectId}/stack` : null;
   if (!event.entityId) return null;
   switch (event.entityType) {
     case "project":

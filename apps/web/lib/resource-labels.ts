@@ -20,7 +20,7 @@ export const typeLabels: Record<ResourceType, string> = {
   ui_library: "UI kütüphanesi", component: "Bileşen", theme: "Tema", design_system: "Tasarım sistemi",
   animation: "Animasyon", icon_library: "İkon kütüphanesi", repository: "Kod deposu", boilerplate: "Boilerplate",
   template: "Şablon", prompt: "Prompt", ai_coding_tool: "AI kodlama aracı", ai_builder: "AI oluşturucu",
-  mcp: "MCP sunucusu", cli: "CLI", deployment: "Dağıtım", monitoring: "İzleme", service: "Service / API",
+  mcp: "MCP sunucusu", cli: "CLI", deployment: "Dağıtım", monitoring: "İzleme", service: "Servis / API",
   architecture: "Mimari", rule: "Kodlama kuralı", reference: "Referans",
 };
 
@@ -44,19 +44,26 @@ export const suggestedProductTypes = ["SaaS", "Internal tool", "Marketplace", "A
 
 export const suggestedPriorities = ["Fast MVP", "Maintainability", "Low cost", "Scalability", "Type safety", "Accessibility", "Performance", "Security"];
 
-/** UTC keeps server-rendered and client-rendered dates identical, so hydration never disagrees. */
+/**
+ * The product speaks Turkish to Turkish users, so times are shown in Türkiye
+ * time (UTC+3, no daylight saving). A fixed zone, rather than the machine's,
+ * keeps server-rendered and client-rendered dates identical, so hydration
+ * never disagrees.
+ */
+export const displayTimeZone = "Europe/Istanbul";
+
 export function formatDate(iso: string) {
-  return new Intl.DateTimeFormat("tr-TR", { dateStyle: "medium", timeZone: "UTC" }).format(new Date(iso));
+  return new Intl.DateTimeFormat("tr-TR", { dateStyle: "medium", timeZone: displayTimeZone }).format(new Date(iso));
 }
 
-/** "8 Eylül 2026, 14:32" style timestamp (UTC, see formatDate). */
+/** "8 Eylül 2026, 14:32" style timestamp (Türkiye time, see displayTimeZone). */
 export function formatDateTime(iso: string) {
-  return new Intl.DateTimeFormat("tr-TR", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "UTC" }).format(new Date(iso)).replace(" ", " ");
+  return new Intl.DateTimeFormat("tr-TR", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: displayTimeZone }).format(new Date(iso)).replace(" ", " ");
 }
 
-/** "14:32" (UTC). */
+/** "14:32" (Türkiye time). */
 export function formatTime(iso: string) {
-  return new Intl.DateTimeFormat("tr-TR", { hour: "2-digit", minute: "2-digit", timeZone: "UTC" }).format(new Date(iso));
+  return new Intl.DateTimeFormat("tr-TR", { hour: "2-digit", minute: "2-digit", timeZone: displayTimeZone }).format(new Date(iso));
 }
 
 export function pluralCount(count: number, singular: string, plural = singular) {

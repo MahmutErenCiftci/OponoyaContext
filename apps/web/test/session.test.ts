@@ -1,6 +1,6 @@
 import { afterEach, expect, it, vi } from "vitest";
 import { getAuditEvents, getCurrentUser } from "../lib/api";
-import { readSession, serializeCookies } from "../lib/session";
+import { readSession } from "../lib/session";
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -29,8 +29,7 @@ it("keeps getCurrentUser as the simple null-on-anything-else view", async () => 
   expect(await getCurrentUser("session=valid")).toBeNull();
 });
 
-it("serializes cookies and reads the audit trail with a bounded limit", async () => {
-  expect(serializeCookies([{ name: "a", value: "1" }, { name: "b", value: "2" }])).toBe("a=1; b=2");
+it("reads the audit trail with a bounded limit", async () => {
   const event = { id: "00000000-0000-4000-8000-000000000090", action: "project.compiled", entityType: "project", entityId: "00000000-0000-4000-8000-000000000030", metadata: { version: 1 }, requestId: "req-1", createdAt: new Date().toISOString() };
   const fetch = vi.fn().mockResolvedValueOnce(Response.json({ events: [event] })).mockResolvedValueOnce(new Response(null, { status: 500 }));
   vi.stubGlobal("fetch", fetch);

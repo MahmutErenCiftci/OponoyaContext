@@ -107,7 +107,8 @@ export function createErrorReporter(options: ReporterOptions, logger: ReporterLo
   let windowStart = now();
   let sent = 0;
   const recent = new Map<string, number>();
-  let lastTransportWarning = 0;
+  // The first failure always warns, whatever the clock origin.
+  let lastTransportWarning = Number.NEGATIVE_INFINITY;
 
   function allowed(fingerprint: string) {
     const at = now();

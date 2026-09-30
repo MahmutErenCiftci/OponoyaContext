@@ -1,21 +1,23 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import { z } from "zod";
 import {
   getGlobalDecisions,
   getProfileList,
   getProject,
-  getProjectContext,
   getProjectDecisions,
+  getContextStatuses,
   getProjectList,
   getRecipeList,
   getResourceList,
 } from "../../../lib/api";
-import { contextStatus, type ContextStatus } from "../../../lib/context-status";
+import { contextStatusFrom, type ContextStatus } from "../../../lib/context-status";
 import { loadSession } from "../../../lib/server-session";
 import { ServiceUnavailable } from "../unavailable";
 import { WorkspaceShell } from "../workspace-shell";
 import { ProjectsClient } from "./projects-client";
 
-export const dynamic = "force-dynamic";
+export const metadata: Metadata = { title: "Projeler" };
 
 export default async function ProjectsPage({ searchParams }: { searchParams: Promise<{ new?: string; edit?: string; recipe?: string }> }) {
   const session = await loadSession();
@@ -23,17 +25,20 @@ export default async function ProjectsPage({ searchParams }: { searchParams: Pro
   if (session.status === "anonymous") redirect("/auth?mode=sign-in");
   const { user, cookieHeader } = session;
   const query = await searchParams;
+  const editId = query.edit && z.uuid().safeParse(query.edit).success ? query.edit : null;
   const [initial, library, profiles, recipes, globalDecisions, editProject, editDecisions] = await Promise.all([
     getProjectList(cookieHeader),
     getResourceList(cookieHeader, new URLSearchParams({ archived: "active", limit: "100" })),
     getProfileList(cookieHeader, new URLSearchParams({ archived: "active", limit: "100" })),
     getRecipeList(cookieHeader, new URLSearchParams({ archived: "active", limit: "100" })),
     getGlobalDecisions(cookieHeader),
-    query.edit ? getProject(cookieHeader, query.edit) : Promise.resolve(null),
-    query.edit ? getProjectDecisions(cookieHeader, query.edit) : Promise.resolve(null),
+    editId ? getProject(cookieHeader, editId) : Promise.resolve(null),
+    editId ? getProjectDecisions(cookieHeader, editId) : Promise.resolve(null),
   ]);
-  const contexts = await Promise.all(initial.projects.slice(0, 20).map(async (project) => [project.id, contextStatus(await getProjectContext(cookieHeader, project.id))] as const));
-  const initialStatuses: Record<string, ContextStatus> = Object.fromEntries(contexts);
+  if (!initial) return <ServiceUnavailable />;
+  // One batch request for every visible project: freshness only, no canonical JSON or previews.
+  const statuses = await getContextStatuses(cookieHeader, initial.projects.map((project) => project.id));
+  const initialStatuses: Record<string, ContextStatus> = Object.fromEntries(initial.projects.map((project) => [project.id, contextStatusFrom(statuses.get(project.id))]));
 
   return (
     <WorkspaceShell active="Projects" user={user}>
@@ -42,12 +47,12 @@ export default async function ProjectsPage({ searchParams }: { searchParams: Pro
         editOnLoad={editProject}
         globalDecisions={globalDecisions}
         initial={initial}
-        initialRecipeId={query.recipe ?? null}
+        initialRecipeId={query.recipe && z.uuid().safeParse(query.recipe).success ? query.recipe : null}
         initialStatuses={initialStatuses}
-        library={library.resources}
+        library={library?.resources ?? []}
         openCreateOnLoad={query.new === "1"}
-        profiles={profiles.profiles}
-        recipes={recipes.recipes}
+        profiles={profiles?.profiles ?? []}
+        recipes={recipes?.recipes ?? []}
       />
     </WorkspaceShell>
   );

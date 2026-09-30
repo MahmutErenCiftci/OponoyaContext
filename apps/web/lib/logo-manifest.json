@@ -38,11 +38,6 @@
       "title": "Apache Airflow",
       "hex": "017CEE"
     },
-    "apache-iceberg": {
-      "icon": "apache",
-      "title": "Apache",
-      "hex": "D22128"
-    },
     "apache-spark": {
       "icon": "apachespark",
       "title": "Apache Spark",
@@ -62,11 +57,6 @@
       "icon": "auth0",
       "title": "Auth0",
       "hex": "EB5424"
-    },
-    "authjs": {
-      "icon": "nextdotjs",
-      "title": "Next.js",
-      "hex": "000000"
     },
     "better-auth": {
       "icon": "betterauth",
@@ -157,11 +147,6 @@
       "icon": "cloudinary",
       "title": "Cloudinary",
       "hex": "3448C5"
-    },
-    "codeql": {
-      "icon": "github",
-      "title": "GitHub",
-      "hex": "181717"
     },
     "convex": {
       "icon": "convex",
@@ -327,11 +312,6 @@
       "icon": "flydotio",
       "title": "Fly.io",
       "hex": "24175B"
-    },
-    "framer-motion": {
-      "icon": "framer",
-      "title": "Framer",
-      "hex": "0055FF"
     },
     "git": {
       "icon": "git",
@@ -643,11 +623,6 @@
       "title": "PostHog",
       "hex": "000000"
     },
-    "power-bi": {
-      "icon": "looker",
-      "title": "Looker",
-      "hex": "4285F4"
-    },
     "prefect": {
       "icon": "prefect",
       "title": "Prefect",
@@ -854,9 +829,9 @@
       "hex": "06B6D4"
     },
     "tanstack-query": {
-      "icon": "reactquery",
-      "title": "React Query",
-      "hex": "FF4154"
+      "icon": "tanstack",
+      "title": "TanStack",
+      "hex": "ECE8D1"
     },
     "tauri": {
       "icon": "tauri",
@@ -979,6 +954,7 @@
     "aider": "aider",
     "airbyte": "airbyte",
     "algolia": "algolia",
+    "alpine": "alpinejs",
     "alpine js": "alpinejs",
     "amazon dynamodb": "dynamodb",
     "angular": "angular",
@@ -997,7 +973,7 @@
     "better auth": "better-auth",
     "biome": "biome",
     "bolt new": "bolt-new",
-    "bootstrap 5": "bootstrap",
+    "bootstrap": "bootstrap",
     "braintrust": "braintrust",
     "bullmq": "bullmq",
     "bun": "bun",
@@ -1023,6 +999,7 @@
     "css3": "css3",
     "cursor": "cursor",
     "cypress": "cypress",
+    "d3": "d3js",
     "d3 js": "d3js",
     "dagster": "dagster",
     "databricks": "databricks",
@@ -1043,6 +1020,7 @@
     "elixir phoenix": "elixir-phoenix",
     "eslint": "eslint",
     "expo": "expo",
+    "express": "expressjs",
     "express js": "expressjs",
     "falco": "falco",
     "fastapi": "fastapi",
@@ -1078,7 +1056,7 @@
     "inngest": "inngest",
     "iyzico paytr param": "iyzico",
     "java": "java",
-    "javascript es2024": "javascript",
+    "javascript": "javascript",
     "jotai": "jotai",
     "kargo entegrasyonları yurtic i aras mng su rat ptt": "kargo-entegrasyon",
     "kestra": "kestra",
@@ -1116,7 +1094,9 @@
     "nestjs": "nestjs",
     "netgsm i leti merkezi": "netgsm",
     "netlify": "netlify",
+    "next": "nextjs",
     "next js": "nextjs",
+    "node": "nodejs",
     "node js": "nodejs",
     "nuxt": "nuxt",
     "ollama": "ollama",
@@ -1131,7 +1111,7 @@
     "payload cms": "payload-cms",
     "paytr": "paytr",
     "pgvector": "pgvector",
-    "php 8": "php",
+    "php": "php",
     "pinecone": "pinecone",
     "pinia": "pinia",
     "plausible umami": "plausible",
@@ -1159,7 +1139,7 @@
     "recharts": "recharts",
     "redis valkey": "redis",
     "redux toolkit": "redux-toolkit",
-    "remix react router 7": "remix",
+    "remix react router": "remix",
     "replicate": "replicate",
     "replit agent": "replit-agent",
     "resend": "resend",
@@ -1186,7 +1166,7 @@
     "stripe": "stripe",
     "styled components emotion": "styled-components",
     "supabase": "supabase",
-    "svelte 5": "svelte",
+    "svelte": "svelte",
     "sveltekit": "sveltekit",
     "swift swiftui": "swift-ios",
     "tailwind css": "tailwindcss",
@@ -1195,8 +1175,9 @@
     "temporal": "temporal",
     "terraform opentofu": "terraform",
     "testing library": "testing-library",
+    "three": "threejs",
     "three js": "threejs",
-    "ticimax i deasoft t soft": "ticimax-ideasoft",
+    "ticimax ideasoft t soft": "ticimax-ideasoft",
     "trendyol hepsiburada n11 pazaryeri api leri": "trendyol-api",
     "trino prestosql": "trino",
     "trivy": "trivy",
@@ -1214,7 +1195,8 @@
     "vercel ai sdk": "vercel-ai-sdk",
     "vite": "vite",
     "vitest": "vitest",
-    "vue 3": "vue",
+    "vue": "vue",
+    "vue js": "vue",
     "wazuh": "wazuh",
     "windsurf": "windsurf",
     "wordpress": "wordpress",

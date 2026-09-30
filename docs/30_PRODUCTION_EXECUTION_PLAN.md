@@ -24,8 +24,9 @@ when the corresponding acceptance criteria have passed.
 
 ## Migration state
 
-Migrations `0000`–`0008` are committed, applied to the development database and
-replayable (PGlite replay from empty and from the previous migration, PostgreSQL
+Migrations `0000`–`0009` are committed, applied to the development database and
+replayable (`0009`, report 45: `ai_suggestions`, `workspace_settings.ai_consent_at`
+and foreign-key/lookup indexes) (PGlite replay from empty and from the previous migration, PostgreSQL
 integration test). `0002` added
 `projects.client_request_id` and `project_resources` (Handoff 4); `0003` added
 `profiles.archived_at`, `projects.rules` and a profile type index (Handoff 7);
@@ -74,9 +75,14 @@ and a signed-webhook test provider (Handoff 10, report 40; the real provider,
 price and legal entity are owner decisions and remain blocked). The web app now
 implements the 27-screen design pack (report 41): light-first tokens, top
 navigation, right-hand drawers, the four-step wizard and shared components in
-`apps/web/components`; new surfaces must reuse them. Not yet built:
-account deletion and integration revocation, legal surfaces, Sentry wiring,
-containers and managed backups. The compiler is at 0.4.1; a semantic change must bump
+`apps/web/components`; new surfaces must reuse them. Handoffs 11–12
+(reports 42–43) added account export/deletion with billing revocation, legal
+surfaces, provider-neutral error reporting, containers and runbooks; report 44
+is the launch gate (**BLOCKED** on owner-only items). Report 45 (2026-09-26)
+is a production hardening pass outside the numbered prompts: security review
+fixes, performance work, AI suggestions groundwork (off by default), password
+change, migration 0009 and compiler 0.4.2. Managed backups, hosting and
+monitoring remain owner blockers. A compiler semantic change must bump
 `COMPILER_VERSION` and regenerate goldens plus `examples/generated-context`.
 
 ## Production sequence

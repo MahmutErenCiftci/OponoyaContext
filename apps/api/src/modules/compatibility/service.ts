@@ -1,4 +1,4 @@
-import type { CompatibilityRule, CreateCompatibilityRuleInput } from "@devcontext/contracts";
+import { portableLimits, type CompatibilityRule, type CreateCompatibilityRuleInput } from "@devcontext/contracts";
 
 export interface CompatibilityRepository {
   list(ownerUserId: string, resourceId: string | undefined, limit: number): Promise<CompatibilityRule[]>;
@@ -20,6 +20,15 @@ export function ruleResourceUnavailableError(side: "leftResourceId" | "rightReso
   return Object.assign(new Error("Rule references an unavailable resource"), {
     statusCode: 400,
     details: [{ path: [side], code: "resource_unavailable" }],
+  });
+}
+
+/** Rules per owner stay within the portable format bound, so a workspace can always be exported and imported again. */
+export function ruleLimitError() {
+  return Object.assign(new Error("Compatibility rule limit reached"), {
+    statusCode: 409,
+    details: [{ path: ["rules"], code: "rule_limit" }],
+    publicMessage: `A workspace can hold at most ${portableLimits.compatibilityRules} compatibility rules. Remove one before adding another.`,
   });
 }
 

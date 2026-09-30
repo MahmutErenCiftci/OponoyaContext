@@ -136,8 +136,9 @@ the local and CI container smoke test and contains no real secret.
 
 ## Status
 
-V1.0 code is complete and covered by 198 unit/integration tests plus 13
-Playwright journeys. The V1.0 launch gate is **BLOCKED** — not on any code or
+V1.0 code is complete and covered by 291 unit/integration tests plus 15
+Playwright journeys. AI suggestions are implemented behind configuration and
+stay off (`AI_PROVIDER=none`) until the owner enables a provider. The V1.0 launch gate is **BLOCKED** — not on any code or
 configuration defect, but on items only the owner can supply: hosting and
 managed PostgreSQL, DNS/TLS, a monitoring destination, and legal values and
 approval. Launch mode is a free beta (`BILLING_PROVIDER=none`).

@@ -19,6 +19,10 @@ export type RateLimitPolicy = {
   mutate: RateLimitRule;
   /** Compile, export, clone and save-as-profile keyed by user. */
   expensive: RateLimitRule;
+  /** Requests that call the external AI provider, keyed by user; the monthly plan quota bounds cost, this bounds bursts. */
+  ai: RateLimitRule;
+  /** Password-checked account actions (deletion, password change), keyed by user: the password is never an unthrottled oracle. */
+  sensitive: RateLimitRule;
 };
 
 export const defaultRateLimitPolicy: RateLimitPolicy = {
@@ -26,11 +30,29 @@ export const defaultRateLimitPolicy: RateLimitPolicy = {
   read: { name: "read", max: 600, windowMs: 60_000 },
   mutate: { name: "mutate", max: 240, windowMs: 60_000 },
   expensive: { name: "expensive", max: 60, windowMs: 60_000 },
+  ai: { name: "ai", max: 6, windowMs: 60_000 },
+  sensitive: { name: "sensitive", max: 5, windowMs: 60_000 },
 };
+
+/** Route patterns that verify the account password. */
+export const sensitiveRoutes = new Set([
+  "DELETE /v1/account",
+  "PUT /v1/account/password",
+]);
+
+/** Route patterns that reach the external AI provider. */
+export const aiRoutes = new Set([
+  "POST /v1/projects/:id/ai/suggestions",
+]);
 
 /** Route patterns (method + Fastify route) whose work is disproportionate to their payload. */
 export const expensiveRoutes = new Set([
   "POST /v1/projects/:id/compile",
+  "GET /v1/projects/:id/context",
+  "GET /v1/projects/:id/context/diff",
+  "GET /v1/projects/:id/context/versions/:version",
+  "GET /v1/projects/context-status",
+  "GET /v1/account/export",
   "POST /v1/projects/:id/exports",
   "GET /v1/projects/:id/context/bundle",
   "POST /v1/projects/:id/clone",
@@ -45,6 +67,8 @@ export const expensiveRoutes = new Set([
 ]);
 
 export function ruleForRoute(policy: RateLimitPolicy, method: string, route: string | undefined): RateLimitRule {
+  if (route && sensitiveRoutes.has(`${method} ${route}`)) return policy.sensitive;
+  if (route && aiRoutes.has(`${method} ${route}`)) return policy.ai;
   if (route && expensiveRoutes.has(`${method} ${route}`)) return policy.expensive;
   return method === "GET" || method === "HEAD" ? policy.read : policy.mutate;
 }

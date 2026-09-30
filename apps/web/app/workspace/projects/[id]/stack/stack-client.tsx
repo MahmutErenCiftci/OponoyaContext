@@ -3,6 +3,7 @@
 import {
   contextStateResponseSchema,
   projectDecisionResponseSchema,
+  type AiStatus,
   type CompileWarning,
   type Project,
   type ProjectDecisionView,
@@ -17,6 +18,7 @@ import { GroupedDecisionTable, type DecisionRow } from "../../../../../component
 import { SlotPicker } from "../../../../../components/slot-picker";
 import { modeLabels, originLabel, readConstraints, slotLabel, sourceLabels } from "../../../../../lib/decision-slots";
 import { pluralCount } from "../../../../../lib/resource-labels";
+import { warningTitles } from "../../../../../lib/warning-labels";
 
 type Editor = { slot: string; view: ProjectDecisionView | null } | null;
 
@@ -41,8 +43,10 @@ function rowFor(view: ProjectDecisionView): DecisionRow {
   };
 }
 
-export function StackClient({ project, initial, library, warnings: initialWarnings }: {
+export function StackClient({ project, initial, library, warnings: initialWarnings, ai }: {
   project: Project;
+  /** AI availability, consent and quota; null when unavailable or not loaded. */
+  ai: AiStatus | null;
   initial: ProjectDecisionView[] | null;
   library: Resource[];
   /** Compile-time warnings for the current draft (null when they could not be loaded). */
@@ -111,7 +115,7 @@ export function StackClient({ project, initial, library, warnings: initialWarnin
       {warnings && warnings.length > 0 && (
         <section aria-labelledby="impact-warnings" className="warning-panel" style={{ marginTop: 20 }}>
           <h3 id="impact-warnings">Etki uyarıları ({warnings.length})</h3>
-          <ul>{warnings.map((warning, index) => <li key={`${warning.code}-${index}`}><code>{warning.code}</code><span>{warning.message}</span></li>)}</ul>
+          <ul>{warnings.map((warning, index) => <li key={`${warning.code}-${index}`}><code>{warning.code}</code><span><strong>{warningTitles[warning.code]}:</strong> {warning.message}</span></li>)}</ul>
           <p>Uyarılar Kütüphane kurallarından ve arşivlenmiş kaynaklardan gelir. Bir sorunu açıklar, kararını senin yerine değiştirmez; bir sonraki oluşturma da bunları listeler.</p>
         </section>
       )}
@@ -147,6 +151,11 @@ export function StackClient({ project, initial, library, warnings: initialWarnin
           removeLabel={editorLayer ? `${sourceLabels[editorLayer.scope]} tercihini kullan` : "Kararı kaldır"}
           scopeNote="Bu değişiklik projeye özel kaydedilir. AI talimatlarının yeniden oluşturulması gerekir."
           slot={editor.slot}
+          ai={ai && !archived ? {
+            projectId: project.id,
+            status: ai,
+            onAccepted: (view) => { replace(editor.slot, view); setEditor(null); setNotice(`${slotLabel(editor.slot)} için AI önerisi kabul edildi.`); void refreshWarnings(); },
+          } : undefined}
         />
       )}
     </>

@@ -151,6 +151,7 @@ export const resourceTags = pgTable("resource_tags", {
   tagId: uuid("tag_id").notNull().references(() => tags.id, { onDelete: "cascade" }),
 }, (table) => [
   primaryKey({ columns: [table.resourceId, table.tagId] }),
+  index("resource_tags_tag_idx").on(table.tagId),
 ]);
 
 export const profiles = pgTable("profiles", {
@@ -222,6 +223,7 @@ export const projectProfiles = pgTable("project_profiles", {
   priority: integer("priority").notNull().default(0),
 }, (table) => [
   primaryKey({ columns: [table.projectId, table.profileId] }),
+  index("project_profiles_profile_idx").on(table.profileId),
 ]);
 
 export const recipeProfiles = pgTable("recipe_profiles", {
@@ -230,6 +232,7 @@ export const recipeProfiles = pgTable("recipe_profiles", {
   priority: integer("priority").notNull().default(0),
 }, (table) => [
   primaryKey({ columns: [table.recipeId, table.profileId] }),
+  index("recipe_profiles_profile_idx").on(table.profileId),
 ]);
 
 const decisionColumns = {
@@ -250,6 +253,7 @@ export const globalDecisions = pgTable("global_decisions", {
   ...decisionColumns,
 }, (table) => [
   uniqueIndex("global_decisions_owner_slot_unique").on(table.ownerUserId, table.slot),
+  index("global_decisions_resource_idx").on(table.resourceId).where(sql`resource_id is not null`),
 ]);
 
 export const profileDecisions = pgTable("profile_decisions", {
@@ -259,6 +263,7 @@ export const profileDecisions = pgTable("profile_decisions", {
   ...decisionColumns,
 }, (table) => [
   uniqueIndex("profile_decisions_profile_slot_unique").on(table.profileId, table.slot),
+  index("profile_decisions_resource_idx").on(table.resourceId).where(sql`resource_id is not null`),
 ]);
 
 export const recipeDecisions = pgTable("recipe_decisions", {
@@ -268,6 +273,7 @@ export const recipeDecisions = pgTable("recipe_decisions", {
   ...decisionColumns,
 }, (table) => [
   uniqueIndex("recipe_decisions_recipe_slot_unique").on(table.recipeId, table.slot),
+  index("recipe_decisions_resource_idx").on(table.resourceId).where(sql`resource_id is not null`),
 ]);
 
 export const projectDecisions = pgTable("project_decisions", {
@@ -277,6 +283,7 @@ export const projectDecisions = pgTable("project_decisions", {
   ...decisionColumns,
 }, (table) => [
   uniqueIndex("project_decisions_project_slot_unique").on(table.projectId, table.slot),
+  index("project_decisions_resource_idx").on(table.resourceId).where(sql`resource_id is not null`),
 ]);
 
 export const compatibilityKind = pgEnum("compatibility_kind", ["conflicts", "requires"]);
@@ -319,7 +326,11 @@ export const exportEvents = pgTable("export_events", {
   target: text("target").notNull(),
   metadata: jsonb("metadata").$type<Record<string, unknown>>().notNull().default({}),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-});
+}, (table) => [
+  // History, idempotency lookups and dashboard counts filter by project; cascades from context_versions use the second.
+  index("export_events_project_created_idx").on(table.projectId, table.createdAt),
+  index("export_events_context_version_idx").on(table.contextVersionId),
+]);
 
 /**
  * Append-only trail of major user-visible mutations (clone, decision changes,
@@ -351,9 +362,40 @@ export const workspaceSettings = pgTable("workspace_settings", {
   onboardingChoice: text("onboarding_choice"),
   sampleVersion: text("sample_version"),
   sampleInstalledAt: timestamp("sample_installed_at", { withTimezone: true }),
+  /** Explicit opt-in to send project context to the configured AI provider; null means no consent. */
+  aiConsentAt: timestamp("ai_consent_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
+
+/**
+ * AI proposals awaiting review (V1.5 groundwork). A row is written only after
+ * the provider answered and the proposal passed validation; accepting it is
+ * a separate, explicit user action that writes an ordinary Project decision.
+ * `input_hash` fingerprints the context that was sent (for reuse of an
+ * identical pending proposal), never the context itself. Rows follow the
+ * Project and the owner on deletion.
+ */
+export const aiSuggestions = pgTable("ai_suggestions", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  ownerUserId: uuid("owner_user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  projectId: uuid("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  kind: text("kind").notNull(),
+  slot: text("slot").notNull(),
+  status: text("status").notNull().default("pending"),
+  provider: text("provider").notNull(),
+  model: text("model").notNull(),
+  inputHash: text("input_hash").notNull(),
+  proposal: jsonb("proposal").$type<Record<string, unknown>>().notNull(),
+  warnings: jsonb("warnings").$type<Array<Record<string, unknown>>>().notNull().default([]),
+  inputTokens: integer("input_tokens").notNull().default(0),
+  outputTokens: integer("output_tokens").notNull().default(0),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  decidedAt: timestamp("decided_at", { withTimezone: true }),
+}, (table) => [
+  index("ai_suggestions_project_created_idx").on(table.projectId, table.createdAt),
+  index("ai_suggestions_owner_created_idx").on(table.ownerUserId, table.createdAt),
+]);
 
 /**
  * Every entity created by the optional sample set, keyed so installation is

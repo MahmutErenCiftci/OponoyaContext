@@ -27,8 +27,8 @@ Legend:
 | Context diff | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ |
 | Compatibility warnings | ❌ | 🟡 manual rules | ✅ | ✅ | ✅ | ✅ |
 | Automatic URL metadata | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ |
-| Discover | ❌ | ❌ | ❌ | ✅ | ✅ | ✅ |
-| AI recommendations | ❌ | ❌ | ❌ | 🟡 | ✅ | ✅ |
+| Discover | ❌ | ❌ | 🟡 catalog | ✅ | ✅ | ✅ |
+| AI recommendations | ❌ | ❌ | 🟡 off by default | 🟡 | ✅ | ✅ |
 | GitHub repo analysis | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ |
 | Browser extension | ❌ | ❌ | ❌ | ❌ | 🟡 | ✅ |
 | Team workspaces | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |

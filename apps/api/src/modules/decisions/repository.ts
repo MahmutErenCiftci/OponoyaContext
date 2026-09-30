@@ -15,8 +15,10 @@ import {
   recipes,
   resources,
   type RepositoryDatabase, type Database,
+  readAll,
 } from "@devcontext/db";
 import {
+  assertDecisionCapacity,
   resourceUnavailableError,
   type BatchDecisionUpsert,
   type DecisionRepository,
@@ -93,6 +95,10 @@ async function ownsProject(executor: Executor, ownerUserId: string, projectId: s
     .where(and(eq(projects.ownerUserId, ownerUserId), eq(projects.id, projectId)))
     .limit(1);
   return Boolean(row);
+}
+
+async function projectSlots(executor: Executor, projectId: string) {
+  return (await executor.select({ slot: projectDecisions.slot }).from(projectDecisions).where(eq(projectDecisions.projectId, projectId))).map((row) => row.slot);
 }
 
 /** Every requested Resource must be active and owned; the first offending position is reported. */
@@ -179,8 +185,8 @@ export function createDecisionRepository(database: RepositoryDatabase): Decision
     },
 
     async listProfileDecisions(ownerUserId, projectId) {
-      const [direct, viaRecipe] = await Promise.all([
-        database.db
+      const [direct, viaRecipe] = await readAll(database.db, [
+        () => database.db
           .select({ ...profileDecisionColumns, attachmentPriority: projectProfiles.priority, ...resourceColumns })
           .from(projectProfiles)
           .innerJoin(projects, and(eq(projectProfiles.projectId, projects.id), eq(projects.ownerUserId, ownerUserId)))
@@ -189,7 +195,7 @@ export function createDecisionRepository(database: RepositoryDatabase): Decision
           .leftJoin(resources, and(eq(profileDecisions.resourceId, resources.id), eq(resources.ownerUserId, ownerUserId)))
           .where(eq(projectProfiles.projectId, projectId))
           .orderBy(profileDecisions.slot, profiles.name),
-        database.db
+        () => database.db
           .select({ ...profileDecisionColumns, attachmentPriority: recipeProfiles.priority, ...resourceColumns })
           .from(projects)
           .innerJoin(recipes, and(eq(projects.recipeId, recipes.id), eq(recipes.ownerUserId, ownerUserId)))
@@ -229,6 +235,7 @@ export function createDecisionRepository(database: RepositoryDatabase): Decision
       return database.db.transaction(async (transaction) => {
         if (!(await ownsProject(transaction, ownerUserId, projectId))) return null;
         await assertResourcesActive(transaction, ownerUserId, [values.resourceId]);
+        assertDecisionCapacity(await projectSlots(transaction, projectId), [slot]);
         await transaction
           .insert(projectDecisions)
           .values({ projectId, slot, ...values })
@@ -257,6 +264,7 @@ export function createDecisionRepository(database: RepositoryDatabase): Decision
       return database.db.transaction(async (transaction) => {
         if (!(await ownsProject(transaction, ownerUserId, projectId))) return false;
         await assertResourcesActive(transaction, ownerUserId, upserts.map((item) => item.values.resourceId));
+        assertDecisionCapacity(await projectSlots(transaction, projectId), upserts.map((item) => item.slot), removeSlots);
         if (removeSlots.length > 0) {
           await transaction
             .delete(projectDecisions)

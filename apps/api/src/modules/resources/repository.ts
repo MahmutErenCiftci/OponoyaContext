@@ -10,6 +10,8 @@ import {
   ne,
   or,
   sql,
+  readAll,
+  containsPattern,
 } from "@devcontext/db";
 import type { Resource } from "@devcontext/contracts";
 import {
@@ -53,14 +55,14 @@ export function createResourceRepository(database: RepositoryDatabase): Resource
   async function decorate(ownerUserId: string, rows: ResourceRow[]): Promise<Resource[]> {
     if (rows.length === 0) return [];
     const ids = rows.map((row) => row.id);
-    const [tagRows, preferenceRows] = await Promise.all([
-      database.db
+    const [tagRows, preferenceRows] = await readAll(database.db, [
+      () => database.db
         .select({ resourceId: resourceTags.resourceId, name: tags.name })
         .from(resourceTags)
         .innerJoin(tags, eq(resourceTags.tagId, tags.id))
         .where(and(inArray(resourceTags.resourceId, ids), eq(tags.ownerUserId, ownerUserId)))
         .orderBy(tags.name),
-      database.db
+      () => database.db
         .select({
           id: globalDecisions.id,
           resourceId: globalDecisions.resourceId,
@@ -107,7 +109,7 @@ export function createResourceRepository(database: RepositoryDatabase): Resource
       if (query.favorite === "true") conditions.push(eq(resources.favorite, true));
       if (query.favorite === "false") conditions.push(eq(resources.favorite, false));
       if (query.q) {
-        const pattern = `%${query.q}%`;
+        const pattern = containsPattern(query.q);
         conditions.push(or(
           ilike(resources.name, pattern),
           ilike(resources.description, pattern),
@@ -134,15 +136,15 @@ export function createResourceRepository(database: RepositoryDatabase): Resource
         conditions.push(inArray(resources.id, matchingIds));
       }
       const where = and(...conditions);
-      const [rows, totalRows] = await Promise.all([
-        database.db
+      const [rows, totalRows] = await readAll(database.db, [
+        () => database.db
           .select()
           .from(resources)
           .where(where)
           .orderBy(desc(resources.favorite), desc(resources.updatedAt), resources.name)
           .limit(query.limit)
           .offset(query.offset),
-        database.db.select({ value: count() }).from(resources).where(where),
+        () => database.db.select({ value: count() }).from(resources).where(where),
       ]);
       return { resources: await decorate(ownerUserId, rows), total: totalRows[0]?.value ?? 0 };
     },
@@ -281,14 +283,15 @@ export function createResourceRepository(database: RepositoryDatabase): Resource
         return typeof catalogSlug === "string" ? [{ catalogSlug, resourceId: row.id, archived: row.archivedAt !== null }] : [];
       });
     },
-    async listDuplicateCandidates(ownerUserId, excludeResourceId) {
+    async listDuplicateCandidates(ownerUserId, resource) {
       return database.db
         .select({ id: resources.id, name: resources.name, type: resources.type, sourceUrl: resources.sourceUrl })
         .from(resources)
         .where(and(
           eq(resources.ownerUserId, ownerUserId),
-          ne(resources.id, excludeResourceId),
+          ne(resources.id, resource.id),
           isNull(resources.archivedAt),
+          resource.sourceUrl ? or(eq(resources.type, resource.type), isNotNull(resources.sourceUrl)) : eq(resources.type, resource.type),
         ));
     },
   };

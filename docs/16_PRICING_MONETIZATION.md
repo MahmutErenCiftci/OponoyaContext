@@ -72,3 +72,13 @@ Do not optimize pricing before observing:
 - export frequency
 - retention after second project
 - willingness to move real development rules into product
+
+## AI suggestions quota (report 45)
+
+`planFeatures.aiSuggestionsPerMonth` bounds provider cost per account: Free 5,
+Pro 100 per UTC calendar month (initial values; confirm with the owner before a
+provider is enabled). Reused pending proposals do not count. Pro limits
+(500 projects, 5,000 resources) are larger than the portable import bounds
+(200 projects, 1,000 resources); decide whether to raise the import bounds or
+lower the Pro limits before a paid launch, otherwise a large Pro workspace can
+be exported but not imported again.

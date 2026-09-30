@@ -26,6 +26,9 @@ test("an unreachable API leaves the user with a clear, retryable screen instead 
   const headers = response.headers();
   expect(headers["content-security-policy"]).toContain("frame-ancestors 'none'");
   expect(headers["content-security-policy"]).not.toContain("unsafe-eval");
+  // Scripts run only with the per-request nonce: no inline script is allowed without it.
+  expect(headers["content-security-policy"]).toMatch(/script-src 'self' 'nonce-[A-Za-z0-9+/=]+' 'strict-dynamic'/);
+  expect(headers["content-security-policy"]).not.toMatch(/script-src[^;]*unsafe-inline/);
   expect(headers["x-frame-options"]).toBe("DENY");
   expect(headers["x-content-type-options"]).toBe("nosniff");
   expect(headers["x-powered-by"]).toBeUndefined();
@@ -58,7 +61,8 @@ test("recoverable failures: a failed compile can be retried, unknown entities ar
     body: JSON.stringify({ error: { code: "SERVICE_UNAVAILABLE", message: "Database is unavailable", requestId: "req-playwright" } }),
   }), { times: 1 });
   await page.getByRole("button", { name: "Talimatları oluştur" }).click();
-  await expect(page.getByText("Database is unavailable")).toBeVisible();
+  // The envelope code gets product copy; the API's English message is not shown.
+  await expect(page.getByText("Hizmete şu an ulaşılamıyor. Birazdan tekrar dene.")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Henüz oluşturulmadı" })).toBeVisible();
   await page.getByRole("button", { name: "Talimatları oluştur" }).click();
   await expect(page.getByText("Sürüm 1 oluşturuldu.")).toBeVisible();

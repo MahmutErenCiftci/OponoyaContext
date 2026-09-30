@@ -35,6 +35,11 @@ report before editing.
 - Keep route handlers thin.
 - Put domain rules in services/use-cases, persistence in repositories.
 - Validate all API inputs with Zod contracts.
+- In repositories, run independent reads with `readAll(executor, [...])` from
+  `@devcontext/db` instead of `Promise.all`: the executor may be a transaction
+  (one connection). Build `ILIKE` patterns with `containsPattern()`.
+- Browser code that only needs the product name imports
+  `@devcontext/contracts/brand`; the main contracts entry pulls every schema and Zod.
 - Keep DB migrations reviewable.
 - Use transactions for multi-table writes.
 - Add idempotency where repeated requests could create duplicate entities.
@@ -75,4 +80,7 @@ published subset: it is never merged into, it is regenerated from dev's tree by
 Every change is committed to `dev` first. Only after the local gate run
 (`typecheck`, `lint`, `test`, `build`, `verify-bundle`, `test:db`, `test:e2e`) is
 green may `main` be regenerated and pushed. Never commit directly on `main`; the
-next sync would silently discard it.
+next sync would silently discard it. A published `main` commit has only the
+previous `main` as its parent, never a `dev` commit, so `dev` history (and the
+dev-only paths in it) is not reachable from `main`; `--fresh` restarts `main`
+as one root commit, which the owner then force-pushes deliberately.

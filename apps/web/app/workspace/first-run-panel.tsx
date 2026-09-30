@@ -112,11 +112,11 @@ export function FirstRunPanel({ settings }: { settings: WorkspaceSettings }) {
         <p>Birkaç tercih ekleyerek ilk AI talimatlarını oluştur.</p>
       </div>
       <ol aria-label="Üç adım" className="stage-guide">
-        <li><span className="mark"><Database size={30} /></span><span className="stage-label"><i>1</i>Araçlarını kaydet</span></li>
+        <li><span className="mark"><Database aria-hidden size={30} /></span><span className="stage-label"><i>1</i>Araçlarını kaydet</span></li>
         <li aria-hidden="true"><span className="stage-line" /></li>
-        <li><span className="mark"><Folder size={30} /></span><span className="stage-label"><i>2</i>Proje oluştur</span></li>
+        <li><span className="mark"><Folder aria-hidden size={30} /></span><span className="stage-label"><i>2</i>Proje oluştur</span></li>
         <li aria-hidden="true"><span className="stage-line" /></li>
-        <li><span className="mark"><UploadSimple size={30} /></span><span className="stage-label"><i>3</i>Talimatları dışa aktar</span></li>
+        <li><span className="mark"><UploadSimple aria-hidden size={30} /></span><span className="stage-label"><i>3</i>Talimatları dışa aktar</span></li>
       </ol>
       <fieldset style={{ border: 0, margin: 0, padding: 0 }}>
         <legend className="visually-hidden">Başlangıç yolu</legend>
@@ -140,7 +140,7 @@ export function FirstRunPanel({ settings }: { settings: WorkspaceSettings }) {
             <span>Kütüphanene ilk kaynağını ekle.</span>
             <div className="panel-body">
               <div className="panel-empty">
-                <span className="mark xl plain" style={{ background: "var(--subtle)" }}><FolderSimplePlus size={40} /></span>
+                <span className="mark xl plain" style={{ background: "var(--subtle)" }}><FolderSimplePlus aria-hidden size={40} /></span>
                 <p>Araçlarını, kurallarını ve tercihlerini kendin ekleyerek projene özgü talimatlar oluştur.</p>
               </div>
             </div>

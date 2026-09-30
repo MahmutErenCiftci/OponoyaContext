@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getBillingSummary } from "../../../lib/api";
@@ -6,7 +7,7 @@ import { ServiceUnavailable } from "../../workspace/unavailable";
 import { WorkspaceShell } from "../../workspace/workspace-shell";
 import { FakeCheckout } from "./fake-checkout";
 
-export const dynamic = "force-dynamic";
+export const metadata: Metadata = { title: "Test ödemesi" };
 
 /** Test-mode checkout page of the fake provider; a real provider hosts its own page. */
 export default async function FakeCheckoutPage({ searchParams }: { searchParams: Promise<{ session?: string }> }) {

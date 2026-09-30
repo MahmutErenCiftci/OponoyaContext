@@ -123,3 +123,28 @@ default), `TRUST_PROXY`, `BILLING_PROVIDER` (`none` until C1),
    decision become GO and Handoff 13 be checked in the execution plan.
 
 Handoff 13 stays unchecked in `docs/30_PRODUCTION_EXECUTION_PLAN.md`.
+
+## Addendum 2026-09-26 (report 45)
+
+Re-checked after the production hardening pass (`45_PRODUCTION_HARDENING_REPORT.md`).
+The decision is unchanged: **BLOCKED** on the owner-only items above.
+
+- S1/S5: a new full security review found 2 High and 4 Medium issues in the
+  current code; all are fixed and covered by tests, so there are again 0 open
+  Critical/High findings. Remaining Low/Info items are listed in report 45.
+- D1: migrations 0000–0009 replay from empty and from the previous migration
+  (`packages/db/test/migrations.test.ts`, `pnpm test:db`).
+- Q1 (still BLOCKED for the hosted run): the local gate passes on the
+  production build — typecheck, lint, 291 unit/integration tests, build,
+  bundle guard, `test:db` and e2e 15/15 (new `e2e/ai.spec.ts` and
+  `e2e/password-reset.spec.ts`).
+- Free beta scope (found in report 45 research): with `BILLING_PROVIDER=none`
+  every account resolves to Free, so the Cursor and Copilot exports, the zipped
+  bundle and the version diff are unavailable at launch; the e2e evidence for
+  them (P1, 24 §Product) upgrades through the fake provider. The owner decides
+  whether the beta keeps that scope or grants those features while no paid plan
+  exists.
+- New owner items: confirm the product name, decide AI activation (provider,
+  quotas, Privacy text), republish `main` with `scripts/sync-main.mjs --fresh`
+  before the repository is shared (its current history links `dev`), and set
+  `WEB_PROXY_SECRET` on both services in every environment.

@@ -57,9 +57,10 @@ function createRepository(): ResourceRepository & { saved: Resource[] } {
       resource.archivedAt = null;
       return resource;
     },
-    async listDuplicateCandidates(ownerUserId, excludeResourceId) {
+    async listDuplicateCandidates(ownerUserId, resource) {
       return saved
-        .filter((item) => item.metadata.ownerUserId === ownerUserId && item.id !== excludeResourceId && !item.archivedAt)
+        .filter((item) => item.metadata.ownerUserId === ownerUserId && item.id !== resource.id && !item.archivedAt)
+        .filter((item) => item.type === resource.type || (resource.sourceUrl !== null && item.sourceUrl !== null))
         .map((item) => ({ id: item.id, name: item.name, type: item.type, sourceUrl: item.sourceUrl }));
     },
     async listCatalogLinks(ownerUserId) {

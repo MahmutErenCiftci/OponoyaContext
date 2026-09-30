@@ -13,8 +13,24 @@ from the resolved session.
 - `POST /api/auth/sign-up/email`
 - `POST /api/auth/sign-in/email`
 - `POST /api/auth/sign-out`
-- `GET /api/auth/get-session`
-- `GET /v1/me` -> authenticated DevContext user
+- `GET /v1/me` -> authenticated DevContext user (the web app's session check)
+- `GET /v1/auth/options` (public) -> `{ options: { passwordReset } }`
+- `POST /api/auth/request-password-reset { email }` and
+  `POST /api/auth/reset-password { newPassword, token }` (report 45): proxied
+  only when an e-mail sender is configured (`EMAIL_PROVIDER`), otherwise 404.
+  The request always answers `{ status: true }` whether or not the address
+  exists; the e-mailed link opens `/auth/reset?token=…` on the web app; the
+  token is valid for one hour and once; a reset ends every session of the
+  account. Errors carry Better Auth codes (`INVALID_TOKEN`,
+  `PASSWORD_TOO_SHORT`, `PASSWORD_TOO_LONG`). Rate limited by the `auth` rule
+  and by Better Auth (3 requests and 5 resets per minute).
+
+Only these endpoints are proxied (report 45); every other
+`/api/auth/*` path answers `404`, and `delete-user`, `update-user`,
+`change-email`, `list-sessions` and `list-accounts` are also disabled inside
+Better Auth, so account deletion and password changes go only through the
+`/v1/account` routes below. The upstream URL is built from the path, never
+from an absolute-form request line.
 
 ## Resources
 
@@ -118,6 +134,10 @@ indistinguishable from a missing one (404) on every nested route.
 
 Implemented (Handoff 6):
 
+- `GET /v1/projects/context-status?ids=<uuid,…>` (report 45, ≤ 50 ids) ->
+  `{ statuses: [{ projectId, stale, draftWarningCount, latest: { version,
+  createdAt, warningCount } | null }] }` for lists and dashboards: one request,
+  no canonical JSON, no rendered previews; foreign or unknown ids are left out.
 - `POST /v1/projects/:id/compile` -> `{ version, created }`. Stores a new
   monotonic version only when the canonical SHA-256 changed (`201`); otherwise
   returns the latest version unchanged (`200`). Concurrent compiles for one
@@ -377,10 +397,65 @@ adds, non-dry-run imports (creates + copies), `POST /v1/projects/:id/exports`
   `account.deletion_blocked`; security log `account_deleted`.
 - `GET /v1/legal` (public): `{ legal: { productName, draft, approvedAt,
   effectiveDate, entity { name, address, contactEmail, jurisdiction },
-  processing { externalAi: false, billingProvider, billingTestMode,
+  processing { externalAi, aiProvider, billingProvider, billingTestMode,
   hostingRegion, subprocessors[] }, retention { accountDeletion: "immediate",
   billingRecordsYears, backupDays }, missing[] } }`; null values are unset
-  configuration keys listed in `missing`.
+  configuration keys listed in `missing`. `externalAi` is true only while an AI
+  provider is configured.
+- `PUT /v1/account/password` (report 45) body `{ currentPassword, newPassword }`
+  (new: 8–128 characters and different from the current one) -> `200 { changed:
+  true, otherSessionsRevoked: true }` with a renewed session cookie; every other
+  session is signed out. `400` with detail code `invalid_password` when the
+  current password is wrong. Rate limited with `DELETE /v1/account` on the
+  `sensitive` rule (5/min). Audit `account.password_changed`, security log
+  `password_changed`.
+- Report 45 additions to `GET /v1/account`: `stored.aiSuggestions`,
+  `processing { externalAi, aiProvider, aiConsentedAt }`; the account export adds
+  `settings.aiConsentedAt` and `aiSuggestions[]`.
+
+## AI suggestions (V1.5 groundwork, report 45)
+
+Off unless `AI_PROVIDER` is `anthropic` (with `AI_API_KEY`) or `fake` (tests).
+Nothing is sent to a provider before the user consents, and a suggestion never
+changes a Project until it is accepted.
+
+- `GET /v1/ai` -> `{ ai: { available, provider, model, consented, consentedAt,
+  quota { limit, used, remaining, resetsAt } } }` (monthly UTC window; limit
+  from the plan's `aiSuggestionsPerMonth`).
+- `PUT /v1/ai/consent { consent }` -> `{ ai }`; audit
+  `account.ai_consent_granted | account.ai_consent_revoked`.
+- `POST /v1/projects/:id/ai/suggestions { slot }` -> `201 { suggestion }` (or
+  `200` when an identical pending proposal for the same input is reused, which
+  costs no quota). The slot must be delegated (`AI_DECIDE`) on an active Project.
+  The provider receives the slot's constraints, the brief, the active stack and
+  up to 80 Library candidates (name, type, description, tags; never URLs, notes,
+  install commands or e-mail) as escaped JSON inside one data block. Refusals:
+  `409 ai_unavailable`, `403 ai_consent_required`, `403 ai_quota_exceeded`,
+  `409 slot_not_delegated | project_archived`; provider failures `503
+  ai_rate_limited | ai_timeout | ai_unavailable | ai_invalid_output |
+  ai_misconfigured` or `409 ai_refused` (content-free; upstream text is never
+  forwarded). Rate limited on the `ai` rule (6/min).
+- `GET /v1/projects/:id/ai/suggestions?status=pending|accepted|rejected|stale|all&limit=`
+  -> `{ suggestions[] }`.
+- `POST /v1/ai/suggestions/:id/accept { mode?: PREFERRED | LOCKED }` ->
+  `{ suggestion, decision }`: writes an ordinary Project decision with the
+  rationale prefixed `AI önerisi (<model>)`, keeping the owner's constraints;
+  `409 suggestion_not_pending | suggestion_stale | suggestion_without_choice`.
+- `POST /v1/ai/suggestions/:id/reject` -> `{ suggestion }`.
+- Suggestion shape: `{ id, projectId, kind: "decision_proposal", slot, status,
+  proposal { resourceId | null, rationale ≤ 500, alternatives ≤ 3, risks ≤ 5,
+  confidence }, resource, alternatives[{ resource, reason }], warnings[]
+  (compatibility warnings the choice would add), provider, model, createdAt,
+  decidedAt }`. Telemetry carries ids, enums and token counts only.
+
+## Limits shared with the portable format (report 45)
+
+So that anything built through the API can be exported and imported again, a
+Project, Profile or Recipe holds at most 80 decisions (`409` detail
+`decision_limit`, existing slots can still change) and a workspace at most 500
+compatibility rules (`409` detail `rule_limit`; an identical rule is still
+answered with `created: false`). List `q=` filters match `%`, `_` and `\`
+literally.
 
 ## Error envelope
 

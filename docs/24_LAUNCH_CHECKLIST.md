@@ -20,7 +20,7 @@ two from the prompt names after reports 39 and 41).
 - [x] auth review (security finding table in `docs/37_V0_3_RELIABILITY_HANDOFF.md`)
 - [x] ownership tests (cross-user isolation matrix, `apps/api/test/isolation.repository.test.ts`)
 - [x] rate limits (process-local; multi-instance store pending)
-- [x] migrations (0000–0008 replayed from empty and from the previous migration; run as a release step, never on boot)
+- [x] migrations (0000–0009 replayed from empty and from the previous migration; run as a release step, never on boot)
 - [ ] backups (managed snapshots, encryption and `BACKUP_RETENTION_DAYS` are configured at the hosting provider; provider not chosen, owner blocker — procedure in `docs/13_DEPLOYMENT.md`)
 - [x] restore test (`scripts/restore-drill.mjs`: snapshot → migrate scratch → restore → checksums → business reads; evidence in `docs/43_PRODUCTION_OPERATIONS_HANDOFF.md`)
 - [x] structured logging (redacted JSON lines with request ids, lifecycle and pool events)
@@ -33,7 +33,7 @@ two from the prompt names after reports 39 and 41).
 ## Legal/basic
 - [ ] Terms (draft route `/legal/terms` exists, configuration driven; blocked on owner/legal values and `LEGAL_APPROVED_AT`)
 - [ ] Privacy (draft route `/legal/privacy` exists; same blockers)
-- [x] subprocessors/AI disclosure (AI processing is off by construction and disclosed in Settings and Privacy; subprocessor list is a placeholder until `LEGAL_SUBPROCESSORS` is set)
+- [x] subprocessors/AI disclosure (AI suggestions are off by default (`AI_PROVIDER=none`); when a provider is enabled the Privacy page and account summary say so and nothing is sent without consent; subprocessor list is a placeholder until `LEGAL_SUBPROCESSORS` is set)
 - [x] data deletion path (`DELETE /v1/account`, Settings › Gizlilik ve veriler; `docs/42_PRIVACY_ACCOUNT_HANDOFF.md`)
 
 ### Legal placeholders that must be supplied before launch

@@ -1,28 +1,18 @@
-import type { FastifyInstance, FastifyRequest } from "fastify";
-import { idempotencyKeySchema, importRequestSchema, portableLimits } from "@devcontext/contracts";
+import type { FastifyInstance } from "fastify";
+import { importRequestSchema, portableLimits } from "@devcontext/contracts";
+import { actor, httpError, idempotencyKey, ownerId } from "../../lib/http.js";
 import type { PortabilityService } from "./service.js";
-
-function ownerId(request: { currentUser: { id: string } | null }) {
-  if (!request.currentUser) throw Object.assign(new Error("Authentication required"), { statusCode: 401 });
-  return request.currentUser.id;
-}
-
-function actor(request: FastifyRequest) {
-  return { actorUserId: ownerId(request), requestId: request.id };
-}
-
-function idempotencyKey(headers: Record<string, string | string[] | undefined>) {
-  const raw = headers["idempotency-key"];
-  return idempotencyKeySchema.optional().parse(Array.isArray(raw) ? raw[0] : raw);
-}
 
 function countTotal(counts: Record<string, { create: number; skip: number; replace: number; copy: number }>, key: "create" | "skip" | "replace" | "copy") {
   return Object.values(counts).reduce((sum, item) => sum + item[key], 0);
 }
 
 export async function registerPortabilityRoutes(app: FastifyInstance, portability: PortabilityService) {
+  /** One import at a time per user on this instance: a document can hold tens of megabytes of parsed JSON. */
+  const importing = new Set<string>();
+
   /** Structured data only: no account, session, provider or history rows. */
-  app.get("/v1/workspace/export", { preHandler: app.authenticate }, async (request, reply) => {
+  app.get("/v1/workspace/export", { onRequest: app.authenticate }, async (request, reply) => {
     const document = await portability.exportWorkspace(ownerId(request));
     await app.telemetry.record(actor(request), {
       action: "workspace.export_downloaded", entityType: "workspace", entityId: null,
@@ -35,29 +25,39 @@ export async function registerPortabilityRoutes(app: FastifyInstance, portabilit
   });
 
   /** Dry run by default; the same document with `dryRun: false` and an `Idempotency-Key` applies it once. */
-  app.post("/v1/workspace/import", { preHandler: app.authenticate, bodyLimit: portableLimits.requestBytes }, async (request, reply) => {
-    const input = importRequestSchema.parse(request.body);
-    if (!input.dryRun) {
-      // Plan limits apply to what the import would create; the preview is the same plan the apply step uses.
-      const preview = await portability.importWorkspace(ownerId(request), { ...input, dryRun: true });
-      for (const key of ["resources", "profiles", "recipes", "projects"] as const) {
-        const needed = preview.summary.counts[key].create + preview.summary.counts[key].copy;
-        await app.entitlements.assertCanCreate(ownerId(request), key, needed);
-      }
-    }
-    const result = await portability.importWorkspace(ownerId(request), input, idempotencyKey(request.headers));
-    if (result.applied && result.created) {
-      await app.telemetry.record(actor(request), {
-        action: "workspace.import_completed", entityType: "workspace", entityId: null,
-        metadata: {
-          strategy: result.summary.strategy,
-          created: countTotal(result.summary.counts, "create"),
-          skipped: countTotal(result.summary.counts, "skip"),
-          replaced: countTotal(result.summary.counts, "replace"),
-          copied: countTotal(result.summary.counts, "copy"),
-        },
+  app.post("/v1/workspace/import", { onRequest: app.authenticate, bodyLimit: portableLimits.requestBytes }, async (request, reply) => {
+    const owner = ownerId(request);
+    if (importing.has(owner)) {
+      throw httpError(409, "Import already running", {
+        details: [{ path: ["document"], code: "import_in_progress" }],
+        publicMessage: "Another import is still running. Wait for it to finish, then try again.",
       });
     }
-    return reply.code(result.applied && result.created ? 201 : 200).send(result);
+    importing.add(owner);
+    try {
+      const input = importRequestSchema.parse(request.body);
+      // Plan limits apply to exactly what the plan would create; the document is planned once.
+      const beforeApply = async (summary: { counts: Record<"resources" | "profiles" | "recipes" | "projects", { create: number; copy: number }> }) => {
+        for (const key of ["resources", "profiles", "recipes", "projects"] as const) {
+          await app.entitlements.assertCanCreate(owner, key, summary.counts[key].create + summary.counts[key].copy);
+        }
+      };
+      const result = await portability.importWorkspace(owner, input, idempotencyKey(request.headers), beforeApply);
+      if (result.applied && result.created) {
+        await app.telemetry.record(actor(request), {
+          action: "workspace.import_completed", entityType: "workspace", entityId: null,
+          metadata: {
+            strategy: result.summary.strategy,
+            created: countTotal(result.summary.counts, "create"),
+            skipped: countTotal(result.summary.counts, "skip"),
+            replaced: countTotal(result.summary.counts, "replace"),
+            copied: countTotal(result.summary.counts, "copy"),
+          },
+        });
+      }
+      return reply.code(result.applied && result.created ? 201 : 200).send(result);
+    } finally {
+      importing.delete(owner);
+    }
   });
 }

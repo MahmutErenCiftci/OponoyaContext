@@ -248,3 +248,46 @@ Audit/billing records that legally must remain should be separated and minimized
   `billing_plan`, `billing_status`, `billing_revoked_at`: the minimal billing
   record kept after deletion; never a name, e-mail or content
 - migration `0008_account_deletions`; included in `backupTableOrder`
+
+## Migration 0009 (report 45)
+
+`0009_ai_suggestions_and_fk_indexes` is forward-only (0000–0008 untouched) and
+runs with a 10-minute statement timeout in the migrator.
+
+### workspace_settings.ai_consent_at
+- nullable timestamp; set when the user allows AI suggestions, cleared on
+  revocation. Null means nothing is ever sent to a provider.
+
+### ai_suggestions
+- `id`, `owner_user_id` (FK users, cascade), `project_id` (FK projects,
+  cascade), `kind` (`decision_proposal`), `slot`, `status`
+  (`pending | accepted | rejected | stale`, default `pending`), `provider`,
+  `model`, `input_hash` (fingerprint of the context that was sent, never the
+  context), `proposal` jsonb (validated and length-bounded), `warnings` jsonb,
+  `input_tokens`, `output_tokens`, `created_at` (stamped by the service clock,
+  the monthly quota window uses it), `decided_at`
+- indexes `(project_id, created_at)` and `(owner_user_id, created_at)`
+- follows the Project and the owner on deletion; included in the account
+  export, the privacy counts and `backupTableOrder`
+
+### Foreign-key and lookup indexes
+- `export_events(project_id, created_at)` and `export_events(context_version_id)`
+- `project_profiles(profile_id)`, `recipe_profiles(profile_id)`, `resource_tags(tag_id)`
+- partial `(resource_id) WHERE resource_id IS NOT NULL` on the four decision tables
+
+They serve the dashboard and account counts, export history and idempotency
+lookups, profile lists, the tag filter, and the `ON DELETE` cascades that
+Better Auth's single `DELETE FROM users` triggers during account deletion.
+
+### Bounds shared with the portable format
+- at most 80 decisions per Project, Profile or Recipe and 500 compatibility
+  rules per owner, checked inside the writing transaction
+  (`assertDecisionCapacity`, `ruleLimitError`)
+
+### Query rules
+- repositories may be bound to a transaction (sample install, catalog stack
+  adds, import), which is a single connection: independent reads go through
+  `readAll(executor, [...])` from `@devcontext/db`, which runs them
+  concurrently on the pool and one after another inside a transaction
+  (node-postgres rejects concurrent queries on one client in pg 9)
+- `ILIKE` filters use `containsPattern(text)` so `%`, `_` and `\` match literally

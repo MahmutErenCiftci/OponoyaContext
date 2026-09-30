@@ -2,7 +2,8 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { resourceListQuerySchema } from "@devcontext/contracts";
 import { users, type Database } from "@devcontext/db";
 import { createTestDatabase } from "@devcontext/db/testing";
-import { createCatalogService, toResourceInput, type CatalogService } from "../src/modules/catalog/service.js";
+import { createCatalogService, toResourceInput, type CatalogService, type CatalogTransaction } from "../src/modules/catalog/service.js";
+import { createCatalogTransaction } from "../src/modules/catalog/transaction.js";
 import { createProfileRepository } from "../src/modules/profiles/repository.js";
 import { createProfileService, type ProfileService } from "../src/modules/profiles/service.js";
 import { createResourceRepository } from "../src/modules/resources/repository.js";
@@ -21,7 +22,7 @@ beforeAll(async () => {
   database = await createTestDatabase();
   resourcesService = createResourceService(createResourceRepository(database));
   profilesService = createProfileService(createProfileRepository(database));
-  catalog = createCatalogService(resourcesService, profilesService);
+  catalog = createCatalogService(resourcesService, profilesService, createCatalogTransaction(database));
   await database.db.insert(users).values([
     { id: ownerA, email: "a@example.test", name: "Owner A" },
     { id: ownerB, email: "b@example.test", name: "Owner B" },
@@ -74,5 +75,28 @@ describe("catalog to Library bridge", () => {
     expect(replay.library.created).toHaveLength(0);
     expect((await resourcesService.list(ownerB, resourceListQuerySchema.parse({}))).total).toBe(0);
     expect((await profilesService.list(ownerB, { archived: "active", limit: 50, offset: 0 })).total).toBe(0);
+  });
+
+  it("rolls the whole stack back when any step fails", async () => {
+    // The real transaction, with a Profile service that fails on the first preset decision.
+    const failing: CatalogTransaction = (ownerUserId, work) => createCatalogTransaction(database)(ownerUserId, (scope) => work({
+      resources: scope.resources,
+      profiles: { ...scope.profiles, upsertDecision: async () => { throw new Error("decision write failed"); } },
+    }));
+    const broken = createCatalogService(resourcesService, profilesService, failing);
+    await expect(broken.createStackProfile(ownerB, "t3-stack")).rejects.toThrow("decision write failed");
+    expect((await resourcesService.list(ownerB, resourceListQuerySchema.parse({}))).total).toBe(0);
+    expect((await profilesService.list(ownerB, { archived: "active", limit: 50, offset: 0 })).total).toBe(0);
+    expect(await catalog.libraryLinks(ownerB)).toEqual({});
+    // Nothing was left behind that would turn a retry into `created: false`.
+    const retry = await catalog.createStackProfile(ownerB, "t3-stack");
+    expect(retry.created).toBe(true);
+    expect(retry.decisions.length).toBeGreaterThan(0);
+  });
+
+  it("serializes concurrent adds of the same technology for one owner", async () => {
+    const results = await Promise.all([catalog.addTechnology(ownerB, "redis"), catalog.addTechnology(ownerB, "redis")]);
+    expect(results.filter((result) => result.created)).toHaveLength(1);
+    expect(results[0].resource.id).toBe(results[1].resource.id);
   });
 });

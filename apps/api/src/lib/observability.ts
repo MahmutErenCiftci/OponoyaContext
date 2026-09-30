@@ -54,9 +54,20 @@ function securityEvent(request: FastifyRequest, statusCode: number): string | nu
  * must match the web application. Server-to-server calls have no origin and
  * are unaffected. Complements SameSite cookies as CSRF defence in depth.
  */
+/**
+ * Downloads that also record an export event or an audit row. SameSite=Lax
+ * cookies ride top-level navigations, so a cross-site link must not be able
+ * to trigger them; Fetch Metadata tells the two apart.
+ */
+export const sideEffectGetRoutes = new Set(["/v1/projects/:id/context/bundle", "/v1/account/export", "/v1/workspace/export"]);
+
 export function registerOriginGuard(app: FastifyInstance, allowedOrigins: string[]) {
   const allowed = new Set(allowedOrigins);
   app.addHook("onRequest", async (request) => {
+    if (request.method === "GET" && request.headers["sec-fetch-site"] === "cross-site" && sideEffectGetRoutes.has(request.routeOptions.url ?? "")) {
+      request.originRejected = true;
+      throw Object.assign(new Error("Cross-site download refused"), { statusCode: 403 });
+    }
     if (request.method === "GET" || request.method === "HEAD" || request.method === "OPTIONS") return;
     const origin = request.headers.origin;
     if (origin === undefined) return;

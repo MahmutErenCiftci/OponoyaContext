@@ -13,16 +13,16 @@ export function toWorkspaceSettings(row: WorkspaceSettingsRow): WorkspaceSetting
 }
 
 export async function registerWorkspaceRoutes(app: FastifyInstance, workspace: WorkspaceRepository) {
-  app.get("/v1/workspace/summary", { preHandler: app.authenticate }, async (request) => ({
+  app.get("/v1/workspace/summary", { onRequest: app.authenticate }, async (request) => ({
     summary: await workspace.summary(ownerId(request)),
   }));
 
-  app.get("/v1/workspace/settings", { preHandler: app.authenticate }, async (request) => ({
+  app.get("/v1/workspace/settings", { onRequest: app.authenticate }, async (request) => ({
     settings: toWorkspaceSettings(await workspace.settings(ownerId(request))),
   }));
 
   /** First-run choices are resumable: any state can be set again, including back to `new`. */
-  app.patch("/v1/workspace/onboarding", { preHandler: app.authenticate }, async (request) => {
+  app.patch("/v1/workspace/onboarding", { onRequest: app.authenticate }, async (request) => {
     const input = updateOnboardingSchema.parse(request.body);
     const settings = toWorkspaceSettings(await workspace.updateOnboarding(ownerId(request), input.state, input.choice));
     await app.telemetry.record({ actorUserId: ownerId(request), requestId: request.id }, {

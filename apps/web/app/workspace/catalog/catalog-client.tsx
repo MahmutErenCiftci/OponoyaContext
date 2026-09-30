@@ -80,7 +80,7 @@ export function CatalogClient({ overview, technologies, stacks, links: initialLi
       )}
       {visible.length === 0 ? (
         <div className="empty">
-          <span className="mark xl"><Tray size={34} /></span>
+          <span className="mark xl"><Tray aria-hidden size={34} /></span>
           <h2>Eşleşen teknoloji yok</h2>
           <p>Başka bir sözcük dene veya filtreleri temizle.</p>
           <button className="button" onClick={() => { setQuery(""); setDomain(null); setType(null); }} type="button">Filtreleri temizle</button>

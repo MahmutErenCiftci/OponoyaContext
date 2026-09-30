@@ -78,9 +78,17 @@ Database:
 - Production refuses to start unless `BETTER_AUTH_URL` and `CORS_ORIGIN` are
   HTTPS origins and `BETTER_AUTH_SECRET` is set; session cookies are only
   marked Secure for HTTPS base URLs.
-- Set `TRUST_PROXY=true` only when the immediate upstream (platform load
-  balancer) overwrites `X-Forwarded-For`; the anonymous auth rate limit is
-  keyed by that address. The web app forwards the header it receives.
+- `TRUST_PROXY` (report 45): `false` uses the socket address; `true` trusts
+  only private-network peers (loopback, link-local, RFC 1918 / unique-local,
+  i.e. a platform load balancer); anything else is an explicit list of IPs or
+  CIDR ranges. A client on the internet can never choose its own address.
+- `WEB_PROXY_SECRET` (≥ 32 characters, required when `APP_ENV=production`)
+  must hold the same value on the API and the web service. The web proxy drops
+  every client-sent forwarding header and presents the end-user address it
+  resolved together with the secret; the API uses that address for anonymous
+  rate limits (sign-in, sign-up) and Better Auth. Without it every anonymous
+  request shares the web server's bucket (the web logs
+  `web_proxy_secret_missing` once in production).
 - Rate limits are process-local. One API instance is the V0.3 deployment shape;
   scaling to several instances requires a shared store before the limits are
   global (documented, not built).
@@ -127,6 +135,10 @@ and content hashes and the applied migration hashes. Restore refuses a target
 whose migrations differ, replaces every table inside one transaction and only
 commits when the recomputed checksums match. Never point `--url` at a
 production database without a fresh managed snapshot first.
+
+Snapshots contain password hashes and session tokens. `pnpm db:backup` writes
+them owner-only (`0600`, directory `0700` on POSIX); keep `backups/` out of
+shared folders and delete drill snapshots after use.
 
 ## Production readiness checklist
 
@@ -192,8 +204,24 @@ production database without a fresh managed snapshot first.
   receive a production `DATABASE_URL`.
 - Production refuses to start with a missing or placeholder
   `BETTER_AUTH_SECRET`, non-HTTPS origins, the fake billing provider or
-  `INSECURE_HTTP_ORIGINS=true` when `APP_ENV=production`. The startup error
+  `INSECURE_HTTP_ORIGINS=true` when `APP_ENV=production`, and (report 45)
+  without `WEB_PROXY_SECRET`, with the fake AI provider, with a documented
+  placeholder secret, with HTTP error-reporting endpoints, or with a
+  non-loopback `DATABASE_URL` lacking `sslmode=require` or stricter. The rules
+  apply when either `NODE_ENV` or `APP_ENV` says production. The startup error
   names the offending variables and never their values.
+- E-mail (report 45): `EMAIL_PROVIDER=none` keeps password reset off and its
+  routes unreachable. `log` (development and tests only, refused in
+  production) writes messages to the log and, with `EMAIL_OUTBOX_FILE`, to a
+  local JSON-lines file. Wiring a real provider (sender domain, SPF/DKIM) is an
+  owner decision; it plugs into `apps/api/src/modules/email/sender.ts`.
+- Database TLS: node-postgres currently treats `sslmode=require` like
+  `verify-full` (certificate and host name are checked) and will switch to the
+  weaker libpq meaning in pg 9, so the production template uses
+  `sslmode=verify-full`. A provider with a private CA needs `sslrootcert`.
+- The web container of `deploy/compose.staging.yml` receives only `API_URL`
+  and `WEB_PROXY_SECRET` (exported in the shell before `docker compose up`),
+  never the database or session secrets from the env file.
 - Secrets: generate with `openssl rand -base64 48`, keep them in the hosting
   provider's secret manager, inject at runtime. Rotation: `BETTER_AUTH_SECRET`
   → deploy the new value (all sessions end); database credentials → change the
@@ -249,7 +277,10 @@ production database without a fresh managed snapshot first.
   every table checksum and compares business reads (users, resources,
   projects, context versions, subscriptions, deletion ledger) on both sides;
   evidence is written to `backups/restore-drill.json`. Run it against staging
-  before each release and record the output in the release notes.
+  before each release and record the output in the release notes. It refuses
+  a target that is the source under another spelling (`localhost` vs
+  `127.0.0.1`, default port) and a target that already holds accounts, unless
+  `--wipe-nonempty-target` is given explicitly.
 
 ### Runbooks
 - **Deploy**: see "Delivery"; abort on smoke failure, roll back by image tag.

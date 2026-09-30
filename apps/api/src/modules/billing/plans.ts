@@ -6,19 +6,20 @@ import type { PlanDefinition, PlanId, PlanLimitKey } from "@devcontext/contracts
  * unlocks the remaining individual features. Team features are out of scope.
  */
 export const plans: Record<PlanId, Omit<PlanDefinition, "priceLabel">> = {
+  // `aiSuggestionsPerMonth` is an initial cost bound for the AI groundwork; confirm it with the owner before a provider is enabled.
   free: {
     id: "free",
     name: "Free",
     description: "Save your stack once and compile it into context for your coding agents.",
     limits: { projects: 3, resources: 50, profiles: 2, recipes: 1 },
-    features: { exportTargets: ["generic", "agents", "claude"], bundle: false, diff: false, historyLimit: 3 },
+    features: { exportTargets: ["generic", "agents", "claude"], bundle: false, diff: false, historyLimit: 3, aiSuggestionsPerMonth: 5 },
   },
   pro: {
     id: "pro",
     name: "Pro",
     description: "Large limits, every export adapter, the zipped bundle, full version history and diff.",
     limits: { projects: 500, resources: 5000, profiles: 100, recipes: 100 },
-    features: { exportTargets: ["generic", "agents", "claude", "cursor", "copilot"], bundle: true, diff: true, historyLimit: 50 },
+    features: { exportTargets: ["generic", "agents", "claude", "cursor", "copilot"], bundle: true, diff: true, historyLimit: 50, aiSuggestionsPerMonth: 100 },
   },
 };
 

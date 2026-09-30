@@ -2,17 +2,19 @@
 
 import {
   importResponseSchema,
+  productName,
   portableLimits,
   sampleInstallResponseSchema,
   sampleRemoveResponseSchema,
   workspaceSettingsResponseSchema,
   type AccountSummary,
+  type AiStatus,
   type CurrentUser,
   type ImportStrategy,
   type ImportSummary,
   type WorkspaceSettings,
 } from "@devcontext/contracts";
-import { CheckCircle, CreditCard, Database, DownloadSimple, File, Info, Lock, Monitor, Question, ShieldCheck, UploadSimple, User } from "@phosphor-icons/react/dist/ssr";
+import { CheckCircle, CreditCard, Database, DownloadSimple, File, Info, Lock, Monitor, Question, ShieldCheck, UploadSimple, User, WarningCircle } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState, useSyncExternalStore, type MouseEvent } from "react";
@@ -25,7 +27,12 @@ import { ThemeCards } from "../../../components/theme-toggle";
 import type { Theme } from "../../../lib/theme";
 import { readApiError } from "../../../lib/errors";
 import { formatDateTime, pluralCount } from "../../../lib/resource-labels";
+import { PasswordForm } from "./password-form";
 import { PrivacySection } from "./privacy-section";
+
+/** A toast is either a confirmation or a failure; failures are announced as alerts and never wear the success check. */
+type Notice = { text: string; tone: "ok" | "error" };
+type Notify = (text: string, tone?: Notice["tone"]) => void;
 
 const strategyCopy: Record<ImportStrategy, { label: string; text: string }> = {
   skip: { label: "Mevcutları koru", text: "Mevcut kayıtlar aynen kalır. Yalnızca yeni kayıtlar eklenir." },
@@ -57,7 +64,7 @@ function formatBytes(bytes: number) {
   return `${(bytes / (1024 * 1024)).toFixed(1).replace(".", ",")} MiB`;
 }
 
-function ImportSection({ onNotice, onExport, exporting }: { onNotice(text: string): void; onExport(event: MouseEvent<HTMLAnchorElement>): void; exporting: boolean }) {
+function ImportSection({ onNotice, onExport, exporting }: { onNotice: Notify; onExport(event: MouseEvent<HTMLAnchorElement>): void; exporting: boolean }) {
   const router = useRouter();
   const inputId = useId();
   const [file, setFile] = useState<{ name: string; size: number; modified: number } | null>(null);
@@ -218,11 +225,12 @@ function ImportSection({ onNotice, onExport, exporting }: { onNotice(text: strin
   );
 }
 
-export function SettingsClient({ settings: initialSettings, account, theme, user, initialSection }: { settings: WorkspaceSettings | null; account: AccountSummary | null; theme: Theme; user: CurrentUser; initialSection?: string | undefined }) {
+export function SettingsClient({ settings: initialSettings, account, ai, theme, user, initialSection }: { settings: WorkspaceSettings | null; account: AccountSummary | null; ai: AiStatus | null; theme: Theme; user: CurrentUser; initialSection?: string | undefined }) {
   const router = useRouter();
   const [settings, setSettings] = useState(initialSettings);
   const [pending, setPending] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  const [notice, setNotice] = useState<Notice | null>(null);
+  const notify: Notify = (text, tone = "ok") => setNotice({ text, tone });
   const [clicked, setClicked] = useState<string | null>(null);
   const hash = useSyncExternalStore(subscribeHash, () => window.location.hash.slice(1), () => "");
   const active = clicked ?? (sections.some((section) => section.id === hash) ? hash : initialSection ?? "settings-account");
@@ -234,7 +242,7 @@ export function SettingsClient({ settings: initialSettings, account, theme, user
     setPending("export");
     try {
       const response = await fetch("/api/workspace/export");
-      if (!response.ok) { setNotice((await readApiError(response)).message); return; }
+      if (!response.ok) { notify((await readApiError(response)).message, "error"); return; }
       const url = URL.createObjectURL(await response.blob());
       const link = document.createElement("a");
       link.href = url;
@@ -243,9 +251,9 @@ export function SettingsClient({ settings: initialSettings, account, theme, user
       link.click();
       link.remove();
       window.setTimeout(() => URL.revokeObjectURL(url), 1_000);
-      setNotice("Dışa aktarma dosyası indirildi.");
+      notify("Dışa aktarma dosyası indirildi.");
     } catch {
-      setNotice("Dışa aktarma indirilemedi. Tekrar dene.");
+      notify("Dışa aktarma indirilemedi. Tekrar dene.", "error");
     } finally { setPending(null); }
   }
 
@@ -260,14 +268,14 @@ export function SettingsClient({ settings: initialSettings, account, theme, user
     try {
       const response = await fetch("/api/workspace/onboarding", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ state }) });
       if (!response.ok) {
-        setNotice((await readApiError(response)).message);
+        notify((await readApiError(response)).message, "error");
         return;
       }
       setSettings(workspaceSettingsResponseSchema.parse(await response.json()).settings);
-      setNotice(state === "new" ? "Başlangıç rehberi genel bakışta yeniden gösterilecek." : "Kurulum tamamlandı olarak işaretlendi.");
+      notify(state === "new" ? "Başlangıç rehberi genel bakışta yeniden gösterilecek." : "Kurulum tamamlandı olarak işaretlendi.");
       router.refresh();
     } catch {
-      setNotice("Çalışma alanına ulaşılamıyor. Lütfen tekrar dene.");
+      notify("Çalışma alanına ulaşılamıyor. Lütfen tekrar dene.", "error");
     } finally {
       setPending(null);
     }
@@ -278,15 +286,15 @@ export function SettingsClient({ settings: initialSettings, account, theme, user
     try {
       const response = await fetch("/api/workspace/samples", { method: "POST" });
       if (!response.ok) {
-        setNotice((await readApiError(response)).message);
+        notify((await readApiError(response)).message, "error");
         return;
       }
       const result = sampleInstallResponseSchema.parse(await response.json());
       setSettings(result.settings);
-      setNotice(result.created ? `Örnek veriler yüklendi: ${result.counts.resources} kaynak, ${result.counts.profiles} profil, ${result.counts.recipes} tarif, ${result.counts.projects} proje.` : "Örnek veriler zaten yüklüydü.");
+      notify(result.created ? `Örnek veriler yüklendi: ${result.counts.resources} kaynak, ${result.counts.profiles} profil, ${result.counts.recipes} tarif, ${result.counts.projects} proje.` : "Örnek veriler zaten yüklüydü.");
       router.refresh();
     } catch {
-      setNotice("Çalışma alanına ulaşılamıyor. Lütfen tekrar dene.");
+      notify("Çalışma alanına ulaşılamıyor. Lütfen tekrar dene.", "error");
     } finally {
       setPending(null);
     }
@@ -298,15 +306,15 @@ export function SettingsClient({ settings: initialSettings, account, theme, user
     try {
       const response = await fetch("/api/workspace/samples", { method: "DELETE" });
       if (!response.ok) {
-        setNotice((await readApiError(response)).message);
+        notify((await readApiError(response)).message, "error");
         return;
       }
       const result = sampleRemoveResponseSchema.parse(await response.json());
       setSettings(result.settings);
-      setNotice(`Örnek veriler kaldırıldı: ${result.removed.resources} kaynak, ${result.removed.profiles} profil, ${result.removed.recipes} tarif, ${result.removed.projects} proje.`);
+      notify(`Örnek veriler kaldırıldı: ${result.removed.resources} kaynak, ${result.removed.profiles} profil, ${result.removed.recipes} tarif, ${result.removed.projects} proje.`);
       router.refresh();
     } catch {
-      setNotice("Çalışma alanına ulaşılamıyor. Lütfen tekrar dene.");
+      notify("Çalışma alanına ulaşılamıyor. Lütfen tekrar dene.", "error");
     } finally {
       setPending(null);
     }
@@ -328,7 +336,7 @@ export function SettingsClient({ settings: initialSettings, account, theme, user
         <div className="settings-body">
           <section aria-labelledby="settings-account-title" className="settings-section" id="settings-account">
             <h2 id="settings-account-title">Hesap</h2>
-            <p className="lead">Hesap bilgilerin.</p>
+            <p className="lead">Hesap bilgilerin ve giriş güvenliğin.</p>
             <div aria-label="Hesap bilgileri" className="account-card" role="region">
               <span className="avatar">{user.name.trim().slice(0, 1).toUpperCase()}</span>
               <div style={{ minWidth: 0 }}><strong>{user.name}</strong><small>{user.email}</small><small style={{ display: "block", marginTop: 4 }}>{onboardingText}</small></div>
@@ -337,6 +345,7 @@ export function SettingsClient({ settings: initialSettings, account, theme, user
               <button className="button" disabled={pending !== null} onClick={() => void updateOnboarding("new")} type="button">Rehberi yeniden göster</button>
               {settings?.onboardingState !== "completed" && <button className="button" disabled={pending !== null} onClick={() => void updateOnboarding("completed")} type="button">Kurulumu tamamla</button>}
             </div>
+            <PasswordForm onNotice={notify} />
           </section>
 
           <section aria-labelledby="settings-appearance-title" className="settings-section" id="settings-appearance">
@@ -362,9 +371,9 @@ export function SettingsClient({ settings: initialSettings, account, theme, user
             </div>
           </section>
 
-          <ImportSection exporting={pending === "export"} onExport={(event) => void downloadExport(event)} onNotice={setNotice} />
+          <ImportSection exporting={pending === "export"} onExport={(event) => void downloadExport(event)} onNotice={notify} />
 
-          <PrivacySection initial={account} onNotice={setNotice} user={user} />
+          <PrivacySection ai={ai} initial={account} onNotice={notify} user={user} />
 
           <section aria-labelledby="settings-plan-title" className="settings-section" id="settings-plan">
             <h2 id="settings-plan-title">Abonelik</h2>
@@ -374,7 +383,7 @@ export function SettingsClient({ settings: initialSettings, account, theme, user
 
           <section aria-labelledby="settings-help-title" className="settings-section" id="settings-help">
             <h2 id="settings-help-title">Yardım</h2>
-            <p className="lead">DevContext nasıl çalışır?</p>
+            <p className="lead">{productName} nasıl çalışır?</p>
             <dl style={{ display: "grid", gap: 16 }}>
               <div><dt style={{ fontWeight: 600 }}>Ortak proje bağlamı</dt><dd className="muted">Talimat oluşturma; Kütüphane kurallarını, bağlı profilleri, uygulanan tarifi ve proje kararlarını tek deterministik JSON nesnesinde birleştirir. Her dışa aktarma hedefi (genel talimat, AGENTS.md, CLAUDE.md, Cursor, Copilot) bu nesneden üretilir; öncelik Proje › Tarif › Profil › Kütüphane kuralıdır.</dd></div>
               <div><dt style={{ fontWeight: 600 }}>Sürüm geçmişi</dt><dd className="muted">Yalnızca içerik değiştiğinde yeni sürüm kaydedilir. Her sürüm derleyici sürümünü ve içerik özetini taşır; eski sürümler okunabilir kalır ve sürüm karşılaştırması iki sürüm arasında neyin değiştiğini açıklar.</dd></div>
@@ -384,7 +393,11 @@ export function SettingsClient({ settings: initialSettings, account, theme, user
           </section>
         </div>
       </div>
-      {notice && <div className="toast" role="status"><span className="status-label ok"><CheckCircle aria-hidden size={18} />{notice}</span></div>}
+      {notice && (
+        <div className="toast" role={notice.tone === "error" ? "alert" : "status"}>
+          <span className={`status-label ${notice.tone}`}>{notice.tone === "error" ? <WarningCircle aria-hidden size={18} /> : <CheckCircle aria-hidden size={18} />}{notice.text}</span>
+        </div>
+      )}
     </section>
   );
 }

@@ -4,7 +4,7 @@ import { Archive, ArrowCounterClockwise, ArrowRight, Blueprint, MagnifyingGlass,
 import { recipeListResponseSchema, recipeResponseSchema, type Recipe, type RecipeSummary } from "@devcontext/contracts";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { DrawerFrame } from "../../../components/drawer";
 import { PageHead } from "../../../components/page-heading";
 import { RowMenu } from "../../../components/row-menu";
@@ -115,7 +115,8 @@ export function RecipesClient({ initial, openCreateOnLoad }: {
 
   async function load(next: { search?: string; archived?: ArchiveView } = {}) {
     const values = { search: next.search ?? search, archived: next.archived ?? archived };
-    const params = new URLSearchParams({ archived: values.archived });
+    // One full page (the API maximum, also the Pro recipe limit).
+    const params = new URLSearchParams({ archived: values.archived, limit: "100" });
     if (values.search) params.set("q", values.search);
     setLoading(true);
     try {
@@ -129,14 +130,24 @@ export function RecipesClient({ initial, openCreateOnLoad }: {
     }
   }
 
+  const busy = useRef(false);
+
   async function mutate(recipe: RecipeSummary, action: "archive" | "restore") {
-    const response = await fetch(`/api/recipes/${recipe.id}${action === "restore" ? "/restore" : ""}`, { method: action === "restore" ? "POST" : "DELETE" });
-    if (!response.ok) {
-      setNotice(await responseError(response));
-      return;
+    if (busy.current) return;
+    busy.current = true;
+    try {
+      const response = await fetch(`/api/recipes/${recipe.id}${action === "restore" ? "/restore" : ""}`, { method: action === "restore" ? "POST" : "DELETE" });
+      if (!response.ok) {
+        setNotice(await responseError(response));
+        return;
+      }
+      setNotice(action === "restore" ? `${recipe.name} geri yüklendi.` : `${recipe.name} arşivlendi. Onu kullanan projeler kararlarını devralmaya devam eder.`);
+      await load();
+    } catch {
+      setNotice("Çalışma alanına ulaşılamıyor. Tekrar dene.");
+    } finally {
+      busy.current = false;
     }
-    setNotice(action === "restore" ? `${recipe.name} geri yüklendi.` : `${recipe.name} arşivlendi. Onu kullanan projeler kararlarını devralmaya devam eder.`);
-    await load();
   }
 
   function closeEditor() {
@@ -168,7 +179,7 @@ export function RecipesClient({ initial, openCreateOnLoad }: {
       )}
       {!loading && recipes.length === 0 && (
         <div className="empty">
-          <span className="mark xl"><Tray size={34} /></span>
+          <span className="mark xl"><Tray aria-hidden size={34} /></span>
           <h2>{archived === "archived" ? "Arşiv boş" : "Henüz tarif yok"}</h2>
           <p>{archived === "archived" ? "Arşivlediğin tarifleri buradan geri yükleyebilirsin." : "Sık kullandığın profilleri ve AI tercihlerini birleştirerek yeni projelerine hazır başla."}</p>
           {archived === "active" && <button className="button primary" onClick={() => setEditor({ kind: "create" })} type="button">İlk tarifini oluştur</button>}

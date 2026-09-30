@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { PageHead } from "../../../components/page-heading";
-import { entitlementSentence, exportTargetLabels, limitLabels } from "../../../lib/billing-labels";
+import { entitlementSentence, exportTargetLabels, limitLabels, subscriptionStatusLabels } from "../../../lib/billing-labels";
 import { readApiError } from "../../../lib/errors";
 import { formatDate } from "../../../lib/resource-labels";
 import { useHydrated } from "../../../lib/use-hydrated";
@@ -63,7 +63,7 @@ export function BillingClient({ summary: initial, returnState }: { summary: Bill
     setError(null);
     try {
       const response = await fetch(`/api/billing/${path}`, { method: "POST" });
-      if (!response.ok) { setError((await readApiError(response)).message); return; }
+      if (!response.ok) { setError((await readApiError(response)).message); setPending(null); return; }
       const { url } = billingRedirectResponseSchema.parse(await response.json());
       window.location.assign(url);
     } catch {
@@ -103,7 +103,7 @@ export function BillingClient({ summary: initial, returnState }: { summary: Bill
           {subscription.currentPeriodStart && subscription.currentPeriodEnd && (
             <dl style={{ marginTop: 14, display: "grid", gap: 6 }} className="small">
               <div><dt className="muted" style={{ display: "inline" }}>Mevcut dönem: </dt><dd style={{ display: "inline" }}>{formatDate(subscription.currentPeriodStart)} – {formatDate(subscription.currentPeriodEnd)}</dd></div>
-              <div><dt className="muted" style={{ display: "inline" }}>Durum: </dt><dd style={{ display: "inline" }}>{subscription.status.replace("_", " ")}{subscription.cancelAtPeriodEnd ? " · dönem sonunda iptal" : ""}</dd></div>
+              <div><dt className="muted" style={{ display: "inline" }}>Durum: </dt><dd style={{ display: "inline" }}>{subscriptionStatusLabels[subscription.status]}{subscription.cancelAtPeriodEnd ? " · dönem sonunda iptal" : ""}</dd></div>
             </dl>
           )}
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center", marginTop: 18 }}>

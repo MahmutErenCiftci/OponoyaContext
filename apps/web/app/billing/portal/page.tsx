@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getBillingSummary } from "../../../lib/api";
@@ -7,7 +8,7 @@ import { ServiceUnavailable } from "../../workspace/unavailable";
 import { WorkspaceShell } from "../../workspace/workspace-shell";
 import { FakePortal } from "./fake-portal";
 
-export const dynamic = "force-dynamic";
+export const metadata: Metadata = { title: "Abonelik yönetimi" };
 
 /** Test-mode subscription portal of the fake provider; a real provider hosts its own. */
 export default async function FakePortalPage() {

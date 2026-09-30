@@ -9,6 +9,7 @@ import { ThemeToggle } from "../../components/theme-toggle";
 import type { Theme } from "../../lib/theme";
 import { LogoutButton } from "./logout-button";
 import type { WorkspaceSection } from "./workspace-shell";
+import { BrandMark } from "../../components/brand-mark";
 
 export const primaryNavigation = [
   { id: "Overview", label: "Genel bakış", href: "/workspace" },
@@ -44,7 +45,7 @@ export function WorkspaceNavigation({ active, theme, user }: { active: Workspace
   const moreSelected = secondary.some((item) => item.id === active);
   return (
     <header className="app-header" ref={header}>
-      <Link className="brand" href="/workspace"><span className="brand-mark">D</span><span>DevContext</span></Link>
+      <Link className="brand" href="/workspace"><BrandMark /></Link>
       <nav aria-label="Çalışma alanı" className="main-nav workspace-navigation">
         {primaryNavigation.map((item) => <Link aria-current={active === item.id ? "page" : undefined} href={item.href} key={item.id}>{item.label}</Link>)}
         <details className={`header-menu${moreSelected ? " selected" : ""}`}>

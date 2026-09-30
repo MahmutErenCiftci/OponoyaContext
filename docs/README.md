@@ -74,7 +74,9 @@ The durable state is `30_PRODUCTION_EXECUTION_PLAN.md`. Completed work has repor
 - `41_HYBRID_UI_HANDOFF.md` (design-pack UI integration; later reports shift by one more)
 - `42_PRIVACY_ACCOUNT_HANDOFF.md`
 - `43_PRODUCTION_OPERATIONS_HANDOFF.md`
-- `44_V1_LAUNCH_GATE.md` — decision **BLOCKED** (2026-09-09)
+- `44_V1_LAUNCH_GATE.md` — decision **BLOCKED** (2026-09-09; addendum 2026-09-26)
+- `45_PRODUCTION_HARDENING_REPORT.md` — security review fixes, performance, AI groundwork (2026-09-26)
+- `46_PRODUCT_GAP_RESEARCH.md` — kesin eksikler, ajan formatları ve rakip araştırması, öneriler (2026-09-26)
 
 Every implementation handoff (1–12) has a report. The launch gate found no
 code defect but is blocked on owner-only items: hosting, managed PostgreSQL,

@@ -9,9 +9,14 @@ import { fileURLToPath } from "node:url";
  * on `dev` first, and once the gate run is green this script rewrites `main` as
  * dev's tree minus the internal-only paths below. The tree is rebuilt instead of
  * merged, so a path that exists only on `dev` can never raise a modify/delete
- * conflict, and `main` stays a strict subset of `dev` by construction.
+ * conflict, and `main` stays a strict subset of `dev` by construction. History
+ * too: a published commit never has a `dev` commit as its parent.
  *
- *   node scripts/sync-main.mjs [--push]
+ *   node scripts/sync-main.mjs [--push] [--fresh]
+ *
+ * `--fresh` starts `main` over as a single root commit (for a branch whose
+ * earlier history still links `dev`); publishing it needs a deliberate
+ * `git push --force origin main` by the owner, which `--push` never does.
  */
 const root = fileURLToPath(new URL("../", import.meta.url));
 
@@ -77,19 +82,24 @@ try {
 }
 
 const main = revision("main");
-if (main && git(["rev-parse", `${main}^{tree}`]) === tree) {
+const fresh = process.argv.includes("--fresh");
+if (main && !fresh && git(["rev-parse", `${main}^{tree}`]) === tree) {
   console.log(JSON.stringify({ main: "up-to-date", commit: main, dev }));
   process.exit(0);
 }
 
 const subject = git(["log", "-1", "--format=%s", dev]);
-const parents = main ? ["-p", main, "-p", dev] : ["-p", dev];
+// Only the previous `main` is a parent. Linking `dev` would make its whole
+// history (and every dev-only path in it) reachable from `main`, so anyone who
+// can fetch `main` could read the internal tree. The source commit is recorded
+// in the message instead.
+const parents = main && !fresh ? ["-p", main] : [];
 const commit = git([
   "commit-tree",
   tree,
   ...parents,
   "-m",
-  `main: publish ${dev.slice(0, 7)} from dev — ${subject}`,
+  `main: publish ${dev.slice(0, 7)} from dev — ${subject}\n\nSource: dev ${dev}`,
 ]);
 git(["update-ref", "refs/heads/main", commit, main ?? ""]);
 

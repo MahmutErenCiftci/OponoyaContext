@@ -11,7 +11,7 @@
  * Simple Icons match are listed in apps/web/public/logos/README.md and get a
  * monogram fallback in the UI.
  */
-import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -26,9 +26,11 @@ const offline = process.argv.includes("--offline");
 
 /**
  * Catalog slug → Simple Icons slug candidates, tried in order before the
- * automatic guesses. Combined catalog entries ("Redis / Valkey") use the first
- * named brand. Entries that are practices or Turkish services without a
- * public brand icon are left out on purpose and fall back to a monogram.
+ * automatic guesses. Combined catalog entries ("Redis / Valkey") may fall back
+ * to another brand they name. `null` forces the monogram: a technology must
+ * never borrow the mark of a different product (Auth.js is not Next.js).
+ * Entries that are practices or Turkish services without a public brand icon
+ * are left out on purpose and fall back to a monogram.
  */
 const overrides = {
   "claude-code": ["claudecode", "claude"], "cursor": "cursor", "github-copilot": "githubcopilot", "codex-cli": "openai", "windsurf": "windsurf", "cline": "cline", "aider": "aider",
@@ -39,11 +41,11 @@ const overrides = {
   "nodejs": "nodedotjs", "bun": "bun", "deno": "deno", "expressjs": "express", "fastify": "fastify", "hono": "hono", "nestjs": "nestjs", "trpc": "trpc", "graphql": "graphql",
   "openapi-rest": "openapiinitiative", "grpc": "grpc", "python": "python", "fastapi": "fastapi", "django": "django", "flask": "flask", "go": "go", "rust": "rust", "java": "openjdk",
   "spring-boot": "springboot", "kotlin": "kotlin", "csharp": ["csharp", "dotnet"], "dotnet-aspnet": "dotnet", "php": "php", "laravel": "laravel", "rails": "rubyonrails", "elixir-phoenix": ["phoenixframework", "elixir"],
-  "better-auth": "betterauth", "authjs": ["authdotjs", "nextdotjs"], "clerk": "clerk", "auth0": "auth0", "keycloak": "keycloak", "redis": "redis", "bullmq": "bullmq", "kafka": "apachekafka",
+  "better-auth": "betterauth", "authjs": "authdotjs", "clerk": "clerk", "auth0": "auth0", "keycloak": "keycloak", "redis": "redis", "bullmq": "bullmq", "kafka": "apachekafka",
   "rabbitmq": "rabbitmq", "temporal": "temporal", "inngest": "inngest", "socketio": "socketdotio", "liveblocks": "liveblocks",
   "apache-airflow": "apacheairflow", "dagster": "dagster", "prefect": "prefect", "dbt": "dbt", "airbyte": "airbyte", "fivetran": "fivetran", "debezium": "debezium", "apache-spark": "apachespark",
   "polars": "polars", "pandas": "pandas", "snowflake": "snowflake", "bigquery": "googlebigquery", "databricks": "databricks", "apache-iceberg": "apacheiceberg", "trino": "trino",
-  "metabase": "metabase", "apache-superset": "apachesuperset", "power-bi": ["powerbi", "looker"], "great-expectations": "greatexpectations", "mlflow": "mlflow", "kestra": "kestra",
+  "metabase": "metabase", "apache-superset": "apachesuperset", "power-bi": "powerbi", "great-expectations": "greatexpectations", "mlflow": "mlflow", "kestra": "kestra",
   "postgresql": "postgresql", "mysql": "mysql", "sqlite": "sqlite", "turso": "turso", "neon": "neon", "supabase": "supabase", "firebase": "firebase", "convex": "convex", "pocketbase": "pocketbase",
   "mongodb": "mongodb", "dynamodb": "amazondynamodb", "clickhouse": "clickhouse", "duckdb": "duckdb", "pgvector": "postgresql", "pinecone": "pinecone", "qdrant": "qdrant",
   "elasticsearch": ["elasticsearch", "opensearch"], "meilisearch": "meilisearch", "algolia": "algolia", "drizzle-orm": "drizzle", "prisma": "prisma", "kysely": "kysely", "sqlalchemy": "sqlalchemy",
@@ -57,12 +59,12 @@ const overrides = {
   "typescript": "typescript", "javascript": "javascript", "html5": "html5", "css3": ["css", "css3"], "react": "react", "nextjs": "nextdotjs", "remix": ["remix", "reactrouter"], "astro": "astro",
   "vue": "vuedotjs", "nuxt": "nuxt", "svelte": "svelte", "sveltekit": "svelte", "angular": "angular", "solidjs": "solid", "htmx": "htmx", "alpinejs": "alpinedotjs", "tailwindcss": "tailwindcss",
   "shadcn-ui": "shadcnui", "radix-ui": "radixui", "mui": "mui", "ant-design": "antdesign", "mantine": "mantine", "chakra-ui": "chakraui", "bootstrap": "bootstrap", "sass": "sass",
-  "styled-components": "styledcomponents", "tanstack-query": "reactquery", "zustand": "zustand", "redux-toolkit": "redux", "jotai": "jotai", "pinia": "pinia", "react-hook-form": "reacthookform",
-  "zod": "zod", "framer-motion": ["motion", "framer"], "gsap": "gsap", "lottie": "lottiefiles", "threejs": "threedotjs", "d3js": "d3", "recharts": "recharts", "echarts": "apacheecharts",
+  "styled-components": "styledcomponents", "tanstack-query": ["tanstack", "reactquery"], "zustand": "zustand", "redux-toolkit": "redux", "jotai": "jotai", "pinia": "pinia", "react-hook-form": "reacthookform",
+  "zod": "zod", "framer-motion": "motion", "gsap": "gsap", "lottie": "lottiefiles", "threejs": "threedotjs", "d3js": "d3", "recharts": "recharts", "echarts": "apacheecharts",
   "lucide-icons": "lucide", "heroicons": "heroicons", "storybook": "storybook", "vite": "vite", "turborepo": "turborepo", "pnpm": "pnpm", "biome": "biome", "eslint": "eslint",
   "react-native": "react", "expo": "expo", "flutter": "flutter", "swift-ios": "swift", "jetpack-compose": "jetpackcompose", "electron": "electron", "tauri": "tauri", "capacitor": "capacitor",
   "pwa": "pwa", "unity": "unity", "godot": "godotengine",
-  "owasp-top10": "owasp", "semgrep": "semgrep", "codeql": "github", "snyk": "snyk", "dependabot": ["dependabot", "renovate"], "trivy": "trivy", "gitleaks": ["gitleaks", "trufflehog"],
+  "owasp-top10": "owasp", "semgrep": "semgrep", "codeql": null, "snyk": "snyk", "dependabot": ["dependabot", "renovate"], "trivy": "trivy", "gitleaks": ["gitleaks", "trufflehog"],
   "vault": ["vault", "openbao"], "infisical": ["infisical", "doppler"], "owasp-zap": ["zap", "owasp"], "burp-suite": ["burpsuite", "portswigger"], "sonarqube": ["sonarqubeserver", "sonarqube", "sonar"],
   "cloudflare-waf": "cloudflare", "sigstore-cosign": "sigstore", "falco": "falco", "wazuh": "wazuh", "vanta": ["vanta", "drata"], "llm-security": "owasp",
   "paytr": "paytr", "craftgate": "craftgate", "shopier": ["shopier", "papara"], "netgsm": "netgsm", "parasut": "parasut", "trendyol-api": ["trendyol", "hepsiburada"], "ticimax-ideasoft": ["ticimax", "ideasoft"],
@@ -128,14 +130,37 @@ async function loadIconIndex() {
   return index;
 }
 
+/**
+ * Candidates in order: explicit overrides, then the catalog slug and the full
+ * name. There is deliberately no first-word guess: it turned "Apache Iceberg"
+ * into the generic Apache feather.
+ */
 function candidatesFor(item) {
+  if (Object.hasOwn(overrides, item.slug) && overrides[item.slug] === null) return [];
   const preferred = overrides[item.slug];
   const list = Array.isArray(preferred) ? [...preferred] : preferred ? [preferred] : [];
   list.push(item.slug.replace(/-/g, ""));
   list.push(titleToSlug(item.name));
-  const firstWord = item.name.split(/[\s/(]/)[0];
-  if (firstWord) list.push(titleToSlug(firstWord));
   return [...new Set(list.filter(Boolean))];
+}
+
+const pathData = /^[MmLlHhVvCcSsQqTtAaZz0-9\s,.+eE-]+$/;
+
+function escapeXml(value) {
+  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+/**
+ * Rebuilds a downloaded icon from its title and path data only. The files are
+ * served from the app origin, so nothing else the upstream file might carry
+ * (scripts, handlers, links, styles) is ever written.
+ */
+function sanitizeIcon(body, slug, hex) {
+  if (!/^[a-z0-9]+$/.test(slug) || !/^[0-9A-F]{6}$/i.test(hex)) return null;
+  const title = /<title>([^<]{1,200})<\/title>/.exec(body)?.[1];
+  const paths = [...body.matchAll(/<path\s+d="([^"]{1,20000})"\s*\/?>/g)].map((match) => match[1]);
+  if (!title || paths.length !== 1 || !pathData.test(paths[0])) return null;
+  return `<svg data-icon="${slug}" data-brand="${hex.toUpperCase()}" role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>${escapeXml(title)}</title><path d="${paths[0]}"/></svg>`;
 }
 
 async function main() {
@@ -164,20 +189,32 @@ async function main() {
       let svg = existsSync(target) ? await readFile(target, "utf8") : null;
       if (!svg || !svg.includes(`data-icon="${match.slug}"`)) {
         const body = await fetchText(`${cdn}/icons/${match.slug}.svg`);
-        if (!body) { missing.push(item); continue; }
         // Keep the icon slug and brand colour inside the file so offline rebuilds stay exact.
-        svg = body.replace("<svg ", `<svg data-icon="${match.slug}" data-brand="${match.hex}" `);
+        svg = body ? sanitizeIcon(body, match.slug, match.hex) : null;
+        if (!svg) { missing.push(item); continue; }
         await writeFile(target, svg);
       }
       logos[item.slug] = { icon: match.slug, title: match.title, hex: match.hex };
     }
   });
   await Promise.all(workers);
+  // An entry that no longer has a mark must not keep serving the old (possibly wrong) file.
+  if (!offline) {
+    for (const item of missing) {
+      const stale = join(logoDir, `${item.slug}.svg`);
+      if (existsSync(stale)) await rm(stale);
+    }
+  }
 
   const names = {};
   const hostOwners = new Map();
+  for (const item of items) names[normalizeName(item.name)] = item.slug;
+  // "Vue.js" also answers to "Vue", "Node.js" to "Node": the short form people type, unless it names another entry.
   for (const item of items) {
-    names[normalizeName(item.name)] = item.slug;
+    const short = normalizeName(item.name).replace(/ js$/, "");
+    if (short && !Object.hasOwn(names, short)) names[short] = item.slug;
+  }
+  for (const item of items) {
     for (const url of [item.docsUrl, item.repoUrl]) {
       const host = url ? hostOf(url) : null;
       if (!host || genericHosts.has(host)) continue;

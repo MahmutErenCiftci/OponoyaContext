@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getResourceList } from "../../../lib/api";
 import { loadSession } from "../../../lib/server-session";
@@ -5,7 +6,7 @@ import { ServiceUnavailable } from "../unavailable";
 import { WorkspaceShell } from "../workspace-shell";
 import { LibraryClient } from "./library-client";
 
-export const dynamic = "force-dynamic";
+export const metadata: Metadata = { title: "Kütüphane" };
 
 export default async function LibraryPage({ searchParams }: { searchParams: Promise<{ add?: string; q?: string; view?: string }> }) {
   const session = await loadSession();
@@ -18,6 +19,7 @@ export default async function LibraryPage({ searchParams }: { searchParams: Prom
   if (view === "favorites") params.set("favorite", "true");
   if (query.q) params.set("q", query.q);
   const initial = await getResourceList(cookieHeader, params);
+  if (!initial) return <ServiceUnavailable />;
 
   return (
     <WorkspaceShell active="Library" user={user}>

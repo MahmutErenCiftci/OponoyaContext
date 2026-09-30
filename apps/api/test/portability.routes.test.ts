@@ -36,6 +36,7 @@ function auth(): AuthProvider {
     },
     async verifyPassword() { return true; },
     async deleteUser() { return { setCookie: [] }; },
+    async changePassword() { return { setCookie: [] }; },
   };
 }
 
@@ -132,14 +133,14 @@ describe("portability, recipes, samples and settings routes", () => {
     const preview = await app.inject({ method: "POST", url: "/v1/workspace/import", headers, payload: { document: emptyDocument } });
     expect(preview.statusCode).toBe(200);
     expect(importResponseSchema.parse(preview.json())).toMatchObject({ applied: false, created: false, summary: { dryRun: true, strategy: "skip" } });
-    expect(portability.importWorkspace).toHaveBeenLastCalledWith(ownerA, { document: emptyDocument, strategy: "skip", dryRun: true }, undefined);
+    expect(portability.importWorkspace).toHaveBeenLastCalledWith(ownerA, { document: emptyDocument, strategy: "skip", dryRun: true }, undefined, expect.any(Function));
     expect(audit.events).toHaveLength(0);
 
     const key = "00000000-0000-4000-8000-000000000095";
     const applied = await app.inject({ method: "POST", url: "/v1/workspace/import", headers: { ...headers, "idempotency-key": key }, payload: { document: emptyDocument, strategy: "copy", dryRun: false } });
     expect(applied.statusCode).toBe(201);
     expect(importResponseSchema.parse(applied.json())).toMatchObject({ applied: true, created: true, summary: { strategy: "copy", dryRun: false } });
-    expect(portability.importWorkspace).toHaveBeenLastCalledWith(ownerA, { document: emptyDocument, strategy: "copy", dryRun: false }, key);
+    expect(portability.importWorkspace).toHaveBeenLastCalledWith(ownerA, { document: emptyDocument, strategy: "copy", dryRun: false }, key, expect.any(Function));
     expect(audit.events).toEqual([expect.objectContaining({ action: "workspace.import_completed", metadata: { strategy: "copy", created: 3, skipped: 1, replaced: 0, copied: 0 } })]);
     expect(JSON.stringify(audit.events)).not.toContain("Next.js");
 

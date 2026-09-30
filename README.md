@@ -155,7 +155,12 @@ limits, redacted structured logs, audit trail, error boundaries, backup/restore
 drill), the V1 activation slice (Recipes with inheritance, first-run choices,
 optional sample data, portable JSON export/import, zipped context bundles), the
 technology catalog, billing and entitlements, the design-pack UI, privacy and
-account deletion, and production operations.
+account deletion, and production operations. A production hardening pass
+(report 45, 2026-09-26) fixed the findings of a full security review, cut
+client JavaScript by 250–400 KB per page, added password change and reset
+(reset switches on with an e-mail provider), hardened the
+exports (compiler 0.4.2) and laid the groundwork for AI suggestions, which stay
+off until the owner enables a provider.
 
 The V1.0 launch gate (`docs/44_V1_LAUNCH_GATE.md`) is **BLOCKED**. No code or
 configuration defect was found; the gate is blocked on items only the owner can
@@ -165,6 +170,7 @@ decided 2026-09-10). The product is **not** production-ready until that gate is
 re-run with staging evidence and returns GO.
 
 Reports:
+[production hardening](docs/45_PRODUCTION_HARDENING_REPORT.md),
 [foundation](docs/27_FOUNDATION_HANDOFF.md),
 [authentication](docs/28_AUTHENTICATION_HANDOFF.md),
 [Resource Library](docs/29_RESOURCE_LIBRARY_HANDOFF.md),

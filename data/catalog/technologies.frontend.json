@@ -26,7 +26,7 @@
     },
     {
       "slug": "javascript",
-      "name": "JavaScript (ES2024+)",
+      "name": "JavaScript",
       "type": "language",
       "category": "language",
       "summary": "Tarayıcının yerel dili; web'in temel çalıştırma dili.",
@@ -138,7 +138,7 @@
     },
     {
       "slug": "remix",
-      "name": "Remix / React Router 7",
+      "name": "Remix / React Router",
       "type": "framework",
       "category": "frontend/meta-framework",
       "summary": "Web standartlarına yaslanan, loader/action tabanlı React meta-framework'ü.",
@@ -182,7 +182,7 @@
     },
     {
       "slug": "vue",
-      "name": "Vue 3",
+      "name": "Vue.js",
       "type": "framework",
       "category": "frontend/ui-library",
       "summary": "Kolay öğrenilen, reaktif ve şablon tabanlı progresif frontend framework'ü.",
@@ -226,7 +226,7 @@
     },
     {
       "slug": "svelte",
-      "name": "Svelte 5",
+      "name": "Svelte",
       "type": "framework",
       "category": "frontend/ui-library",
       "summary": "Derleme zamanında sanal DOM'u ortadan kaldıran, runes ile reaktif UI framework'ü.",
@@ -512,7 +512,7 @@
     },
     {
       "slug": "bootstrap",
-      "name": "Bootstrap 5",
+      "name": "Bootstrap",
       "type": "ui_library",
       "category": "styling/css-framework",
       "summary": "Hazır grid, bileşen ve yardımcı sınıflar sunan klasik CSS framework'ü.",

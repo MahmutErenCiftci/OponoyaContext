@@ -64,8 +64,8 @@ test("user compiles project context, downloads an export and watches versions ev
   await expect(panel).toContainText("Prefer Next.js");
   await page.getByRole("button", { name: "Güncel sürümü göster" }).click();
   await expect(panel).toContainText("Use Next.js. Do not replace it");
-  await page.getByLabel("Coding agent").selectOption("canonical");
-  await expect(panel).toContainText("\"compilerVersion\": \"0.4.1\"");
+  await page.getByLabel("Kodlama ajanı").selectOption("canonical");
+  await expect(panel).toContainText("\"compilerVersion\": \"0.4.2\"");
   await expect(panel).toContainText("\"source\": \"project\"");
 
   await page.screenshot({ path: testInfo.outputPath("context-desktop.png"), fullPage: true });

@@ -11,7 +11,7 @@ import {
 } from "@devcontext/contracts";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { DrawerFrame } from "../../../components/drawer";
 import { PageHead } from "../../../components/page-heading";
 import { RowMenu } from "../../../components/row-menu";
@@ -148,7 +148,8 @@ export function ProfilesClient({ initial, openCreateOnLoad }: {
 
   async function load(next: { search?: string; type?: string; archived?: ArchiveView } = {}) {
     const values = { search: next.search ?? search, type: next.type ?? type, archived: next.archived ?? archived };
-    const params = new URLSearchParams({ archived: values.archived });
+    // One full page (the API maximum, also the Pro profile limit).
+    const params = new URLSearchParams({ archived: values.archived, limit: "100" });
     if (values.search) params.set("q", values.search);
     if (values.type) params.set("type", values.type);
     setLoading(true);
@@ -163,14 +164,24 @@ export function ProfilesClient({ initial, openCreateOnLoad }: {
     }
   }
 
+  const busy = useRef(false);
+
   async function mutate(profile: ProfileSummary, action: "archive" | "restore") {
-    const response = await fetch(`/api/profiles/${profile.id}${action === "restore" ? "/restore" : ""}`, { method: action === "restore" ? "POST" : "DELETE" });
-    if (!response.ok) {
-      setNotice(await responseError(response));
-      return;
+    if (busy.current) return;
+    busy.current = true;
+    try {
+      const response = await fetch(`/api/profiles/${profile.id}${action === "restore" ? "/restore" : ""}`, { method: action === "restore" ? "POST" : "DELETE" });
+      if (!response.ok) {
+        setNotice(await responseError(response));
+        return;
+      }
+      setNotice(action === "restore" ? `${profile.name} geri yüklendi.` : `${profile.name} arşivlendi. Onu kullanan projeler kararlarını korur.`);
+      await load();
+    } catch {
+      setNotice("Çalışma alanına ulaşılamıyor. Tekrar dene.");
+    } finally {
+      busy.current = false;
     }
-    setNotice(action === "restore" ? `${profile.name} geri yüklendi.` : `${profile.name} arşivlendi. Onu kullanan projeler kararlarını korur.`);
-    await load();
   }
 
   function closeEditor() {
@@ -203,7 +214,7 @@ export function ProfilesClient({ initial, openCreateOnLoad }: {
       )}
       {!loading && profiles.length === 0 && (
         <div className="empty">
-          <span className="mark xl"><Tray size={34} /></span>
+          <span className="mark xl"><Tray aria-hidden size={34} /></span>
           <h2>{archived === "archived" ? "Arşiv boş" : "Henüz profil yok"}</h2>
           <p>{archived === "archived" ? "Arşivlediğin profilleri buradan geri yükleyebilirsin." : "Bir profil oluştur ve kararlarını uygun tüm projelerinde yeniden kullan."}</p>
           {archived === "active" && <button className="button primary" onClick={() => setEditor({ kind: "create" })} type="button">İlk profilini oluştur</button>}

@@ -1,4 +1,4 @@
-import type { Entitlement, ExportTarget, PlanLimitKey } from "@devcontext/contracts";
+import type { Entitlement, ExportTarget, PlanLimitKey, SubscriptionStatus } from "@devcontext/contracts";
 import { formatDate } from "./resource-labels";
 
 export const limitLabels: Record<PlanLimitKey, string> = {
@@ -12,8 +12,20 @@ export const exportTargetLabels: Record<ExportTarget, string> = {
   generic: "Genel talimat",
   agents: "AGENTS.md",
   claude: "CLAUDE.md",
-  cursor: "Cursor rules (.mdc)",
-  copilot: "Copilot instructions",
+  cursor: "Cursor kuralları (.mdc)",
+  copilot: "Copilot talimatları",
+};
+
+export const subscriptionStatusLabels: Record<SubscriptionStatus, string> = {
+  none: "Abonelik yok",
+  trialing: "Deneme süresinde",
+  active: "Etkin",
+  past_due: "Ödeme gecikti",
+  canceled: "İptal edildi",
+  incomplete: "Ödeme tamamlanmadı",
+  incomplete_expired: "Ödeme süresi doldu",
+  unpaid: "Ödenmedi",
+  expired: "Süresi doldu",
 };
 
 /** One honest sentence about the current entitlement; never urgency, never "unlimited". */

@@ -19,9 +19,11 @@ import {
   resources,
   sql,
   type RepositoryDatabase, type Database,
+  readAll,
+  containsPattern,
 } from "@devcontext/db";
 import { assertResourcesActive, resourceColumns, toDecisionRecord } from "../decisions/repository.js";
-import type { DecisionValues } from "../decisions/service.js";
+import { assertDecisionCapacity, type DecisionValues } from "../decisions/service.js";
 import { idempotencyKeyConflictError } from "../profiles/service.js";
 import { unavailableProfilesError } from "../projects/service.js";
 import type { RecipePatch, RecipeRepository } from "./service.js";
@@ -47,10 +49,10 @@ function toSummary(row: RecipeRow, decisionCount: number, profileCount: number, 
 async function countsFor(executor: Executor, ids: string[]) {
   const empty = { decisions: new Map<string, number>(), profiles: new Map<string, number>(), projects: new Map<string, number>() };
   if (ids.length === 0) return empty;
-  const [decisionRows, profileRows, projectRows] = await Promise.all([
-    executor.select({ recipeId: recipeDecisions.recipeId, value: count() }).from(recipeDecisions).where(inArray(recipeDecisions.recipeId, ids)).groupBy(recipeDecisions.recipeId),
-    executor.select({ recipeId: recipeProfiles.recipeId, value: count() }).from(recipeProfiles).where(inArray(recipeProfiles.recipeId, ids)).groupBy(recipeProfiles.recipeId),
-    executor.select({ recipeId: projects.recipeId, value: count() }).from(projects).where(inArray(projects.recipeId, ids)).groupBy(projects.recipeId),
+  const [decisionRows, profileRows, projectRows] = await readAll(executor, [
+    () => executor.select({ recipeId: recipeDecisions.recipeId, value: count() }).from(recipeDecisions).where(inArray(recipeDecisions.recipeId, ids)).groupBy(recipeDecisions.recipeId),
+    () => executor.select({ recipeId: recipeProfiles.recipeId, value: count() }).from(recipeProfiles).where(inArray(recipeProfiles.recipeId, ids)).groupBy(recipeProfiles.recipeId),
+    () => executor.select({ recipeId: projects.recipeId, value: count() }).from(projects).where(inArray(projects.recipeId, ids)).groupBy(projects.recipeId),
   ]);
   return {
     decisions: new Map(decisionRows.map((row) => [row.recipeId, row.value])),
@@ -103,10 +105,10 @@ async function getById(executor: Executor, ownerUserId: string, recipeId: string
     .where(and(eq(recipes.ownerUserId, ownerUserId), eq(recipes.id, recipeId)))
     .limit(1);
   if (!row) return null;
-  const [decisionRows, profileRows, counts] = await Promise.all([
-    decisionQuery(executor, ownerUserId, recipeId),
-    attachedProfiles(executor, ownerUserId, recipeId),
-    countsFor(executor, [row.id]),
+  const [decisionRows, profileRows, counts] = await readAll(executor, [
+    () => decisionQuery(executor, ownerUserId, recipeId),
+    () => attachedProfiles(executor, ownerUserId, recipeId),
+    () => countsFor(executor, [row.id]),
   ]);
   const origin = { id: row.id, name: row.name, priority: 0 };
   return {
@@ -159,13 +161,13 @@ export function createRecipeRepository(database: RepositoryDatabase): RecipeRepo
       if (query.archived === "active") conditions.push(isNull(recipes.archivedAt));
       if (query.archived === "archived") conditions.push(isNotNull(recipes.archivedAt));
       if (query.q) {
-        const pattern = `%${query.q}%`;
+        const pattern = containsPattern(query.q);
         conditions.push(or(ilike(recipes.name, pattern), ilike(recipes.description, pattern))!);
       }
       const where = and(...conditions);
-      const [rows, totalRows] = await Promise.all([
-        database.db.select().from(recipes).where(where).orderBy(desc(recipes.updatedAt), recipes.name).limit(query.limit).offset(query.offset),
-        database.db.select({ value: count() }).from(recipes).where(where),
+      const [rows, totalRows] = await readAll(database.db, [
+        () => database.db.select().from(recipes).where(where).orderBy(desc(recipes.updatedAt), recipes.name).limit(query.limit).offset(query.offset),
+        () => database.db.select({ value: count() }).from(recipes).where(where),
       ]);
       const counts = await countsFor(database.db, rows.map((row) => row.id));
       return {
@@ -212,6 +214,8 @@ export function createRecipeRepository(database: RepositoryDatabase): RecipeRepo
       return database.db.transaction(async (transaction) => {
         if (!(await ownsRecipe(transaction, ownerUserId, recipeId))) return null;
         await assertResourcesActive(transaction, ownerUserId, [values.resourceId]);
+        const existing = await transaction.select({ slot: recipeDecisions.slot }).from(recipeDecisions).where(eq(recipeDecisions.recipeId, recipeId));
+        assertDecisionCapacity(existing.map((row) => row.slot), [slot]);
         await transaction
           .insert(recipeDecisions)
           .values({ recipeId, slot, ...values })
@@ -253,9 +257,9 @@ export function createRecipeRepository(database: RepositoryDatabase): RecipeRepo
           if (!existing) throw idempotencyKeyConflictError();
           return { recipe: existing, created: false };
         }
-        const [attachments, decisions] = await Promise.all([
-          transaction.select({ profileId: projectProfiles.profileId, priority: projectProfiles.priority }).from(projectProfiles).where(eq(projectProfiles.projectId, projectId)),
-          transaction.select().from(projectDecisions).where(eq(projectDecisions.projectId, projectId)),
+        const [attachments, decisions] = await readAll(transaction, [
+          () => transaction.select({ profileId: projectProfiles.profileId, priority: projectProfiles.priority }).from(projectProfiles).where(eq(projectProfiles.projectId, projectId)),
+          () => transaction.select().from(projectDecisions).where(eq(projectDecisions.projectId, projectId)),
         ]);
         if (attachments.length > 0) {
           await transaction.insert(recipeProfiles).values(attachments.map((row) => ({ recipeId, profileId: row.profileId, priority: row.priority }))).onConflictDoNothing();

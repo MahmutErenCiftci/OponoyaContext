@@ -95,11 +95,11 @@ test("onboarding checklist, search palette, favorites, duplicate evidence, clone
   await page.getByRole("button", { name: "Yeniden oluştur" }).click();
   await expect(page.getByText("Sürüm 2 oluşturuldu.")).toBeVisible();
   // The diff is a Pro feature: the Free plan sees the reason, and the API keeps refusing until the plan changes.
-  await page.getByLabel("Coding agent").selectOption("diff");
-  await expect(page.getByRole("alert").filter({ hasText: "Pro feature" })).toContainText("Version diff is a Pro feature. Upgrade on the Plan page to use it.");
+  await page.getByLabel("Kodlama ajanı").selectOption("diff");
+  await expect(page.getByRole("alert").filter({ hasText: "Pro planına dahil" })).toContainText("Sürüm karşılaştırması Pro planına dahil. Plan ayrıntıları Plan sayfasında.");
   await upgradeToPro(page);
   await page.getByRole("button", { name: "Güncel talimatları aç" }).click();
-  await page.getByLabel("Coding agent").selectOption("diff");
+  await page.getByLabel("Kodlama ajanı").selectOption("diff");
   const changes = page.getByRole("list", { name: "Değişiklikler" });
   await expect(changes).toContainText("Veritabanı");
   await expect(changes).toContainText("Eklendi");
@@ -133,6 +133,18 @@ test("onboarding checklist, search palette, favorites, duplicate evidence, clone
   await profileDialog.getByRole("button", { name: "Profil oluştur" }).click();
   await expect(page).toHaveURL(/\/workspace\/profiles\/[0-9a-f-]{36}$/);
   await expect(page.getByRole("heading", { name: /Data stack/ })).toBeVisible();
+  await expect(decisionRow(page, "database.primary")).toContainText("Kilitli");
+
+  // Save as recipe keeps the same decisions as a reusable starting point for new projects.
+  await page.goBack();
+  await expect(page.getByRole("heading", { name: "Teknoloji yığını", exact: true })).toBeVisible();
+  await page.getByLabel("Diğer işlemler").click();
+  await page.getByRole("button", { name: "Tarif olarak kaydet" }).click();
+  const recipeDialog = page.getByRole("dialog", { name: "Projeyi tarif olarak kaydet" });
+  await recipeDialog.getByLabel("Tarif adı *").fill("Data recipe");
+  await recipeDialog.getByRole("button", { name: "Tarif oluştur" }).click();
+  await expect(page).toHaveURL(/\/workspace\/recipes\/[0-9a-f-]{36}$/);
+  await expect(page.getByRole("heading", { name: /Data recipe/ })).toBeVisible();
   await expect(decisionRow(page, "database.primary")).toContainText("Kilitli");
 
   // Onboarding progress is real: resources, project and compile are done; export is pending.
