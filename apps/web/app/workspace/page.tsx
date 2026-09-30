@@ -1,10 +1,11 @@
+import type { Metadata } from "next";
 import type { AuditEvent } from "@devcontext/contracts";
 import { ArrowRight, Check, Clock, Database, FileText, Plus, UploadSimple, UserCircle } from "@phosphor-icons/react/dist/ssr";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { getAuditEvents, getProjectContext, getProjectList, getResourceList, getWorkspaceSettings, getWorkspaceSummary } from "../../lib/api";
+import { getAuditEvents, getContextStatuses, getProjectList, getResourceList, getWorkspaceSettings, getWorkspaceSummary } from "../../lib/api";
 import { activityDetail, activityHref, activityLabel } from "../../lib/activity-labels";
-import { contextStatus } from "../../lib/context-status";
+import { contextStatusFrom } from "../../lib/context-status";
 import { DecisionBadge } from "../../components/decision-badge";
 import { ContextStatusLabel } from "../../components/status-label";
 import { TechLogo } from "../../components/tech-logo";
@@ -15,14 +16,14 @@ import { FirstRunPanel } from "./first-run-panel";
 import { ServiceUnavailable } from "./unavailable";
 import { WorkspaceShell } from "./workspace-shell";
 
-export const dynamic = "force-dynamic";
+export const metadata: Metadata = { title: "Genel bakış" };
 
 function ActivityIcon({ event }: { event: AuditEvent }) {
-  if (event.action.endsWith("exported")) return <UploadSimple size={22} />;
-  if (event.action.includes("decision")) return <Database size={22} />;
-  if (event.entityType === "profile" || event.entityType === "recipe") return <FileText size={22} />;
-  if (event.entityType === "account") return <UserCircle size={22} />;
-  return <Check size={22} />;
+  if (event.action.endsWith("exported")) return <UploadSimple aria-hidden size={22} />;
+  if (event.action.includes("decision")) return <Database aria-hidden size={22} />;
+  if (event.entityType === "profile" || event.entityType === "recipe") return <FileText aria-hidden size={22} />;
+  if (event.entityType === "account") return <UserCircle aria-hidden size={22} />;
+  return <Check aria-hidden size={22} />;
 }
 
 export default async function WorkspacePage() {
@@ -37,8 +38,8 @@ export default async function WorkspacePage() {
     getWorkspaceSettings(cookieHeader),
     getResourceList(cookieHeader, new URLSearchParams({ archived: "active", limit: "4" })),
   ]);
-  const contexts = await Promise.all(projects.projects.map((project) => getProjectContext(cookieHeader, project.id)));
-  const counts = summary ?? { resources: 0, favorites: 0, projects: projects.total, profiles: 0, compiledProjects: 0, contextVersions: 0, exports: 0 };
+  const statuses = projects ? await getContextStatuses(cookieHeader, projects.projects.map((project) => project.id)) : new Map();
+  const counts = summary ?? { resources: 0, favorites: 0, projects: projects?.total ?? 0, profiles: 0, compiledProjects: 0, contextVersions: 0, exports: 0 };
   const checklist = [
     { id: "resources", label: "Kütüphanene beş kaynak ekle", progress: `${Math.min(counts.resources, 5)}/5`, done: counts.resources >= 5, href: "/workspace/library?add=1", action: "Kaynak ekle" },
     { id: "project", label: "İlk projeni oluştur", progress: `${Math.min(counts.projects, 1)}/1`, done: counts.projects >= 1, href: "/workspace/projects?new=1", action: "Yeni proje" },
@@ -74,7 +75,7 @@ export default async function WorkspacePage() {
                 <ol aria-label="Kurulum adımları" className="checklist">
                   {checklist.map((item) => (
                     <li className={item.done ? "done" : ""} key={item.id}>
-                      <span aria-hidden="true" className="mark">{item.done ? <Check size={14} weight="bold" /> : null}</span>
+                      <span aria-hidden="true" className="mark">{item.done ? <Check aria-hidden size={14} weight="bold" /> : null}</span>
                       <div>
                         <strong>{item.label}</strong>
                         {item.done ? <small>Tamamlandı</small> : <Link href={item.href}>{item.action} · {item.progress}</Link>}
@@ -88,11 +89,13 @@ export default async function WorkspacePage() {
               <section aria-labelledby="recent-title">
                 <div className="section-head">
                   <h2 className="section-title" id="recent-title">Kaldığın yerden devam et</h2>
-                  {projects.total > 0 && <Link className="text-link locked" href="/workspace/projects">Tüm projeler <ArrowRight aria-hidden size={18} /></Link>}
+                  {(projects?.total ?? 0) > 0 && <Link className="text-link locked" href="/workspace/projects">Tüm projeler <ArrowRight aria-hidden size={18} /></Link>}
                 </div>
-                {projects.projects.length === 0 ? (
+                {projects === null ? (
+                  <p className="muted" role="status">Projeler şu an yüklenemedi. Sayfayı yenileyerek tekrar dene.</p>
+                ) : projects.projects.length === 0 ? (
                   <div className="empty">
-                    <span className="mark xl"><FileText size={34} /></span>
+                    <span className="mark xl"><FileText aria-hidden size={34} /></span>
                     <h2 style={{ fontSize: 20 }}>Henüz proje yok</h2>
                     <p>Kütüphanendeki tercihleri bir araya getirmek için ilk projeni oluştur.</p>
                     <Link className="button primary" href="/workspace/projects?new=1">Yeni proje</Link>
@@ -102,8 +105,8 @@ export default async function WorkspacePage() {
                     <table className="table">
                       <thead><tr><th scope="col">Proje</th><th scope="col">Teknolojiler</th><th scope="col">Durum</th><th scope="col">Son güncelleme</th><th className="actions" scope="col">İşlem</th></tr></thead>
                       <tbody>
-                        {projects.projects.map((project, index) => {
-                          const status = contextStatus(contexts[index] ?? null);
+                        {projects.projects.map((project) => {
+                          const status = contextStatusFrom(statuses.get(project.id));
                           const techs = project.resources.slice(0, 3);
                           return (
                             <tr key={project.id}>
@@ -157,7 +160,9 @@ export default async function WorkspacePage() {
                 <h2 className="section-title" id="library-title">Kütüphanenden</h2>
                 <Link className="text-link locked" href="/workspace/library">Kütüphaneyi aç <ArrowRight aria-hidden size={18} /></Link>
               </div>
-              {library.resources.length === 0 ? (
+              {library === null ? (
+                <p className="muted" role="status">Kütüphane şu an yüklenemedi. Sayfayı yenileyerek tekrar dene.</p>
+              ) : library.resources.length === 0 ? (
                 <p className="muted">Henüz kaynak yok. <Link className="text-link" href="/workspace/library?add=1">İlk kaynağını ekle</Link> veya <Link className="text-link" href="/workspace/catalog">kataloğa göz at</Link>.</p>
               ) : (
                 <div className="library-strip">

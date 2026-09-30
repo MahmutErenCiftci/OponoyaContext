@@ -1,11 +1,12 @@
+import type { Metadata } from "next";
 import { ArrowRight, ArrowSquareOut, ArrowsClockwise, BookOpen, CaretRight, CheckCircle, Circle, Clock, Devices, ListChecks, Star, Target } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { DecisionBadge } from "../../../../components/decision-badge";
 import { TechLogo } from "../../../../components/tech-logo";
-import { getAuditEvents, getProject, getProjectContext, getProjectDecisions } from "../../../../lib/api";
+import { getAuditEvents, getContextStatuses, getProject, getProjectDecisions } from "../../../../lib/api";
 import { activityDetail, activityLabel } from "../../../../lib/activity-labels";
-import { contextStatus } from "../../../../lib/context-status";
+import { contextStatusFrom } from "../../../../lib/context-status";
 import { slotGroups, slotLabel } from "../../../../lib/decision-slots";
 import { catalogSlugFor } from "../../../../lib/logos";
 import { formatDate, formatTime, pluralCount, typeLabels } from "../../../../lib/resource-labels";
@@ -14,7 +15,13 @@ import { ServiceUnavailable } from "../../unavailable";
 import { WorkspaceShell } from "../../workspace-shell";
 import { ProjectHeader } from "./project-header";
 
-export const dynamic = "force-dynamic";
+/** The entity name in the tab title; the lookup is shared with the page through the per-request cache. */
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  const session = await loadSession();
+  const project = session.status === "authenticated" ? await getProject(session.cookieHeader, id) : null;
+  return { title: project ? project.name : "Proje" };
+}
 
 export default async function ProjectOverviewPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -22,15 +29,17 @@ export default async function ProjectOverviewPage({ params }: { params: Promise<
   if (session.status === "unavailable") return <ServiceUnavailable />;
   if (session.status === "anonymous") redirect("/auth?mode=sign-in");
   const { user, cookieHeader } = session;
-  const project = await getProject(cookieHeader, id);
-  if (!project) notFound();
-  const [decisions, context, activity] = await Promise.all([
+  // One round trip: the API scopes every call to the owner, so a foreign id only yields nulls and `notFound()`.
+  const [project, decisions, statuses, activity] = await Promise.all([
+    getProject(cookieHeader, id),
     getProjectDecisions(cookieHeader, id),
-    getProjectContext(cookieHeader, id),
+    getContextStatuses(cookieHeader, [id]),
     getAuditEvents(cookieHeader, new URLSearchParams({ entityType: "project", entityId: id, limit: "4" })),
   ]);
+  if (!project) notFound();
   const views = decisions ?? [];
-  const status = contextStatus(context);
+  // The light status (no canonical parse, no rendered previews) is all this page shows.
+  const status = contextStatusFrom(statuses.get(id));
   // Concrete picks first (the stack the agent will actually see), then delegated slots in catalog group order.
   const groupOrder = (slot: string) => { const index = slotGroups.findIndex((group) => group.slots.some((item) => item.key === slot)); return index === -1 ? slotGroups.length : index; };
   const stack = views
@@ -46,19 +55,19 @@ export default async function ProjectOverviewPage({ params }: { params: Promise<
         <div className="split overview" style={{ marginTop: 8 }}>
           <div className="project-brief">
             <div className="brief-item">
-              <span className="mark"><Target size={30} /></span>
+              <span className="mark"><Target aria-hidden size={30} /></span>
               <div><h3>Hedef</h3><p>{project.description ?? "Belirtilmedi. Projeyi düzenleyerek amacını yaz."}</p></div>
             </div>
             <div className="brief-item">
-              <span className="mark"><Devices size={30} /></span>
+              <span className="mark"><Devices aria-hidden size={30} /></span>
               <div><h3>Platformlar</h3>{project.platforms.length > 0 ? <div className="chip-group">{project.platforms.map((item) => <span className="chip" key={item}>{item}</span>)}</div> : <p>Belirtilmedi</p>}</div>
             </div>
             <div className="brief-item">
-              <span className="mark"><Star size={30} /></span>
+              <span className="mark"><Star aria-hidden size={30} /></span>
               <div><h3>Öncelikler</h3>{project.priorities.length > 0 ? <div className="chip-group">{project.priorities.map((item) => <span className="chip" key={item}>{item}</span>)}</div> : <p>Belirtilmedi</p>}</div>
             </div>
             <div className="brief-item">
-              <span className="mark"><BookOpen size={30} /></span>
+              <span className="mark"><BookOpen aria-hidden size={30} /></span>
               <div>
                 <h3>Kaynak tarif ve profiller</h3>
                 {project.recipe
@@ -72,7 +81,7 @@ export default async function ProjectOverviewPage({ params }: { params: Promise<
               </div>
             </div>
             <div className="brief-item">
-              <span className="mark"><ListChecks size={30} /></span>
+              <span className="mark"><ListChecks aria-hidden size={30} /></span>
               <div>
                 <h3>Proje kuralları</h3>
                 {project.rules.length > 0 ? <ul className="rules">{project.rules.map((rule) => <li key={rule}>• {rule}</li>)}</ul> : <p>Kural eklenmedi.</p>}
@@ -90,7 +99,7 @@ export default async function ProjectOverviewPage({ params }: { params: Promise<
           <aside className="rail" style={{ marginTop: 28 }}>
             <div className={`readiness ${status.kind === "fresh" ? "" : status.kind === "stale" ? "warn" : "none"}`}>
               <div style={{ display: "flex", alignItems: "center", gap: 14, minWidth: 0 }}>
-                <span className="icon">{status.kind === "fresh" ? <CheckCircle size={32} /> : status.kind === "stale" ? <ArrowsClockwise size={30} /> : <Circle size={30} />}</span>
+                <span className="icon">{status.kind === "fresh" ? <CheckCircle aria-hidden size={32} /> : status.kind === "stale" ? <ArrowsClockwise aria-hidden size={30} /> : <Circle aria-hidden size={30} />}</span>
                 <div style={{ minWidth: 0 }}>
                   <span className={`status-label ${status.kind === "fresh" ? "ok" : status.kind === "stale" ? "warn" : "none"}`} style={{ color: "var(--ink)" }}>{status.kind === "fresh" ? "AI talimatları güncel" : status.kind === "stale" ? "AI talimatları yenilenmeli" : "AI talimatları henüz oluşturulmadı"}</span>
                   <small>{status.version ? `v${status.version} · ${status.createdAt ? formatDate(status.createdAt) : ""}` : "Kararlar hazır olduğunda oluştur."}</small>
@@ -127,7 +136,7 @@ export default async function ProjectOverviewPage({ params }: { params: Promise<
                 <ul className="list-rows">
                   {activity.map((event) => (
                     <li key={event.id}>
-                      <span className="mark small"><Clock size={18} /></span>
+                      <span className="mark small"><Clock aria-hidden size={18} /></span>
                       <div className="grow"><strong style={{ fontSize: 15 }}>{activityLabel(event)}</strong>{activityDetail(event) && <small>{activityDetail(event)}</small>}</div>
                       <small className="muted nowrap">{formatDate(event.createdAt)} · {formatTime(event.createdAt)}</small>
                     </li>

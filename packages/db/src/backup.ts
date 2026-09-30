@@ -1,5 +1,5 @@
 /**
- * Logical backup and restore for the DevContext database.
+ * Logical backup and restore for the Oponoya database.
  *
  * The functions talk to PostgreSQL through a minimal executor so the same code
  * runs against node-postgres (development/CI drills, the CLI) and PGlite (unit
@@ -52,6 +52,7 @@ export const backupTableOrder = [
   "export_events",
   "audit_events",
   "workspace_samples",
+  "ai_suggestions",
 ] as const;
 
 export type ColumnDefinition = { name: string; type: string };

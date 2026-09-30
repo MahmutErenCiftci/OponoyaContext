@@ -1,6 +1,6 @@
-import type { CompatibilityRule } from "@devcontext/contracts";
-import { aliasedTable, and, compatibilityRules, desc, eq, inArray, isNull, or, resources, type RepositoryDatabase, type Database } from "@devcontext/db";
-import { ruleResourceUnavailableError, type CompatibilityRepository } from "./service.js";
+import { portableLimits, type CompatibilityRule } from "@devcontext/contracts";
+import { aliasedTable, and, compatibilityRules, count, desc, eq, inArray, isNull, or, resources, type RepositoryDatabase, type Database } from "@devcontext/db";
+import { ruleLimitError, ruleResourceUnavailableError, type CompatibilityRepository } from "./service.js";
 
 type Executor = Pick<Database["db"], "select" | "insert" | "update" | "delete">;
 
@@ -70,6 +70,17 @@ export function createCompatibilityRepository(database: RepositoryDatabase): Com
         const allowed = new Set(active.map((row) => row.id));
         if (!allowed.has(input.leftResourceId)) throw ruleResourceUnavailableError("leftResourceId");
         if (!allowed.has(input.rightResourceId)) throw ruleResourceUnavailableError("rightResourceId");
+        const [total] = await transaction.select({ value: count() }).from(compatibilityRules).where(eq(compatibilityRules.ownerUserId, ownerUserId));
+        if ((total?.value ?? 0) >= portableLimits.compatibilityRules) {
+          // An identical rule is still answered as "already exists" below; only new rules are refused.
+          const [same] = await transaction.select({ id: compatibilityRules.id }).from(compatibilityRules).where(and(
+            eq(compatibilityRules.ownerUserId, ownerUserId),
+            eq(compatibilityRules.leftResourceId, input.leftResourceId),
+            eq(compatibilityRules.rightResourceId, input.rightResourceId),
+            eq(compatibilityRules.kind, input.kind),
+          )).limit(1);
+          if (!same) throw ruleLimitError();
+        }
         const inserted = await transaction
           .insert(compatibilityRules)
           .values({

@@ -11,10 +11,7 @@ export type SessionState =
   | { status: "anonymous"; cookieHeader: string }
   | { status: "unavailable"; cookieHeader: string };
 
-export async function readSession(
-  cookieHeader: string,
-  apiUrl: string = process.env.API_URL ?? "http://localhost:4000",
-): Promise<SessionState> {
+export async function readSession(cookieHeader: string, apiUrl?: string): Promise<SessionState> {
   try {
     const response = await fetch(new URL("/v1/me", getApiBaseUrl(apiUrl)), {
       cache: "no-store",
@@ -28,8 +25,4 @@ export async function readSession(
   } catch {
     return { status: "unavailable", cookieHeader };
   }
-}
-
-export function serializeCookies(values: { name: string; value: string }[]) {
-  return values.map(({ name, value }) => `${name}=${value}`).join("; ");
 }

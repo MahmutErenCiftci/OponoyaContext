@@ -25,23 +25,23 @@ function actor(request: FastifyRequest) {
 }
 
 export async function registerRecipeRoutes(app: FastifyInstance, recipes: RecipeService) {
-  app.get("/v1/recipes", { preHandler: app.authenticate }, async (request) =>
+  app.get("/v1/recipes", { onRequest: app.authenticate }, async (request) =>
     recipes.list(ownerId(request), recipeListQuerySchema.parse(request.query)),
   );
 
-  app.post("/v1/recipes", { preHandler: app.authenticate }, async (request, reply) => {
+  app.post("/v1/recipes", { onRequest: app.authenticate }, async (request, reply) => {
     await app.entitlements.assertCanCreate(ownerId(request), "recipes");
     const recipe = await recipes.create(ownerId(request), createRecipeSchema.parse(request.body));
     await app.telemetry.record(actor(request), { action: "recipe.created", entityType: "recipe", entityId: recipe.id, metadata: { profiles: recipe.profiles.length } });
     return reply.code(201).send({ recipe });
   });
 
-  app.get("/v1/recipes/:id", { preHandler: app.authenticate }, async (request) => {
+  app.get("/v1/recipes/:id", { onRequest: app.authenticate }, async (request) => {
     const { id } = recipeParamsSchema.parse(request.params);
     return { recipe: await recipes.get(ownerId(request), id) };
   });
 
-  app.patch("/v1/recipes/:id", { preHandler: app.authenticate }, async (request) => {
+  app.patch("/v1/recipes/:id", { onRequest: app.authenticate }, async (request) => {
     const { id } = recipeParamsSchema.parse(request.params);
     const input = updateRecipeSchema.parse(request.body);
     const recipe = await recipes.update(ownerId(request), id, input);
@@ -49,7 +49,7 @@ export async function registerRecipeRoutes(app: FastifyInstance, recipes: Recipe
     return { recipe };
   });
 
-  app.put("/v1/recipes/:id/profiles", { preHandler: app.authenticate }, async (request) => {
+  app.put("/v1/recipes/:id/profiles", { onRequest: app.authenticate }, async (request) => {
     const { id } = recipeParamsSchema.parse(request.params);
     const input = setRecipeProfilesSchema.parse(request.body);
     const recipe = await recipes.setProfiles(ownerId(request), id, input.profiles);
@@ -57,14 +57,14 @@ export async function registerRecipeRoutes(app: FastifyInstance, recipes: Recipe
     return { profiles: recipe.profiles };
   });
 
-  app.delete("/v1/recipes/:id", { preHandler: app.authenticate }, async (request) => {
+  app.delete("/v1/recipes/:id", { onRequest: app.authenticate }, async (request) => {
     const { id } = recipeParamsSchema.parse(request.params);
     const recipe = await recipes.archive(ownerId(request), id);
     await app.telemetry.record(actor(request), { action: "recipe.archived", entityType: "recipe", entityId: id });
     return { recipe };
   });
 
-  app.post("/v1/recipes/:id/restore", { preHandler: app.authenticate }, async (request) => {
+  app.post("/v1/recipes/:id/restore", { onRequest: app.authenticate }, async (request) => {
     const { id } = recipeParamsSchema.parse(request.params);
     await app.entitlements.assertCanCreate(ownerId(request), "recipes");
     const recipe = await recipes.restore(ownerId(request), id);
@@ -72,7 +72,7 @@ export async function registerRecipeRoutes(app: FastifyInstance, recipes: Recipe
     return { recipe };
   });
 
-  app.put("/v1/recipes/:id/decisions/:slot", { preHandler: app.authenticate }, async (request) => {
+  app.put("/v1/recipes/:id/decisions/:slot", { onRequest: app.authenticate }, async (request) => {
     const { id, slot } = slotParamsSchema.parse(request.params);
     const input = upsertProjectDecisionSchema.parse(request.body);
     const decision = await recipes.upsertDecision(ownerId(request), id, slot, input);
@@ -83,14 +83,14 @@ export async function registerRecipeRoutes(app: FastifyInstance, recipes: Recipe
     return { decision };
   });
 
-  app.delete("/v1/recipes/:id/decisions/:slot", { preHandler: app.authenticate }, async (request) => {
+  app.delete("/v1/recipes/:id/decisions/:slot", { onRequest: app.authenticate }, async (request) => {
     const { id, slot } = slotParamsSchema.parse(request.params);
     await recipes.removeDecision(ownerId(request), id, slot);
     await app.telemetry.record(actor(request), { action: "recipe.decision_removed", entityType: "recipe", entityId: id, metadata: { slot }, analytics: "decision_changed" });
     return { decision: null };
   });
 
-  app.post("/v1/projects/:id/save-as-recipe", { preHandler: app.authenticate }, async (request, reply) => {
+  app.post("/v1/projects/:id/save-as-recipe", { onRequest: app.authenticate }, async (request, reply) => {
     const { id } = recipeParamsSchema.parse(request.params);
     const raw = request.headers["idempotency-key"];
     const key = idempotencyKeySchema.optional().parse(Array.isArray(raw) ? raw[0] : raw);

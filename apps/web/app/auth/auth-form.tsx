@@ -7,12 +7,31 @@ import { Eye, EyeSlash } from "@phosphor-icons/react/dist/ssr";
 
 type Mode = "sign-in" | "sign-up";
 
+/** Better Auth answers with English messages and stable codes; the form shows its own Turkish text per code. */
+const authErrorMessages: Record<string, string> = {
+  INVALID_EMAIL_OR_PASSWORD: "E-posta veya şifre hatalı.",
+  USER_ALREADY_EXISTS: "Bu e-posta ile zaten bir hesap var. Giriş yapmayı dene.",
+  USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL: "Bu e-posta ile zaten bir hesap var. Giriş yapmayı dene.",
+  PASSWORD_TOO_SHORT: "Şifre en az 8 karakter olmalı.",
+  PASSWORD_TOO_LONG: "Şifre en fazla 128 karakter olabilir.",
+  INVALID_EMAIL: "Geçerli bir e-posta adresi yaz.",
+  RATE_LIMITED: "Çok fazla deneme yapıldı. Biraz bekleyip tekrar dene.",
+};
+
+function authErrorMessage(status: number, payload: null | { code?: string; message?: string; error?: { code?: string } }) {
+  if (status === 429) return authErrorMessages.RATE_LIMITED!;
+  const code = payload?.code ?? payload?.error?.code;
+  if (code && authErrorMessages[code]) return authErrorMessages[code];
+  if (status === 401) return authErrorMessages.INVALID_EMAIL_OR_PASSWORD!;
+  return "İşlem tamamlanamadı. Lütfen tekrar dene.";
+}
+
 /**
  * Email/password sign-in and sign-up on one page. The narrative column is
  * rendered by the caller per mode; the form owns the request, its pending
  * state and the error message, which stays inside the form.
  */
-export function AuthForm({ initialMode = "sign-up", signInNarrative, signUpNarrative }: { initialMode?: Mode; signInNarrative: ReactNode; signUpNarrative: ReactNode }) {
+export function AuthForm({ initialMode = "sign-up", signInNarrative, signUpNarrative, passwordReset = false }: { initialMode?: Mode; signInNarrative: ReactNode; signUpNarrative: ReactNode; passwordReset?: boolean }) {
   const router = useRouter();
   const [mode, setMode] = useState<Mode>(initialMode);
   const [error, setError] = useState<string | null>(null);
@@ -44,9 +63,9 @@ export function AuthForm({ initialMode = "sign-up", signInNarrative, signUpNarra
         credentials: "include",
         body: JSON.stringify(body),
       });
-      const payload = await response.json().catch(() => null) as null | { message?: string; error?: { message?: string } };
+      const payload = await response.json().catch(() => null) as null | { code?: string; message?: string; error?: { code?: string } };
       if (!response.ok) {
-        setError(payload?.message ?? payload?.error?.message ?? "İşlem tamamlanamadı. Lütfen tekrar dene.");
+        setError(authErrorMessage(response.status, payload));
         return;
       }
       router.push("/workspace");
@@ -77,10 +96,11 @@ export function AuthForm({ initialMode = "sign-up", signInNarrative, signUpNarra
           <div className="field">
             <label htmlFor="auth-password">Şifre</label>
             <div className="password-control">
-              <input aria-describedby={mode === "sign-up" ? "auth-password-help" : undefined} autoComplete={mode === "sign-up" ? "new-password" : "current-password"} className="input" id="auth-password" minLength={8} name="password" required type={showPassword ? "text" : "password"} />
+              <input aria-describedby={mode === "sign-up" ? "auth-password-help" : undefined} autoComplete={mode === "sign-up" ? "new-password" : "current-password"} className="input" id="auth-password" maxLength={128} minLength={8} name="password" required type={showPassword ? "text" : "password"} />
               <button aria-label={showPassword ? "Şifreyi gizle" : "Şifreyi göster"} aria-pressed={showPassword} onClick={() => setShowPassword(!showPassword)} type="button">{showPassword ? <EyeSlash aria-hidden size={20} /> : <Eye aria-hidden size={20} />}</button>
             </div>
             {mode === "sign-up" && <small id="auth-password-help">En az 8 karakter.</small>}
+            {mode === "sign-in" && passwordReset && <Link className="text-link small" href="/auth/forgot">Şifremi unuttum</Link>}
           </div>
           {error && <p className="form-error" role="alert">{error}</p>}
           {mode === "sign-up" && (

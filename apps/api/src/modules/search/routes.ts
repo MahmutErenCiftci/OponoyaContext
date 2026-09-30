@@ -8,7 +8,7 @@ function ownerId(request: { currentUser: { id: string } | null }) {
 }
 
 export async function registerSearchRoutes(app: FastifyInstance, search: SearchService) {
-  app.get("/v1/search", { preHandler: app.authenticate }, async (request) => {
+  app.get("/v1/search", { onRequest: app.authenticate }, async (request) => {
     const query = searchQuerySchema.parse(request.query);
     return search.search(ownerId(request), query.q, query.limit);
   });

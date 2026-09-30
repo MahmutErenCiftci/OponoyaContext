@@ -19,11 +19,11 @@ function actor(request: FastifyRequest) {
 }
 
 export async function registerResourceRoutes(app: FastifyInstance, resources: ResourceService) {
-  app.get("/v1/resources", { preHandler: app.authenticate }, async (request) =>
+  app.get("/v1/resources", { onRequest: app.authenticate }, async (request) =>
     resources.list(ownerId(request), resourceListQuerySchema.parse(request.query)),
   );
 
-  app.post("/v1/resources", { preHandler: app.authenticate }, async (request, reply) => {
+  app.post("/v1/resources", { onRequest: app.authenticate }, async (request, reply) => {
     const input = createResourceSchema.parse(request.body);
     await app.entitlements.assertCanCreate(ownerId(request), "resources");
     const result = await resources.create(ownerId(request), input);
@@ -40,12 +40,12 @@ export async function registerResourceRoutes(app: FastifyInstance, resources: Re
     return reply.code(201).send(result);
   });
 
-  app.get("/v1/resources/:id", { preHandler: app.authenticate }, async (request) => {
+  app.get("/v1/resources/:id", { onRequest: app.authenticate }, async (request) => {
     const { id } = resourceParamsSchema.parse(request.params);
     return { resource: await resources.get(ownerId(request), id) };
   });
 
-  app.patch("/v1/resources/:id", { preHandler: app.authenticate }, async (request) => {
+  app.patch("/v1/resources/:id", { onRequest: app.authenticate }, async (request) => {
     const { id } = resourceParamsSchema.parse(request.params);
     const input = updateResourceSchema.parse(request.body);
     const result = await resources.update(ownerId(request), id, input);
@@ -58,14 +58,14 @@ export async function registerResourceRoutes(app: FastifyInstance, resources: Re
     return result;
   });
 
-  app.delete("/v1/resources/:id", { preHandler: app.authenticate }, async (request) => {
+  app.delete("/v1/resources/:id", { onRequest: app.authenticate }, async (request) => {
     const { id } = resourceParamsSchema.parse(request.params);
     const result = await resources.archive(ownerId(request), id);
     await app.telemetry.record(actor(request), { action: "resource.archived", entityType: "resource", entityId: id });
     return result;
   });
 
-  app.post("/v1/resources/:id/restore", { preHandler: app.authenticate }, async (request) => {
+  app.post("/v1/resources/:id/restore", { onRequest: app.authenticate }, async (request) => {
     const { id } = resourceParamsSchema.parse(request.params);
     // Restoring counts as creating an active entity; archive-then-restore cannot bypass the plan.
     await app.entitlements.assertCanCreate(ownerId(request), "resources");

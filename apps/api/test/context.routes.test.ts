@@ -41,6 +41,7 @@ function auth(): AuthProvider {
     },
     async verifyPassword() { return true; },
     async deleteUser() { return { setCookie: [] }; },
+    async changePassword() { return { setCookie: [] }; },
   };
 }
 
@@ -57,6 +58,7 @@ function service(): ContextService {
       compiled = true;
       return { version, created };
     }),
+    statuses: vi.fn(async (ownerUserId: string, projectIds: string[]) => (ownerUserId === ownerA ? projectIds.filter((id) => id === projectId).map((id) => ({ projectId: id, stale: !compiled, draftWarningCount: 0, latest: compiled ? { version: version.version, createdAt: version.createdAt, warningCount: version.warningCount } : null })) : [])),
     current: vi.fn(async (ownerUserId) => {
       if (ownerUserId !== ownerA) throw notFound();
       return { version: compiled ? version : null, stale: !compiled, draftHash: version.contentHash, draftWarnings: [] };

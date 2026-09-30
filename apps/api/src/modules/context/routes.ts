@@ -1,29 +1,23 @@
-import type { FastifyInstance, FastifyRequest } from "fastify";
-import { contextDiffQuerySchema, createExportSchema, idempotencyKeySchema } from "@devcontext/contracts";
+import type { FastifyInstance } from "fastify";
+import { contextDiffQuerySchema, createExportSchema, projectContextStatusQuerySchema } from "@devcontext/contracts";
 import { z } from "zod";
+import { actor, idempotencyKey, ownerId } from "../../lib/http.js";
 import type { ContextService } from "./service.js";
 
+/** Version numbers are int4 in PostgreSQL; larger values are a client error, not a server fault. */
+const versionNumberSchema = z.coerce.number().int().positive().max(2_147_483_647);
 const projectParamsSchema = z.object({ id: z.uuid() });
-const versionParamsSchema = z.object({ id: z.uuid(), version: z.coerce.number().int().positive() });
-const bundleQuerySchema = z.object({ version: z.coerce.number().int().positive().optional() });
-const idempotencyHeaderSchema = idempotencyKeySchema.optional();
-
-function ownerId(request: { currentUser: { id: string } | null }) {
-  if (!request.currentUser) throw Object.assign(new Error("Authentication required"), { statusCode: 401 });
-  return request.currentUser.id;
-}
-
-function actor(request: FastifyRequest) {
-  return { actorUserId: ownerId(request), requestId: request.id };
-}
-
-function idempotencyKey(headers: Record<string, string | string[] | undefined>) {
-  const raw = headers["idempotency-key"];
-  return idempotencyHeaderSchema.parse(Array.isArray(raw) ? raw[0] : raw);
-}
+const versionParamsSchema = z.object({ id: z.uuid(), version: versionNumberSchema });
+const bundleQuerySchema = z.object({ version: versionNumberSchema.optional() });
 
 export async function registerContextRoutes(app: FastifyInstance, context: ContextService) {
-  app.post("/v1/projects/:id/compile", { preHandler: app.authenticate }, async (request, reply) => {
+  /** Freshness of up to 50 Projects for lists and dashboards: one request, no canonical JSON, no previews. */
+  app.get("/v1/projects/context-status", { onRequest: app.authenticate }, async (request) => {
+    const { ids } = projectContextStatusQuerySchema.parse(request.query);
+    return { statuses: await context.statuses(ownerId(request), ids) };
+  });
+
+  app.post("/v1/projects/:id/compile", { onRequest: app.authenticate }, async (request, reply) => {
     const { id } = projectParamsSchema.parse(request.params);
     const result = await context.compile(ownerId(request), id);
     if (result.created) {
@@ -41,30 +35,30 @@ export async function registerContextRoutes(app: FastifyInstance, context: Conte
     return reply.code(result.created ? 201 : 200).send(result);
   });
 
-  app.get("/v1/projects/:id/context", { preHandler: app.authenticate }, async (request) => {
+  app.get("/v1/projects/:id/context", { onRequest: app.authenticate }, async (request) => {
     const { id } = projectParamsSchema.parse(request.params);
     return context.current(ownerId(request), id);
   });
 
-  app.get("/v1/projects/:id/context/versions", { preHandler: app.authenticate }, async (request) => {
+  app.get("/v1/projects/:id/context/versions", { onRequest: app.authenticate }, async (request) => {
     const { id } = projectParamsSchema.parse(request.params);
     // Older versions are kept for every plan; Free only sees the most recent ones.
     const limit = await app.entitlements.historyLimit(ownerId(request));
-    return { versions: (await context.listVersions(ownerId(request), id)).slice(0, limit) };
+    return { versions: (await context.listVersions(ownerId(request), id, limit)).slice(0, limit) };
   });
 
-  app.get("/v1/projects/:id/context/diff", { preHandler: app.authenticate }, async (request) => {
+  app.get("/v1/projects/:id/context/diff", { onRequest: app.authenticate }, async (request) => {
     const { id } = projectParamsSchema.parse(request.params);
     await app.entitlements.assertFeature(ownerId(request), "diff");
     return context.diff(ownerId(request), id, contextDiffQuerySchema.parse(request.query));
   });
 
-  app.get("/v1/projects/:id/context/versions/:version", { preHandler: app.authenticate }, async (request) => {
+  app.get("/v1/projects/:id/context/versions/:version", { onRequest: app.authenticate }, async (request) => {
     const { id, version } = versionParamsSchema.parse(request.params);
     return { version: await context.getVersion(ownerId(request), id, version) };
   });
 
-  app.post("/v1/projects/:id/exports", { preHandler: app.authenticate }, async (request, reply) => {
+  app.post("/v1/projects/:id/exports", { onRequest: app.authenticate }, async (request, reply) => {
     const { id } = projectParamsSchema.parse(request.params);
     const input = createExportSchema.parse(request.body);
     await app.entitlements.assertExportTarget(ownerId(request), input.target);
@@ -78,7 +72,7 @@ export async function registerContextRoutes(app: FastifyInstance, context: Conte
     return reply.code(result.created ? 201 : 200).send(result);
   });
 
-  app.get("/v1/projects/:id/context/bundle", { preHandler: app.authenticate }, async (request, reply) => {
+  app.get("/v1/projects/:id/context/bundle", { onRequest: app.authenticate }, async (request, reply) => {
     const { id } = projectParamsSchema.parse(request.params);
     const query = bundleQuerySchema.parse(request.query);
     await app.entitlements.assertFeature(ownerId(request), "bundle");
@@ -95,7 +89,7 @@ export async function registerContextRoutes(app: FastifyInstance, context: Conte
     return reply.send(result.content);
   });
 
-  app.get("/v1/projects/:id/exports", { preHandler: app.authenticate }, async (request) => {
+  app.get("/v1/projects/:id/exports", { onRequest: app.authenticate }, async (request) => {
     const { id } = projectParamsSchema.parse(request.params);
     return { exports: await context.listExports(ownerId(request), id) };
   });

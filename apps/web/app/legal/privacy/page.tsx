@@ -2,8 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { LegalPage, Value } from "../legal-page";
 
-export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Gizlilik Politikası · DevContext" };
+export const metadata: Metadata = { title: "Gizlilik Politikası" };
 
 /**
  * Privacy draft. The data inventory below mirrors the database schema and the
@@ -15,6 +14,8 @@ export default function PrivacyPage() {
     <LegalPage current="privacy" title="Gizlilik Politikası">
       {(legal) => {
         const provider = legal?.processing.billingProvider ?? null;
+        const aiProvider = legal?.processing.aiProvider ?? null;
+        const aiProviderName = aiProvider === "anthropic" ? "Anthropic (Claude API)" : aiProvider === "fake" ? "test sağlayıcısı (ağ çağrısı yok)" : null;
         const subprocessors = legal?.processing.subprocessors ?? [];
         return (
           <>
@@ -36,13 +37,20 @@ export default function PrivacyPage() {
 
             <h2>3. Yapay zekâ ve dış işleme</h2>
             <ul>
-              <li>Dış yapay zekâ işleme: <strong>kapalı</strong>. Talimatlar bu sunucuda deterministik olarak derlenir; hiçbir içerik bir AI sağlayıcısına veya üçüncü tarafa gönderilmez.</li>
+              {aiProviderName ? (
+                <>
+                  <li>Talimatlar her zaman bu sunucuda deterministik olarak derlenir.</li>
+                  <li>İsteğe bağlı AI önerileri: <strong>{aiProviderName}</strong>. Varsayılan olarak kapalıdır; yalnızca Ayarlar’dan açıkça izin verdiğinde ve bir karar için öneri istediğinde, o kararın kısıtları, proje özeti, etkin teknoloji yığını ve Kütüphanendeki kaynakların adı, türü ve kısa açıklaması bu sağlayıcıya gönderilir. Bağlantılar, notlar, kurulum komutları, e-posta adresin ve şifren gönderilmez. İzni istediğin an geri alabilirsin; öneriler sen kabul etmeden hiçbir kararı değiştirmez ve hesabınla birlikte silinir.</li>
+                </>
+              ) : (
+                <li>Dış yapay zekâ işleme: <strong>kapalı</strong>. Talimatlar bu sunucuda deterministik olarak derlenir; hiçbir içerik bir AI sağlayıcısına veya üçüncü tarafa gönderilmez.</li>
+              )}
               <li>İçe aktardığın URL’ler, promptlar, kurallar ve kurulum komutları yalnızca metin olarak saklanır; Hizmet bunları ziyaret etmez, indirmez ve çalıştırmaz.</li>
               <li>Ürün analitiği yalnızca yapısal olay kayıtlarıdır (ör. “proje oluşturuldu”) ve üçüncü taraf bir analitik hizmetine gönderilmez.</li>
             </ul>
 
             <h2>4. Alt işlemciler ve barındırma</h2>
-            <p>Barındırma bölgesi: <Value name="HOSTING_REGION" value={legal?.processing.hostingRegion ?? null} />. Ödeme sağlayıcısı: {provider === null ? "yapılandırılmadı (ücretli plan sunulmuyor)" : legal?.processing.billingTestMode ? `${provider} (test modu, gerçek ödeme yok)` : provider}.</p>
+            <p>Barındırma bölgesi: <Value name="HOSTING_REGION" value={legal?.processing.hostingRegion ?? null} />.{aiProviderName ? ` AI önerileri sağlayıcısı: ${aiProviderName} (yalnızca izin veren kullanıcılar için).` : ""} Ödeme sağlayıcısı: {provider === null ? "yapılandırılmadı (ücretli plan sunulmuyor)" : legal?.processing.billingTestMode ? `${provider} (test modu, gerçek ödeme yok)` : provider}.</p>
             {subprocessors.length > 0
               ? <ul>{subprocessors.map((item) => <li key={item}>{item}</li>)}</ul>
               : <p>Alt işlemci listesi: <Value name="LEGAL_SUBPROCESSORS" value={null} />.</p>}

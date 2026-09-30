@@ -1,12 +1,15 @@
 # Staging / preview stack built from the repository images (Handoff 12).
 #
+#   export WEB_PROXY_SECRET=<the WEB_PROXY_SECRET value from the env file>
 #   DEVCONTEXT_ENV_FILE=./env/staging.env docker compose -f deploy/compose.staging.yml up -d --build --wait
 #   node scripts/smoke.mjs --web http://127.0.0.1:3100 --api http://127.0.0.1:4100
 #
 # Migrations run as a one-shot release step (`migrate`) before the API starts;
 # the API never mutates the schema on boot. This stack owns its own PostgreSQL
 # volume and must never be pointed at the production database. Ports bind to
-# 127.0.0.1 only; put a TLS terminator in front for anything reachable.
+# 127.0.0.1 only; put a TLS terminator in front for anything reachable. The web
+# container gets only what it needs (the API address and the proxy secret),
+# never the database or session secrets from the env file.
 name: devcontext-staging
 
 services:
@@ -56,6 +59,8 @@ services:
     environment:
       NODE_ENV: production
       API_URL: http://api:4000
+      # Empty means "not configured": sign-in limits then key on the web container (fine for CI only).
+      WEB_PROXY_SECRET: ${WEB_PROXY_SECRET:-}
     depends_on:
       api:
         condition: service_healthy

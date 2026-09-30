@@ -1,8 +1,8 @@
 import {
   accountDeletions,
+  aiSuggestions,
   compatibilityRules,
   contextVersions,
-  count,
   desc,
   eq,
   exportEvents,
@@ -21,6 +21,7 @@ import {
   tags,
   users,
   type RepositoryDatabase,
+  type Table,
 } from "@devcontext/db";
 
 export type DeletionRow = typeof accountDeletions.$inferSelect;
@@ -38,6 +39,7 @@ export type StoredCounts = {
   exports: number;
   auditEvents: number;
   importRequests: number;
+  aiSuggestions: number;
   sessions: number;
 };
 
@@ -79,52 +81,57 @@ export interface AccountRepository {
 export function createAccountRepository(database: RepositoryDatabase): AccountRepository {
   const db = database.db;
 
-  async function countOf(query: Promise<Array<{ value: number }>>) {
-    const [row] = await query;
-    return row?.value ?? 0;
-  }
-
   return {
     async createdAt(userId) {
       const [row] = await db.select({ createdAt: users.createdAt }).from(users).where(eq(users.id, userId)).limit(1);
       return row?.createdAt ?? null;
     },
 
+    /**
+     * One statement of counts: one connection and one consistent snapshot
+     * instead of fifteen parallel queries. Column references are written as
+     * aliased identifiers because Drizzle renders interpolated columns
+     * unqualified inside a single-table select, which PostgreSQL rejects as
+     * ambiguous (`id`, `owner_user_id`) in the joined subqueries.
+     */
     async counts(userId) {
-      const [
-        resourceCount, tagCount, profileCount, recipeCount, projectCount,
-        globalCount, profileDecisionCount, recipeDecisionCount, projectDecisionCount,
-        ruleCount, versionCount, exportCount, auditCount, importCount, sessionCount,
-      ] = await Promise.all([
-        countOf(db.select({ value: count() }).from(resources).where(eq(resources.ownerUserId, userId))),
-        countOf(db.select({ value: count() }).from(tags).where(eq(tags.ownerUserId, userId))),
-        countOf(db.select({ value: count() }).from(profiles).where(eq(profiles.ownerUserId, userId))),
-        countOf(db.select({ value: count() }).from(recipes).where(eq(recipes.ownerUserId, userId))),
-        countOf(db.select({ value: count() }).from(projects).where(eq(projects.ownerUserId, userId))),
-        countOf(db.select({ value: count() }).from(globalDecisions).where(eq(globalDecisions.ownerUserId, userId))),
-        countOf(db.select({ value: count() }).from(profileDecisions).innerJoin(profiles, eq(profileDecisions.profileId, profiles.id)).where(eq(profiles.ownerUserId, userId))),
-        countOf(db.select({ value: count() }).from(recipeDecisions).innerJoin(recipes, eq(recipeDecisions.recipeId, recipes.id)).where(eq(recipes.ownerUserId, userId))),
-        countOf(db.select({ value: count() }).from(projectDecisions).innerJoin(projects, eq(projectDecisions.projectId, projects.id)).where(eq(projects.ownerUserId, userId))),
-        countOf(db.select({ value: count() }).from(compatibilityRules).where(eq(compatibilityRules.ownerUserId, userId))),
-        countOf(db.select({ value: count() }).from(contextVersions).innerJoin(projects, eq(contextVersions.projectId, projects.id)).where(eq(projects.ownerUserId, userId))),
-        countOf(db.select({ value: count() }).from(exportEvents).innerJoin(projects, eq(exportEvents.projectId, projects.id)).where(eq(projects.ownerUserId, userId))),
-        countOf(db.select({ value: count() }).from(auditEvents).where(eq(auditEvents.actorUserId, userId))),
-        countOf(db.select({ value: count() }).from(importRequests).where(eq(importRequests.ownerUserId, userId))),
-        countOf(db.select({ value: count() }).from(sessions).where(eq(sessions.userId, userId))),
-      ]);
+      const column = (name: { name: string }) => sql.identifier(name.name);
+      const owned = (table: Table, owner: { name: string }) =>
+        sql<number>`(select count(*) from ${table} t where t.${column(owner)} = ${userId})`.mapWith(Number);
+      const viaParent = (table: Table, parentKey: { name: string }, parent: Table, parentOwner: { name: string }) =>
+        sql<number>`(select count(*) from ${table} c inner join ${parent} p on p.id = c.${column(parentKey)} where p.${column(parentOwner)} = ${userId})`.mapWith(Number);
+      const [row] = await db.select({
+        resources: owned(resources, resources.ownerUserId),
+        tags: owned(tags, tags.ownerUserId),
+        profiles: owned(profiles, profiles.ownerUserId),
+        recipes: owned(recipes, recipes.ownerUserId),
+        projects: owned(projects, projects.ownerUserId),
+        globalDecisions: owned(globalDecisions, globalDecisions.ownerUserId),
+        profileDecisions: viaParent(profileDecisions, profileDecisions.profileId, profiles, profiles.ownerUserId),
+        recipeDecisions: viaParent(recipeDecisions, recipeDecisions.recipeId, recipes, recipes.ownerUserId),
+        projectDecisions: viaParent(projectDecisions, projectDecisions.projectId, projects, projects.ownerUserId),
+        compatibilityRules: owned(compatibilityRules, compatibilityRules.ownerUserId),
+        contextVersions: viaParent(contextVersions, contextVersions.projectId, projects, projects.ownerUserId),
+        exports: viaParent(exportEvents, exportEvents.projectId, projects, projects.ownerUserId),
+        auditEvents: owned(auditEvents, auditEvents.actorUserId),
+        importRequests: owned(importRequests, importRequests.ownerUserId),
+        aiSuggestions: owned(aiSuggestions, aiSuggestions.ownerUserId),
+        sessions: owned(sessions, sessions.userId),
+      }).from(users).where(eq(users.id, userId)).limit(1);
       return {
-        resources: resourceCount,
-        tags: tagCount,
-        profiles: profileCount,
-        recipes: recipeCount,
-        projects: projectCount,
-        decisions: globalCount + profileDecisionCount + recipeDecisionCount + projectDecisionCount,
-        compatibilityRules: ruleCount,
-        contextVersions: versionCount,
-        exports: exportCount,
-        auditEvents: auditCount,
-        importRequests: importCount,
-        sessions: sessionCount,
+        resources: row?.resources ?? 0,
+        tags: row?.tags ?? 0,
+        profiles: row?.profiles ?? 0,
+        recipes: row?.recipes ?? 0,
+        projects: row?.projects ?? 0,
+        decisions: (row?.globalDecisions ?? 0) + (row?.profileDecisions ?? 0) + (row?.recipeDecisions ?? 0) + (row?.projectDecisions ?? 0),
+        compatibilityRules: row?.compatibilityRules ?? 0,
+        contextVersions: row?.contextVersions ?? 0,
+        exports: row?.exports ?? 0,
+        auditEvents: row?.auditEvents ?? 0,
+        importRequests: row?.importRequests ?? 0,
+        aiSuggestions: row?.aiSuggestions ?? 0,
+        sessions: row?.sessions ?? 0,
       };
     },
 

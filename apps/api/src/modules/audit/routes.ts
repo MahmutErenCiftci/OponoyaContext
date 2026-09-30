@@ -9,7 +9,7 @@ function ownerId(request: { currentUser: { id: string } | null }) {
 
 /** The caller's own trail; another user's actions are never visible. */
 export async function registerAuditRoutes(app: FastifyInstance, audit: AuditRepository) {
-  app.get("/v1/audit", { preHandler: app.authenticate }, async (request) => ({
+  app.get("/v1/audit", { onRequest: app.authenticate }, async (request) => ({
     events: await audit.list(ownerId(request), auditEventListQuerySchema.parse(request.query)),
   }));
 }

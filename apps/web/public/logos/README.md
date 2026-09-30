@@ -7,13 +7,16 @@ and keeps the Simple Icons slug and brand colour as `data-icon` / `data-brand` a
 Brand names and logos are trademarks of their respective owners; they are used here only to identify
 the technology they refer to (see Simple Icons' DISCLAIMER.md). Do not present them as an endorsement.
 
-Matched: 194 of 246 catalog entries. The web app shows a monogram for the rest:
+Matched: 189 of 246 catalog entries. The web app shows a monogram for the rest:
 
 - `agents-md` (AGENTS.md / CLAUDE.md)
 - `aider` (Aider)
+- `apache-iceberg` (Apache Iceberg)
+- `authjs` (Auth.js (NextAuth))
 - `aws` (AWS)
 - `bolt-new` (Bolt.new)
 - `bullmq` (BullMQ)
+- `codeql` (CodeQL)
 - `codex-cli` (OpenAI Codex)
 - `craftgate` (Craftgate)
 - `dagster` (Dagster)
@@ -23,6 +26,7 @@ Matched: 194 of 246 catalog entries. The web app shows a monogram for the rest:
 - `e-devlet-eimza` (e-Devlet Kapısı / e-İmza / Mobil İmza)
 - `e-fatura-turkiye` (e-Fatura / e-Arşiv Entegratörleri)
 - `fivetran` (Fivetran)
+- `framer-motion` (Motion (Framer Motion))
 - `gitleaks` (Gitleaks / TruffleHog)
 - `great-expectations` (Great Expectations / Soda)
 - `grpc` (gRPC / Protocol Buffers)
@@ -47,14 +51,15 @@ Matched: 194 of 246 catalog entries. The web app shows a monogram for the rest:
 - `paytr` (PayTR)
 - `pinecone` (Pinecone)
 - `playwright` (Playwright)
+- `power-bi` (Power BI / Looker)
 - `prompt-library` (Prompt Kütüphanesi (kurumsal pratik))
 - `rate-limiting` (Rate Limiting & Abuse Kontrolü)
 - `recharts` (Recharts)
 - `semgrep` (Semgrep)
 - `shopier` (Shopier / Papara İşyeri)
 - `sigstore-cosign` (Sigstore / Cosign + SBOM)
-- `ticimax-ideasoft` (Ticimax / İdeaSoft / T-Soft)
-- `trendyol-api` (Trendyol / Hepsiburada / N11 Pazaryeri API'leri)
+- `ticimax-ideasoft` (Ticimax / IdeaSoft / T-Soft)
+- `trendyol-api` (Trendyol / Hepsiburada / n11 Pazaryeri API'leri)
 - `turkiye-cloud` (Yerli Bulut (Turkcell, Türk Telekom, Bulutistan, Vargonen))
 - `twilio` (Twilio)
 - `uploadthing` (UploadThing)

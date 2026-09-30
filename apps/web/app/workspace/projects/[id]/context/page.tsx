@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { getContextVersions, getExportHistory, getProject, getProjectContext } from "../../../../../lib/api";
 import { contextStatus } from "../../../../../lib/context-status";
@@ -7,7 +8,13 @@ import { WorkspaceShell } from "../../../workspace-shell";
 import { ProjectHeader } from "../project-header";
 import { ContextClient } from "./context-client";
 
-export const dynamic = "force-dynamic";
+/** The entity name in the tab title; the lookup is shared with the page through the per-request cache. */
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  const session = await loadSession();
+  const project = session.status === "authenticated" ? await getProject(session.cookieHeader, id) : null;
+  return { title: project ? `${project.name} · Talimatlar` : "Talimatlar" };
+}
 
 export default async function ProjectContextPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ view?: string }> }) {
   const { id } = await params;
@@ -15,14 +22,14 @@ export default async function ProjectContextPage({ params, searchParams }: { par
   if (session.status === "unavailable") return <ServiceUnavailable />;
   if (session.status === "anonymous") redirect("/auth?mode=sign-in");
   const { user, cookieHeader } = session;
-  const project = await getProject(cookieHeader, id);
-  if (!project) notFound();
-  const [state, versions, exports, query] = await Promise.all([
+  const [project, state, versions, exports, query] = await Promise.all([
+    getProject(cookieHeader, id),
     getProjectContext(cookieHeader, id),
     getContextVersions(cookieHeader, id),
     getExportHistory(cookieHeader, id),
     searchParams,
   ]);
+  if (!project) notFound();
 
   return (
     <WorkspaceShell active="Projects" user={user}>

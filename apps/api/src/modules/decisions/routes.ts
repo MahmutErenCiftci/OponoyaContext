@@ -16,16 +16,16 @@ function actor(request: FastifyRequest) {
 }
 
 export async function registerDecisionRoutes(app: FastifyInstance, decisions: DecisionService) {
-  app.get("/v1/global-decisions", { preHandler: app.authenticate }, async (request) => ({
+  app.get("/v1/global-decisions", { onRequest: app.authenticate }, async (request) => ({
     decisions: await decisions.listGlobal(ownerId(request)),
   }));
 
-  app.get("/v1/projects/:id/decisions", { preHandler: app.authenticate }, async (request) => {
+  app.get("/v1/projects/:id/decisions", { onRequest: app.authenticate }, async (request) => {
     const { id } = projectParamsSchema.parse(request.params);
     return { decisions: await decisions.list(ownerId(request), id) };
   });
 
-  app.put("/v1/projects/:id/decisions", { preHandler: app.authenticate }, async (request) => {
+  app.put("/v1/projects/:id/decisions", { onRequest: app.authenticate }, async (request) => {
     const { id } = projectParamsSchema.parse(request.params);
     const input = batchProjectDecisionsSchema.parse(request.body);
     const result = await decisions.batch(ownerId(request), id, input);
@@ -36,7 +36,7 @@ export async function registerDecisionRoutes(app: FastifyInstance, decisions: De
     return { decisions: result };
   });
 
-  app.put("/v1/projects/:id/decisions/:slot", { preHandler: app.authenticate }, async (request) => {
+  app.put("/v1/projects/:id/decisions/:slot", { onRequest: app.authenticate }, async (request) => {
     const { id, slot } = slotParamsSchema.parse(request.params);
     const input = upsertProjectDecisionSchema.parse(request.body);
     const decision = await decisions.upsert(ownerId(request), id, slot, input);
@@ -47,7 +47,7 @@ export async function registerDecisionRoutes(app: FastifyInstance, decisions: De
     return { decision };
   });
 
-  app.delete("/v1/projects/:id/decisions/:slot", { preHandler: app.authenticate }, async (request) => {
+  app.delete("/v1/projects/:id/decisions/:slot", { onRequest: app.authenticate }, async (request) => {
     const { id, slot } = slotParamsSchema.parse(request.params);
     const decision = await decisions.remove(ownerId(request), id, slot);
     await app.telemetry.record(actor(request), {

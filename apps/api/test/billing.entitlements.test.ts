@@ -73,7 +73,7 @@ describe("entitlement service", () => {
     const subscriptions = memorySubscriptions();
     const service = planEntitlements(subscriptions, memoryUsage(), () => now);
     await expect(service.assertExportTarget(owner, "agents")).resolves.toBeUndefined();
-    await expect(service.assertExportTarget(owner, "cursor")).rejects.toMatchObject({ statusCode: 403, details: [{ path: ["The Cursor export"], code: "plan_feature" }] });
+    await expect(service.assertExportTarget(owner, "cursor")).rejects.toMatchObject({ statusCode: 403, details: [{ path: ["exportTarget", "cursor"], code: "plan_feature" }] });
     await expect(service.assertFeature(owner, "bundle")).rejects.toMatchObject({ publicMessage: "The zipped context bundle is a Pro feature. Upgrade on the Plan page to use it." });
     await expect(service.assertFeature(owner, "diff")).rejects.toMatchObject({ statusCode: 403 });
     expect(await service.historyLimit(owner)).toBe(3);

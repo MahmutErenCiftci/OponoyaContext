@@ -40,6 +40,7 @@ export const fakePeriodMs = 30 * 24 * 60 * 60 * 1000;
 
 export function createFakeProvider(options: { secret: string; webOrigin: string; now?: () => Date; deliver: WebhookDelivery }): FakeProvider {
   const now = options.now ?? (() => new Date());
+  const maxOpenSessions = 1_000;
   const sessions = new Map<string, CheckoutSession>();
   const subscriptions = new Map<string, FakeSubscription>();
   const customerByOwner = new Map<string, string>();
@@ -87,6 +88,8 @@ export function createFakeProvider(options: { secret: string; webOrigin: string;
     testMode: true,
     async createCheckout(input) {
       const id = `cs_fake_${randomUUID()}`;
+      // Bounded: abandoned test checkouts are forgotten oldest first (Maps keep insertion order).
+      if (sessions.size >= maxOpenSessions) sessions.delete(sessions.keys().next().value!);
       sessions.set(id, { id, ownerUserId: input.ownerUserId, email: input.email, successUrl: input.successUrl, cancelUrl: input.cancelUrl, completed: false });
       return { url: `${options.webOrigin}/billing/checkout?session=${encodeURIComponent(id)}`, sessionId: id };
     },

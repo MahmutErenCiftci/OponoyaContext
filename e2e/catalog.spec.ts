@@ -17,7 +17,15 @@ test("technology catalog: browse, add to Library with logos, stack preset to pro
   await page.getByLabel("Katalogda ara").fill("Next.js");
   const nextCard = page.getByRole("article", { name: "Next.js" });
   await expect(nextCard).toBeVisible();
-  await expect(nextCard.getByRole("img", { name: "Next.js logo" })).toBeVisible();
+  const nextLogo = nextCard.locator('[data-logo="nextjs"]');
+  await expect(nextLogo).toBeVisible();
+  // The mark must actually be painted: a black brand colour falls back to the text colour on the dark theme.
+  expect(["transparent", "rgba(0, 0, 0, 0)"]).not.toContain(await nextLogo.evaluate((node) => getComputedStyle(node).backgroundColor));
+  await page.getByLabel("Katalogda ara").fill("");
+  const unpaintedDark = await page.locator("[data-logo]").evaluateAll((nodes) => nodes.filter((node) => ["transparent", "rgba(0, 0, 0, 0)"].includes(getComputedStyle(node).backgroundColor)).length);
+  expect(unpaintedDark).toBe(0);
+  await page.getByLabel("Katalogda ara").fill("Next.js");
+  await expect(nextCard).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath("catalog-dark-desktop.png"), fullPage: true });
 
   // Add one technology; the card flips to "Kütüphanede" and the toast confirms.
@@ -65,6 +73,9 @@ test("technology catalog: browse, add to Library with logos, stack preset to pro
   await sidebar.getByRole("link", { name: "Katalog" }).click();
   await expect(page.getByRole("heading", { name: "Teknoloji kataloğu" })).toBeVisible();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+  // Every brand mark on the page is painted in the light theme too.
+  const unpainted = await page.locator("[data-logo]").evaluateAll((nodes) => nodes.filter((node) => ["transparent", "rgba(0, 0, 0, 0)"].includes(getComputedStyle(node).backgroundColor)).length);
+  expect(unpainted).toBe(0);
   await page.screenshot({ path: testInfo.outputPath("catalog-light-desktop.png"), fullPage: true });
   await page.goto("/");
   await expect(page.locator("html")).toHaveAttribute("data-theme", "light");

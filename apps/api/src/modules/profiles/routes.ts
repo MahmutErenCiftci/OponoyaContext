@@ -24,11 +24,11 @@ function actor(request: FastifyRequest) {
 }
 
 export async function registerProfileRoutes(app: FastifyInstance, profiles: ProfileService) {
-  app.get("/v1/profiles", { preHandler: app.authenticate }, async (request) =>
+  app.get("/v1/profiles", { onRequest: app.authenticate }, async (request) =>
     profiles.list(ownerId(request), profileListQuerySchema.parse(request.query)),
   );
 
-  app.post("/v1/profiles", { preHandler: app.authenticate }, async (request, reply) => {
+  app.post("/v1/profiles", { onRequest: app.authenticate }, async (request, reply) => {
     await app.entitlements.assertCanCreate(ownerId(request), "profiles");
     const profile = await profiles.create(ownerId(request), createProfileSchema.parse(request.body));
     await app.telemetry.record(actor(request), {
@@ -37,12 +37,12 @@ export async function registerProfileRoutes(app: FastifyInstance, profiles: Prof
     return reply.code(201).send({ profile });
   });
 
-  app.get("/v1/profiles/:id", { preHandler: app.authenticate }, async (request) => {
+  app.get("/v1/profiles/:id", { onRequest: app.authenticate }, async (request) => {
     const { id } = profileParamsSchema.parse(request.params);
     return { profile: await profiles.get(ownerId(request), id) };
   });
 
-  app.patch("/v1/profiles/:id", { preHandler: app.authenticate }, async (request) => {
+  app.patch("/v1/profiles/:id", { onRequest: app.authenticate }, async (request) => {
     const { id } = profileParamsSchema.parse(request.params);
     const input = updateProfileSchema.parse(request.body);
     const profile = await profiles.update(ownerId(request), id, input);
@@ -52,14 +52,14 @@ export async function registerProfileRoutes(app: FastifyInstance, profiles: Prof
     return { profile };
   });
 
-  app.delete("/v1/profiles/:id", { preHandler: app.authenticate }, async (request) => {
+  app.delete("/v1/profiles/:id", { onRequest: app.authenticate }, async (request) => {
     const { id } = profileParamsSchema.parse(request.params);
     const profile = await profiles.archive(ownerId(request), id);
     await app.telemetry.record(actor(request), { action: "profile.archived", entityType: "profile", entityId: id });
     return { profile };
   });
 
-  app.post("/v1/profiles/:id/restore", { preHandler: app.authenticate }, async (request) => {
+  app.post("/v1/profiles/:id/restore", { onRequest: app.authenticate }, async (request) => {
     const { id } = profileParamsSchema.parse(request.params);
     await app.entitlements.assertCanCreate(ownerId(request), "profiles");
     const profile = await profiles.restore(ownerId(request), id);
@@ -67,7 +67,7 @@ export async function registerProfileRoutes(app: FastifyInstance, profiles: Prof
     return { profile };
   });
 
-  app.post("/v1/projects/:id/save-as-profile", { preHandler: app.authenticate }, async (request, reply) => {
+  app.post("/v1/projects/:id/save-as-profile", { onRequest: app.authenticate }, async (request, reply) => {
     const { id } = profileParamsSchema.parse(request.params);
     const raw = request.headers["idempotency-key"];
     const key = idempotencyKeySchema.optional().parse(Array.isArray(raw) ? raw[0] : raw);
@@ -82,7 +82,7 @@ export async function registerProfileRoutes(app: FastifyInstance, profiles: Prof
     return reply.code(result.created ? 201 : 200).send(result);
   });
 
-  app.put("/v1/profiles/:id/decisions/:slot", { preHandler: app.authenticate }, async (request) => {
+  app.put("/v1/profiles/:id/decisions/:slot", { onRequest: app.authenticate }, async (request) => {
     const { id, slot } = slotParamsSchema.parse(request.params);
     const input = upsertProjectDecisionSchema.parse(request.body);
     const decision = await profiles.upsertDecision(ownerId(request), id, slot, input);
@@ -93,7 +93,7 @@ export async function registerProfileRoutes(app: FastifyInstance, profiles: Prof
     return { decision };
   });
 
-  app.delete("/v1/profiles/:id/decisions/:slot", { preHandler: app.authenticate }, async (request) => {
+  app.delete("/v1/profiles/:id/decisions/:slot", { onRequest: app.authenticate }, async (request) => {
     const { id, slot } = slotParamsSchema.parse(request.params);
     await profiles.removeDecision(ownerId(request), id, slot);
     await app.telemetry.record(actor(request), {

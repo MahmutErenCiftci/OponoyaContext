@@ -102,11 +102,12 @@ export function planLimitError(key: PlanLimitKey, limit: number, plan: PlanId) {
   });
 }
 
-export function planFeatureError(feature: string) {
-  return Object.assign(new Error(`Plan feature unavailable: ${feature}`), {
+/** 403 for a Pro-only capability; `path` names it by key (`bundle`, `diff`, `exportTarget`/`cursor`) so clients can word it themselves. */
+export function planFeatureError(path: string[], label: string) {
+  return Object.assign(new Error(`Plan feature unavailable: ${path.join(".")}`), {
     statusCode: 403,
-    details: [{ path: [feature], code: "plan_feature" }],
-    publicMessage: `${feature} is a Pro feature. Upgrade on the Plan page to use it.`,
+    details: [{ path, code: "plan_feature" }],
+    publicMessage: `${label} is a Pro feature. Upgrade on the Plan page to use it.`,
   });
 }
 
@@ -121,6 +122,8 @@ export interface EntitlementService {
   assertExportTarget(ownerUserId: string, target: ExportTarget): Promise<void>;
   assertFeature(ownerUserId: string, feature: PlanFeatureKey): Promise<void>;
   historyLimit(ownerUserId: string): Promise<number>;
+  /** AI suggestions per UTC calendar month on the user's current plan. */
+  aiMonthlyQuota(ownerUserId: string): Promise<number>;
 }
 
 export function createEntitlementService(subscriptions: SubscriptionReader, usage: UsageRepository, now: () => Date = () => new Date()): EntitlementService {
@@ -145,14 +148,17 @@ export function createEntitlementService(subscriptions: SubscriptionReader, usag
     },
     async assertExportTarget(ownerUserId, target) {
       const plan = await planOf(ownerUserId);
-      if (!plans[plan].features.exportTargets.includes(target)) throw planFeatureError(targetLabels[target]);
+      if (!plans[plan].features.exportTargets.includes(target)) throw planFeatureError(["exportTarget", target], targetLabels[target]);
     },
     async assertFeature(ownerUserId, feature) {
       const plan = await planOf(ownerUserId);
-      if (!plans[plan].features[feature]) throw planFeatureError(featureLabels[feature]);
+      if (!plans[plan].features[feature]) throw planFeatureError([feature], featureLabels[feature]);
     },
     async historyLimit(ownerUserId) {
       return plans[await planOf(ownerUserId)].features.historyLimit;
+    },
+    async aiMonthlyQuota(ownerUserId) {
+      return plans[await planOf(ownerUserId)].features.aiSuggestionsPerMonth;
     },
   };
 }

@@ -1,14 +1,17 @@
 import {
+  productName,
   accountExportFormat,
   accountExportVersion,
   type AccountDeletionView,
   type AccountExport,
   type AccountSummary,
+  type AiProviderId,
   type CurrentUser,
   type DeleteAccountRequest,
   type LegalConfig,
 } from "@devcontext/contracts";
 import type { AppConfig } from "../../config.js";
+import type { AiService } from "../ai/service.js";
 import type { AuditRepository } from "../audit/repository.js";
 import type { AuthProvider } from "../auth/service.js";
 import { resolveEntitlement } from "../billing/entitlements.js";
@@ -44,6 +47,10 @@ export type AccountServiceOptions = {
   portability: PortabilityService;
   workspace: WorkspaceRepository;
   audit: AuditRepository;
+  /** AI suggestions and consent (V1.5 groundwork); exported with the account and disclosed in the summary. */
+  ai: AiService;
+  /** Provider configured for this deployment, null when AI is off. */
+  aiProvider: AiProviderId | null;
   config: AppConfig;
   now?: () => Date;
 };
@@ -84,7 +91,7 @@ export function toDeletionView(row: DeletionRow | null): AccountDeletionView {
 }
 
 /** Builds the factual legal inputs from configuration; unset values are listed, never guessed. */
-export function legalConfigFrom(config: AppConfig, billing: { id: string | null; testMode: boolean }): LegalConfig {
+export function legalConfigFrom(config: AppConfig, billing: { id: string | null; testMode: boolean }, aiProvider: AiProviderId | null = null): LegalConfig {
   const required: Array<[keyof AppConfig, string | undefined]> = [
     ["LEGAL_ENTITY_NAME", config.LEGAL_ENTITY_NAME],
     ["LEGAL_ENTITY_ADDRESS", config.LEGAL_ENTITY_ADDRESS],
@@ -99,7 +106,7 @@ export function legalConfigFrom(config: AppConfig, billing: { id: string | null;
   ];
   const missing = required.filter(([, value]) => value === undefined || value === "").map(([key]) => key);
   return {
-    productName: "DevContext",
+    productName,
     draft: missing.length > 0,
     approvedAt: config.LEGAL_APPROVED_AT ?? null,
     effectiveDate: config.LEGAL_EFFECTIVE_DATE ?? null,
@@ -110,7 +117,8 @@ export function legalConfigFrom(config: AppConfig, billing: { id: string | null;
       jurisdiction: config.LEGAL_JURISDICTION ?? null,
     },
     processing: {
-      externalAi: false,
+      externalAi: aiProvider !== null,
+      aiProvider,
       billingProvider: billing.id,
       billingTestMode: billing.testMode,
       hostingRegion: config.HOSTING_REGION ?? null,
@@ -126,16 +134,17 @@ export function legalConfigFrom(config: AppConfig, billing: { id: string | null;
 }
 
 export function createAccountService(options: AccountServiceOptions): AccountService {
-  const { repository, auth, billing, subscriptions, portability, workspace, audit, config } = options;
+  const { repository, auth, billing, subscriptions, portability, workspace, audit, ai, aiProvider, config } = options;
   const now = options.now ?? (() => new Date());
 
   return {
     async summary(user) {
-      const [createdAt, stored, record, deletion] = await Promise.all([
+      const [createdAt, stored, record, deletion, aiStatus] = await Promise.all([
         repository.createdAt(user.id),
         repository.counts(user.id),
         subscriptions.find(user.id),
         repository.deletion(user.id),
+        ai.status(user.id),
       ]);
       const entitlement = resolveEntitlement(record, now());
       return {
@@ -153,13 +162,18 @@ export function createAccountService(options: AccountServiceOptions): AccountSer
           },
           external: [],
         },
-        processing: { externalAi: false, importedContentStoredAsData: true },
+        processing: {
+          externalAi: aiStatus.available && aiStatus.consented,
+          aiProvider,
+          aiConsentedAt: aiStatus.consentedAt,
+          importedContentStoredAsData: true,
+        },
         deletion: toDeletionView(deletion),
       };
     },
 
     async exportAccount(user) {
-      const [document, settings, record, versions, exportRows, auditRows, createdAt] = await Promise.all([
+      const [document, settings, record, versions, exportRows, auditRows, createdAt, aiStatus, suggestions] = await Promise.all([
         portability.exportWorkspace(user.id),
         workspace.settings(user.id),
         subscriptions.find(user.id),
@@ -167,6 +181,8 @@ export function createAccountService(options: AccountServiceOptions): AccountSer
         repository.exports(user.id),
         audit.list(user.id, { limit: exportAuditLimit }),
         repository.createdAt(user.id),
+        ai.status(user.id),
+        ai.exportAll(user.id),
       ]);
       const entitlement = resolveEntitlement(record, now());
       return {
@@ -179,6 +195,7 @@ export function createAccountService(options: AccountServiceOptions): AccountSer
           onboardingChoice: settings.onboardingChoice,
           sampleVersion: settings.sampleVersion,
           sampleInstalledAt: settings.sampleInstalledAt,
+          aiConsentedAt: aiStatus.consentedAt,
         },
         subscription: {
           plan: entitlement.plan,
@@ -191,6 +208,7 @@ export function createAccountService(options: AccountServiceOptions): AccountSer
         contextVersions: versions.map((row) => ({ ...row, createdAt: row.createdAt.toISOString() })),
         exports: exportRows.map((row) => ({ ...row, createdAt: row.createdAt.toISOString() })),
         auditEvents: auditRows,
+        aiSuggestions: suggestions,
       };
     },
 
@@ -221,7 +239,7 @@ export function createAccountService(options: AccountServiceOptions): AccountSer
     },
 
     legal() {
-      return legalConfigFrom(config, billing.provider);
+      return legalConfigFrom(config, billing.provider, aiProvider);
     },
   };
 }

@@ -44,12 +44,12 @@ test("first run: sample data, recipe inheritance, bundle download, export and im
   await sections.getByRole("link", { name: "AI talimatları" }).click();
   await page.getByRole("button", { name: "Talimatları oluştur" }).click();
   await expect(page.getByText("Sürüm 1 oluşturuldu.")).toBeVisible();
-  await page.getByLabel("Coding agent").selectOption("claude");
+  await page.getByLabel("Kodlama ajanı").selectOption("claude");
   await page.getByRole("button", { name: "Ham metin" }).click();
   await expect(page.getByRole("region", { name: "Talimat önizlemesi" })).toContainText('Source: recipe "Sample · SaaS MVP"');
   // The zipped bundle is a Pro feature; the Free plan gets the reason, then the test-mode provider upgrades the account.
   await page.getByRole("button", { name: "Tüm dosyalar (.zip)" }).click();
-  await expect(page.getByText("The zipped context bundle is a Pro feature. Upgrade on the Plan page to use it.")).toBeVisible();
+  await expect(page.getByText("Sıkıştırılmış bağlam paketi Pro planına dahil. Plan ayrıntıları Plan sayfasında.")).toBeVisible();
   await upgradeToPro(page);
   const bundleDownload = page.waitForEvent("download");
   await page.getByRole("button", { name: "Tüm dosyalar (.zip)" }).click();
@@ -96,7 +96,8 @@ test("first run: sample data, recipe inheritance, bundle download, export and im
   await openMoreMenu(page, "Ayarlar");
   page.once("dialog", (dialog) => void dialog.accept());
   await page.getByRole("button", { name: "Örnekleri kaldır" }).click();
-  await expect(page.getByRole("status").filter({ hasText: "Nothing was deleted" })).toBeVisible();
+  // A refusal is an alert in Turkish, not a success toast.
+  await expect(page.getByRole("alert").filter({ hasText: "hiçbir şey kaldırılmadı" })).toBeVisible();
   // Explicitly clear those inherited preferences through the authenticated API.
   for (const resource of exportedDocument.resources.filter((item) => item.preference)) {
     const response = await page.request.patch(`/api/resources/${resource.ref}`, { data: { preference: null } });

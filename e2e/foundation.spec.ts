@@ -5,7 +5,12 @@ test("landing page presents the product and connects to the API", async ({ page 
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "Teknolojilerini bir kez anlat. Her projede hatırlansın." })).toBeVisible();
   await expect(page.getByRole("status")).toHaveText("Çalışma alanı hazır");
-  await expect(page.getByRole("img", { name: "DevContext’te proje kararları ve AI talimatlarının önizlemesi" })).toBeVisible();
+  await expect(page.getByRole("img", { name: /proje kararları ve AI talimatlarının önizlemesi/ })).toBeVisible();
+  // Identity: tab title, favicon and install metadata are served.
+  await expect(page).toHaveTitle(/Oponoya/);
+  expect((await page.request.get("/favicon.ico")).headers()["content-type"]).toContain("image/png");
+  expect((await page.request.get("/manifest.webmanifest")).ok()).toBe(true);
+  expect(await page.locator('link[rel="icon"]').count()).toBeGreaterThan(0);
   await page.screenshot({ path: testInfo.outputPath("landing-desktop.png"), fullPage: true });
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(page.getByRole("status")).toBeVisible();

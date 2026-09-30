@@ -1,9 +1,9 @@
+import { productName } from "@devcontext/contracts/brand";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { LegalPage, Value } from "../legal-page";
 
-export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Kullanım Şartları · DevContext" };
+export const metadata: Metadata = { title: "Kullanım Şartları" };
 
 /**
  * Terms draft. Every statement describes what the product actually does in
@@ -19,14 +19,14 @@ export default function TermsPage() {
           ? "Bu kurulumda ödeme sağlayıcısı yapılandırılmamıştır; her hesap ücretsiz plandadır ve ücretli plana geçiş sunulmaz."
           : legal?.processing.billingTestMode
             ? "Bu kurulumda ödeme sağlayıcısı test modundadır; hiçbir gerçek ödeme alınmaz."
-            : `Ücretli plan ödemeleri “${provider}” sağlayıcısı üzerinden alınır; kart bilgileri DevContext sunucularında saklanmaz.`;
+            : `Ücretli plan ödemeleri “${provider}” sağlayıcısı üzerinden alınır; kart bilgileri ${productName} sunucularında saklanmaz.`;
         return (
           <>
             <h2>1. Taraflar ve kapsam</h2>
-            <p>Bu şartlar, <Value name="LEGAL_ENTITY_NAME" value={legal?.entity.name ?? null} /> (“hizmet sağlayıcı”) tarafından sunulan DevContext hizmetinin (“Hizmet”) kullanımını düzenler. Hizmeti kullanarak bu şartları kabul etmiş olursun. İletişim: <Value name="LEGAL_CONTACT_EMAIL" value={legal?.entity.contactEmail ?? null} />.</p>
+            <p>Bu şartlar, <Value name="LEGAL_ENTITY_NAME" value={legal?.entity.name ?? null} /> (“hizmet sağlayıcı”) tarafından sunulan {productName} hizmetinin (“Hizmet”) kullanımını düzenler. Hizmeti kullanarak bu şartları kabul etmiş olursun. İletişim: <Value name="LEGAL_CONTACT_EMAIL" value={legal?.entity.contactEmail ?? null} />.</p>
 
             <h2>2. Hizmetin tanımı</h2>
-            <p>DevContext, geliştiricilerin araç ve teknoloji tercihlerini (kaynaklar, kararlar, profiller, tarifler, projeler) kaydettiği ve bunlardan kodlama ajanları için deterministik talimat dosyaları ürettiği kişisel bir çalışma alanıdır. Talimatlar yalnızca hizmet sağlayıcının sunucusunda, kural tabanlı ve tekrarlanabilir biçimde derlenir; hiçbir veri bir yapay zekâ sağlayıcısına gönderilmez.</p>
+            <p>{productName}, geliştiricilerin araç ve teknoloji tercihlerini (kaynaklar, kararlar, profiller, tarifler, projeler) kaydettiği ve bunlardan kodlama ajanları için deterministik talimat dosyaları ürettiği kişisel bir çalışma alanıdır. Talimatlar yalnızca hizmet sağlayıcının sunucusunda, kural tabanlı ve tekrarlanabilir biçimde derlenir. {legal?.processing.externalAi ? "İsteğe bağlı AI önerileri yalnızca açıkça izin verdiğinde ve bir öneri istediğinde kullanılır; öneriler sen kabul etmeden hiçbir kararı değiştirmez." : "Hiçbir veri bir yapay zekâ sağlayıcısına gönderilmez."}</p>
 
             <h2>3. Hesap</h2>
             <ul>

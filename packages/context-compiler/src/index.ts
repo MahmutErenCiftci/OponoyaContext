@@ -6,7 +6,10 @@
  * Bump COMPILER_VERSION whenever ordering or semantics of the canonical object
  * change and document it in docs/09_CONTEXT_COMPILER.md.
  */
-export const COMPILER_VERSION = "0.4.1";
+export const COMPILER_VERSION = "0.4.3";
+
+/** Product name printed in export headers; kept equal to `productName` in @devcontext/contracts (asserted by the API tests). */
+export const GENERATOR_NAME = "Oponoya";
 
 export type DecisionMode = "LOCKED" | "PREFERRED" | "AI_DECIDE" | "DISABLED";
 
@@ -380,10 +383,43 @@ export function stableStringify(value: unknown): string {
 // ---------------------------------------------------------------------------
 // Export adapters. They consume only the canonical object and may change
 // formatting, never decision semantics.
+//
+// Every string that came from a user, an imported file or an AI proposal is
+// data. Coding agents read these files as instructions, so such text must not
+// be able to add headings, list items, front-matter keys or code fences that
+// would look like structure written by the product (0.4.2).
 // ---------------------------------------------------------------------------
 
+const controlRun = /[\p{Cc}\p{Zl}\p{Zp}]+/gu;
+
+/** One line of text: line breaks and other control characters become single spaces. */
+function inline(value: string): string {
+  return value.replace(controlRun, " ").trim();
+}
+
+/** A code span its content cannot close: the delimiter is longer than any backtick run inside. */
+function codeSpan(value: string): string {
+  const text = inline(value);
+  const longest = Math.max(0, ...(text.match(/`+/g) ?? []).map((run) => run.length));
+  const fence = "`".repeat(longest + 1);
+  const pad = text.startsWith("`") || text.endsWith("`") ? " " : "";
+  return `${fence}${pad}${text}${pad}${fence}`;
+}
+
+/** Block syntax a line of user text may not start with: headings, quotes, HTML, fences, thematic breaks and setext underlines. */
+const blockStart = /^(?:#|>|<|```|~~~|[-=]+$|([-*_])(?:\s*\1){2,}$)/;
+
+/** Multi-line text keeps its lines (and list items), but none of them can open a block that changes the document structure. */
+function paragraph(value: string): string[] {
+  return value.split(/\r\n?|\n/).map((line) => {
+    const clean = line.replace(controlRun, " ").trimEnd();
+    const bare = clean.trimStart();
+    return blockStart.test(bare) ? `\\${bare}` : clean;
+  });
+}
+
 function modeInstruction(decision: CompiledDecision): string {
-  const resource = decision.resource?.name ?? "an appropriate solution";
+  const resource = decision.resource ? inline(decision.resource.name) : "an appropriate solution";
   switch (decision.mode) {
     case "LOCKED":
       return `Use ${resource}. Do not replace it without explicit project-owner approval.`;
@@ -399,33 +435,33 @@ function modeInstruction(decision: CompiledDecision): string {
 function constraintLines(constraints: Record<string, unknown>): string[] {
   const lines: string[] = [];
   const { allowed, excluded, notes, ...rest } = constraints;
-  if (Array.isArray(allowed) && allowed.length > 0) lines.push(`- Allowed options: ${allowed.map(String).join(", ")}`);
-  if (Array.isArray(excluded) && excluded.length > 0) lines.push(`- Excluded options: ${excluded.map(String).join(", ")}`);
-  if (typeof notes === "string" && notes.trim()) lines.push(`- Constraint notes: ${notes.trim()}`);
+  if (Array.isArray(allowed) && allowed.length > 0) lines.push(`- Allowed options: ${allowed.map((item) => inline(String(item))).join(", ")}`);
+  if (Array.isArray(excluded) && excluded.length > 0) lines.push(`- Excluded options: ${excluded.map((item) => inline(String(item))).join(", ")}`);
+  if (typeof notes === "string" && notes.trim()) lines.push(`- Constraint notes: ${inline(notes)}`);
   for (const key of Object.keys(rest).sort(compare)) {
-    lines.push(`- ${key}: \`${JSON.stringify(rest[key])}\``);
+    lines.push(`- ${inline(key)}: ${codeSpan(String(JSON.stringify(rest[key])))}`);
   }
   return lines;
 }
 
 function sourceLabel(scope: Scope, origin: DecisionOrigin | null) {
-  return origin ? `${scope} "${origin.name}"` : scope;
+  return origin ? `${scope} "${inline(origin.name)}"` : scope;
 }
 
 function decisionLines(decision: CompiledDecision): string[] {
   const lines = [
-    `### ${decision.slot}`,
+    `### ${inline(decision.slot)}`,
     `- Mode: ${decision.mode}`,
     `- Source: ${sourceLabel(decision.source, decision.origin)}`,
     `- Instruction: ${modeInstruction(decision)}`,
   ];
   if (decision.resource) {
-    lines.push(`- Resource: ${decision.resource.name} (${decision.resource.type})`);
-    if (decision.resource.sourceUrl) lines.push(`- Reference: ${decision.resource.sourceUrl}`);
-    if (decision.resource.installCommand) lines.push(`- Install: \`${decision.resource.installCommand}\``);
+    lines.push(`- Resource: ${inline(decision.resource.name)} (${decision.resource.type})`);
+    if (decision.resource.sourceUrl) lines.push(`- Reference: ${inline(decision.resource.sourceUrl)}`);
+    if (decision.resource.installCommand) lines.push(`- Install: ${codeSpan(decision.resource.installCommand)}`);
     if (decision.resource.archived && decision.mode !== "DISABLED") lines.push("- Note: this resource is archived in the Library; confirm it is still wanted.");
   }
-  if (decision.rationale) lines.push(`- Rationale: ${decision.rationale}`);
+  if (decision.rationale) lines.push(`- Rationale: ${inline(decision.rationale)}`);
   lines.push(...constraintLines(decision.constraints));
   if (decision.shadowed.length > 0) {
     lines.push(`- Overrides: ${decision.shadowed.map((item) => `${sourceLabel(item.scope, item.origin)} ${item.mode}`).join(", ")}`);
@@ -446,22 +482,22 @@ function section(title: string, decisions: CompiledDecision[], emptyText: string
 export function renderGenericMarkdown(context: CanonicalContext): string {
   const { project } = context;
   const lines = [
-    `# Project Context — ${project.name}`,
+    `# Project Context — ${inline(project.name)}`,
     "",
-    `Compiler ${context.compilerVersion} · generated by DevContext OS. Decisions below are the project owner's explicit choices; treat them as requirements, not suggestions.`,
+    `Compiler ${inline(context.compilerVersion)} · generated by ${GENERATOR_NAME}. Decisions below are the project owner's explicit choices; treat them as requirements, not suggestions.`,
     "",
     "## Project brief",
     "",
   ];
-  if (project.description) lines.push(project.description, "");
+  if (project.description?.trim()) lines.push(...paragraph(project.description.trim()), "");
   lines.push(
-    `- Product type: ${project.productType ?? "not specified"}`,
-    `- Stage: ${project.stage}`,
-    `- Platforms: ${project.platforms.length > 0 ? project.platforms.join(", ") : "not specified"}`,
+    `- Product type: ${project.productType ? inline(project.productType) : "not specified"}`,
+    `- Stage: ${inline(project.stage)}`,
+    `- Platforms: ${project.platforms.length > 0 ? project.platforms.map(inline).join(", ") : "not specified"}`,
   );
   if (project.priorities.length > 0) {
     lines.push("", "### Priorities", "");
-    for (const priority of project.priorities) lines.push(`- ${priority}`);
+    for (const priority of project.priorities) lines.push(`- ${inline(priority)}`);
   }
   lines.push(
     "",
@@ -482,24 +518,24 @@ export function renderGenericMarkdown(context: CanonicalContext): string {
     lines.push("_No saved resources are attached or referenced._");
   }
   for (const resource of context.resources) {
-    const tags = [resource.attached ? "attached to project" : null, resource.slots.length > 0 ? `slots: ${resource.slots.join(", ")}` : null].filter(Boolean);
-    lines.push(`- **${resource.name}** (${resource.type})${tags.length > 0 ? ` · ${tags.join(" · ")}` : ""}`);
-    if (resource.description) lines.push(`  - ${resource.description}`);
-    if (resource.sourceUrl) lines.push(`  - Source: ${resource.sourceUrl}`);
-    if (resource.docsUrl) lines.push(`  - Docs: ${resource.docsUrl}`);
-    if (resource.repoUrl) lines.push(`  - Repository: ${resource.repoUrl}`);
-    if (resource.installCommand) lines.push(`  - Install: \`${resource.installCommand}\``);
+    const tags = [resource.attached ? "attached to project" : null, resource.slots.length > 0 ? `slots: ${resource.slots.map(inline).join(", ")}` : null].filter(Boolean);
+    lines.push(`- **${inline(resource.name)}** (${resource.type})${tags.length > 0 ? ` · ${tags.join(" · ")}` : ""}`);
+    if (resource.description?.trim()) lines.push(`  - ${inline(resource.description)}`);
+    if (resource.sourceUrl) lines.push(`  - Source: ${inline(resource.sourceUrl)}`);
+    if (resource.docsUrl) lines.push(`  - Docs: ${inline(resource.docsUrl)}`);
+    if (resource.repoUrl) lines.push(`  - Repository: ${inline(resource.repoUrl)}`);
+    if (resource.installCommand) lines.push(`  - Install: ${codeSpan(resource.installCommand)}`);
     if (resource.archived) lines.push("  - Note: archived in the Library; confirm before relying on it.");
   }
 
   if (context.rules.length > 0) {
     lines.push("", "## Engineering rules", "");
-    for (const rule of context.rules) lines.push(`- ${rule}`);
+    for (const rule of context.rules) lines.push(`- ${inline(rule)}`);
   }
 
   if (context.warnings.length > 0) {
     lines.push("", "## Warnings", "");
-    for (const warning of context.warnings) lines.push(`- ${warning.code}: ${warning.message}`);
+    for (const warning of context.warnings) lines.push(`- ${warning.code}: ${inline(warning.message)}`);
   }
 
   lines.push(
@@ -518,7 +554,7 @@ export function renderGenericMarkdown(context: CanonicalContext): string {
 
 export function renderAgentsMd(context: CanonicalContext): string {
   return [
-    `# AGENTS.md — ${context.project.name}`,
+    `# AGENTS.md — ${inline(context.project.name)}`,
     "",
     "Repository instructions for coding agents. Follow the project context below for all implementation work.",
     "",
@@ -528,7 +564,7 @@ export function renderAgentsMd(context: CanonicalContext): string {
 
 export function renderClaudeMd(context: CanonicalContext): string {
   return [
-    `# CLAUDE.md — ${context.project.name}`,
+    `# CLAUDE.md — ${inline(context.project.name)}`,
     "",
     "Use these project decisions as persistent implementation context.",
     "If a decision conflicts with a user instruction in the current task, surface the conflict before changing architecture.",
@@ -540,7 +576,8 @@ export function renderClaudeMd(context: CanonicalContext): string {
 export function renderCursorRule(context: CanonicalContext): string {
   return [
     "---",
-    `description: "DevContext project rules for ${context.project.name.replace(/"/g, "'")}"`,
+    // A JSON string is a valid YAML double-quoted scalar: quotes, backslashes and line breaks cannot escape the value.
+    `description: ${JSON.stringify(`${GENERATOR_NAME} project rules for ${inline(context.project.name)}`)}`,
     "alwaysApply: true",
     "---",
     "",
@@ -550,7 +587,7 @@ export function renderCursorRule(context: CanonicalContext): string {
 
 export function renderCopilotInstructions(context: CanonicalContext): string {
   return [
-    `# Copilot instructions — ${context.project.name}`,
+    `# Copilot instructions — ${inline(context.project.name)}`,
     "",
     "Use these repository-wide project constraints for code generation and review.",
     "",

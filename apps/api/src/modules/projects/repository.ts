@@ -17,6 +17,8 @@ import {
   resources,
   sql,
   type RepositoryDatabase, type Database,
+  readAll,
+  containsPattern,
 } from "@devcontext/db";
 import {
   unavailableProfilesError,
@@ -56,8 +58,8 @@ async function decorate(executor: Executor, ownerUserId: string, rows: ProjectRo
   if (rows.length === 0) return [];
   const ids = rows.map((row) => row.id);
   const recipeIds = [...new Set(rows.flatMap((row) => row.recipeId ? [row.recipeId] : []))];
-  const [attachments, profileRows, recipeRows] = await Promise.all([
-    executor
+  const [attachments, profileRows, recipeRows] = await readAll(executor, [
+    () => executor
       .select({
         projectId: projectResources.projectId,
         attachedAt: projectResources.createdAt,
@@ -72,7 +74,7 @@ async function decorate(executor: Executor, ownerUserId: string, rows: ProjectRo
       .innerJoin(resources, eq(projectResources.resourceId, resources.id))
       .where(and(inArray(projectResources.projectId, ids), eq(resources.ownerUserId, ownerUserId)))
       .orderBy(projectResources.createdAt, resources.name),
-    executor
+    () => executor
       .select({
         projectId: projectProfiles.projectId,
         priority: projectProfiles.priority,
@@ -86,7 +88,7 @@ async function decorate(executor: Executor, ownerUserId: string, rows: ProjectRo
       .innerJoin(profiles, eq(projectProfiles.profileId, profiles.id))
       .where(and(inArray(projectProfiles.projectId, ids), eq(profiles.ownerUserId, ownerUserId)))
       .orderBy(desc(projectProfiles.priority), profiles.name),
-    recipeIds.length === 0
+    () => recipeIds.length === 0
       ? Promise.resolve([])
       : executor
         .select({ id: recipes.id, name: recipes.name, slug: recipes.slug, archivedAt: recipes.archivedAt })
@@ -218,7 +220,7 @@ export function createProjectRepository(database: RepositoryDatabase): ProjectRe
       if (query.status !== "all") conditions.push(eq(projects.status, query.status));
       if (query.stage) conditions.push(eq(projects.stage, query.stage));
       if (query.q) {
-        const pattern = `%${query.q}%`;
+        const pattern = containsPattern(query.q);
         conditions.push(or(
           ilike(projects.name, pattern),
           ilike(projects.description, pattern),
@@ -226,15 +228,15 @@ export function createProjectRepository(database: RepositoryDatabase): ProjectRe
         )!);
       }
       const where = and(...conditions);
-      const [rows, totalRows] = await Promise.all([
-        database.db
+      const [rows, totalRows] = await readAll(database.db, [
+        () => database.db
           .select()
           .from(projects)
           .where(where)
           .orderBy(desc(projects.updatedAt), projects.name)
           .limit(query.limit)
           .offset(query.offset),
-        database.db.select({ value: count() }).from(projects).where(where),
+        () => database.db.select({ value: count() }).from(projects).where(where),
       ]);
       return { projects: await decorate(database.db, ownerUserId, rows), total: totalRows[0]?.value ?? 0 };
     },
@@ -382,10 +384,10 @@ export function createProjectRepository(database: RepositoryDatabase): ProjectRe
         }
         // Owner scoping is inherited from the source rows: every copied row already
         // belongs to this Project, so no foreign entity can be referenced.
-        const [attachments, attachedProfiles, decisions] = await Promise.all([
-          transaction.select({ resourceId: projectResources.resourceId }).from(projectResources).where(eq(projectResources.projectId, projectId)),
-          transaction.select({ profileId: projectProfiles.profileId, priority: projectProfiles.priority }).from(projectProfiles).where(eq(projectProfiles.projectId, projectId)),
-          transaction.select().from(projectDecisions).where(eq(projectDecisions.projectId, projectId)),
+        const [attachments, attachedProfiles, decisions] = await readAll(transaction, [
+          () => transaction.select({ resourceId: projectResources.resourceId }).from(projectResources).where(eq(projectResources.projectId, projectId)),
+          () => transaction.select({ profileId: projectProfiles.profileId, priority: projectProfiles.priority }).from(projectProfiles).where(eq(projectProfiles.projectId, projectId)),
+          () => transaction.select().from(projectDecisions).where(eq(projectDecisions.projectId, projectId)),
         ]);
         if (attachments.length > 0) {
           await transaction.insert(projectResources).values(attachments.map((row) => ({ projectId: insertedId, resourceId: row.resourceId }))).onConflictDoNothing();

@@ -1,9 +1,10 @@
-import type {
-  BatchProjectDecisionsInput,
-  DecisionMode,
-  DecisionRecord,
-  ProjectDecisionView,
-  UpsertProjectDecisionInput,
+import {
+  portableLimits,
+  type BatchProjectDecisionsInput,
+  type DecisionMode,
+  type DecisionRecord,
+  type ProjectDecisionView,
+  type UpsertProjectDecisionInput,
 } from "@devcontext/contracts";
 
 export type DecisionValues = {
@@ -53,6 +54,27 @@ function decisionError(code: string, path: string[] = ["resourceId"]) {
     statusCode: 400,
     details: [{ path, code }],
   });
+}
+
+/**
+ * A Project, Profile or Recipe holds at most `portableLimits.decisionsPerEntity`
+ * decisions: the bound the portable format enforces, so anything built through
+ * the API can be exported and imported again.
+ */
+export function decisionLimitError() {
+  return Object.assign(new Error("Decision limit reached"), {
+    statusCode: 409,
+    details: [{ path: ["decisions"], code: "decision_limit" }],
+    publicMessage: `A project, profile or recipe can hold at most ${portableLimits.decisionsPerEntity} decisions. Remove one before adding another.`,
+  });
+}
+
+/** Throws `decisionLimitError` when writing `written` (and removing `removed`) would exceed the per-entity bound. */
+export function assertDecisionCapacity(existing: string[], written: string[], removed: string[] = []) {
+  const slots = new Set(existing);
+  for (const slot of removed) slots.delete(slot);
+  for (const slot of written) slots.add(slot);
+  if (slots.size > portableLimits.decisionsPerEntity) throw decisionLimitError();
 }
 
 /** Missing, foreign and archived Resources are reported identically. */
@@ -150,12 +172,11 @@ export function createDecisionService(repository: DecisionRepository): DecisionS
   }
 
   async function listViews(ownerUserId: string, projectId: string) {
-    const [projectDecisions, recipeDecisions, profileDecisions, globalDecisions] = await Promise.all([
-      repository.listProjectDecisions(ownerUserId, projectId),
-      repository.listRecipeDecisions(ownerUserId, projectId),
-      repository.listProfileDecisions(ownerUserId, projectId),
-      repository.listGlobalDecisions(ownerUserId),
-    ]);
+    // One layer after another: the repository may be bound to a transaction (sample install), which is one connection.
+    const projectDecisions = await repository.listProjectDecisions(ownerUserId, projectId);
+    const recipeDecisions = await repository.listRecipeDecisions(ownerUserId, projectId);
+    const profileDecisions = await repository.listProfileDecisions(ownerUserId, projectId);
+    const globalDecisions = await repository.listGlobalDecisions(ownerUserId);
     return mergeDecisions(projectDecisions, recipeDecisions, profileDecisions, globalDecisions);
   }
 

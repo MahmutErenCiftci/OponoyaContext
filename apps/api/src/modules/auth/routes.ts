@@ -5,7 +5,25 @@ import { applyRateLimitHeaders, rateLimitedError, ruleForRoute, type RateLimiter
 import type { Telemetry } from "../telemetry/service.js";
 import type { AuthProvider } from "./service.js";
 
-export type AuthRouteOptions = { limiter: RateLimiter; policy: RateLimitPolicy; telemetry: Telemetry };
+export type AuthRouteOptions = {
+  limiter: RateLimiter;
+  policy: RateLimitPolicy;
+  telemetry: Telemetry;
+  /** True when an e-mail sender is configured; only then are the reset endpoints reachable. */
+  passwordReset?: boolean;
+};
+
+/**
+ * Better Auth endpoints the product uses over HTTP. Everything else it can
+ * serve (user deletion, profile or e-mail updates, session listing, social
+ * callbacks) answers 404: account changes go through the API's own routes,
+ * where the typed confirmation, password re-check, billing revocation and
+ * audit trail live.
+ */
+export const allowedAuthEndpoints = new Set(["POST /sign-in/email", "POST /sign-up/email", "POST /sign-out"]);
+
+/** Added to the allow-list only with an e-mail sender: request a link (always answers alike), then set a new password with its token. */
+export const passwordResetEndpoints = new Set(["POST /request-password-reset", "POST /reset-password"]);
 
 function authenticationError() {
   return Object.assign(new Error("Authentication required"), { statusCode: 401 });
@@ -41,6 +59,11 @@ function readUserId(body: Buffer): string | null {
 }
 
 export async function registerAuthRoutes(app: FastifyInstance, auth: AuthProvider, options: AuthRouteOptions) {
+  const allowed = new Set([...allowedAuthEndpoints, ...(options.passwordReset ? passwordResetEndpoints : [])]);
+
+  /** Public: which optional sign-in features this deployment offers, so the web app never links to a dead end. */
+  app.get("/v1/auth/options", async () => ({ options: { passwordReset: Boolean(options.passwordReset) } }));
+
   app.decorateRequest("currentUser", null);
   /**
    * Resolves the session and applies the per-user rate limit for the matched
@@ -62,12 +85,18 @@ export async function registerAuthRoutes(app: FastifyInstance, auth: AuthProvide
     onRequest: async (request, reply) => {
       if (request.method === "GET" || request.method === "HEAD") return;
       request.rateLimitRule = options.policy.auth.name;
-      const verdict = options.limiter.consume(options.policy.auth, `ip:${request.ip}`);
+      const verdict = options.limiter.consume(options.policy.auth, `ip:${request.clientIp || request.ip}`);
       applyRateLimitHeaders(reply, verdict);
       if (!verdict.allowed) throw rateLimitedError();
     },
   }, async (request, reply) => {
-    const url = new URL(request.raw.url ?? request.url, app.config.BETTER_AUTH_URL);
+    // Only the path and query travel on: an absolute-form request line cannot choose another origin for Better Auth.
+    const requested = new URL(request.raw.url ?? request.url, "http://request.invalid");
+    const url = new URL(`${requested.pathname}${requested.search}`, app.config.BETTER_AUTH_URL);
+    const endpoint = url.pathname.startsWith("/api/auth/") ? url.pathname.slice("/api/auth".length) : url.pathname;
+    if (!allowed.has(`${request.method} ${endpoint}`)) {
+      throw Object.assign(new Error("Auth endpoint not available"), { statusCode: 404 });
+    }
     const init: RequestInit = {
       method: request.method,
       headers: fromNodeHeaders(request.headers),
@@ -92,7 +121,7 @@ export async function registerAuthRoutes(app: FastifyInstance, auth: AuthProvide
     return sendAuthResponse(response, payload, reply);
   });
 
-  app.get("/v1/me", { preHandler: app.authenticate }, async (request) => ({
+  app.get("/v1/me", { onRequest: app.authenticate }, async (request) => ({
     user: request.currentUser,
   }));
 }

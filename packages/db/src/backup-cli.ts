@@ -68,8 +68,9 @@ async function main() {
   if (command === "backup") {
     const path = values.out ? resolve(values.out) : defaultBackupPath();
     const snapshot = await withConnection(url, (exec) => createSnapshot(exec));
-    await mkdir(dirname(path), { recursive: true });
-    await writeFile(path, JSON.stringify(snapshot), "utf8");
+    // Snapshots hold password hashes and session tokens: owner-only on POSIX (Windows ignores the modes; keep backups/ private).
+    await mkdir(dirname(path), { recursive: true, mode: 0o700 });
+    await writeFile(path, JSON.stringify(snapshot), { encoding: "utf8", mode: 0o600 });
     console.log(`Snapshot written to ${path} (${snapshot.migrations.length} migrations applied)`);
     printSummary(summarizeSnapshot(snapshot));
     return;

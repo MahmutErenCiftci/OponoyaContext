@@ -1,12 +1,13 @@
 "use client";
 
-import { accountSummaryResponseSchema, deleteAccountResponseSchema, type AccountSummary, type CurrentUser } from "@devcontext/contracts";
+import { accountSummaryResponseSchema, deleteAccountResponseSchema, type AccountSummary, type AiStatus, type CurrentUser } from "@devcontext/contracts";
 import { ArrowSquareOut, CheckCircle, CreditCard, DownloadSimple, ShieldCheck, Trash, Warning } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 import { useState, type FormEvent } from "react";
 import { DrawerFrame } from "../../../components/drawer";
 import { readApiError } from "../../../lib/errors";
 import { formatDateTime } from "../../../lib/resource-labels";
+import { AiConsent } from "./ai-consent";
 
 const storedLabels: Array<[keyof AccountSummary["stored"], string]> = [
   ["resources", "Kaynak"],
@@ -20,6 +21,7 @@ const storedLabels: Array<[keyof AccountSummary["stored"], string]> = [
   ["exports", "Dışa aktarma kaydı"],
   ["importRequests", "İçe aktarma kaydı"],
   ["auditEvents", "Etkinlik kaydı"],
+  ["aiSuggestions", "AI önerisi"],
   ["sessions", "Açık oturum"],
 ];
 
@@ -33,7 +35,7 @@ const failureText: Record<string, string> = {
 
 const planLabels: Record<string, string> = { free: "Free", pro: "Pro" };
 
-export function PrivacySection({ initial, user, onNotice }: { initial: AccountSummary | null; user: CurrentUser; onNotice(text: string): void }) {
+export function PrivacySection({ initial, user, ai, onNotice }: { initial: AccountSummary | null; user: CurrentUser; ai: AiStatus | null; onNotice(text: string, tone?: "ok" | "error"): void }) {
   const [account, setAccount] = useState(initial);
   const [exporting, setExporting] = useState(false);
   const [dialog, setDialog] = useState(false);
@@ -61,7 +63,7 @@ export function PrivacySection({ initial, user, onNotice }: { initial: AccountSu
     setExporting(true);
     try {
       const response = await fetch("/api/account/export", { cache: "no-store" });
-      if (!response.ok) { onNotice((await readApiError(response)).message); return; }
+      if (!response.ok) { onNotice((await readApiError(response)).message, "error"); return; }
       const url = URL.createObjectURL(await response.blob());
       const link = document.createElement("a");
       link.href = url;
@@ -72,7 +74,7 @@ export function PrivacySection({ initial, user, onNotice }: { initial: AccountSu
       window.setTimeout(() => URL.revokeObjectURL(url), 1_000);
       onNotice("Hesap verilerin indirildi.");
     } catch {
-      onNotice("Dışa aktarma indirilemedi. Tekrar dene.");
+      onNotice("Dışa aktarma indirilemedi. Tekrar dene.", "error");
     } finally {
       setExporting(false);
     }
@@ -130,10 +132,13 @@ export function PrivacySection({ initial, user, onNotice }: { initial: AccountSu
           </dl>
         )}
         <ul className="disclosure-list">
-          <li><ShieldCheck aria-hidden size={20} /><span><strong>Dış yapay zekâ işleme: kapalı.</strong> Talimatlar bu sunucuda deterministik olarak derlenir; hiçbir veri bir AI sağlayıcısına gönderilmez.</span></li>
+          {ai?.available
+            ? <li><ShieldCheck aria-hidden size={20} /><span><strong>Talimatlar her zaman bu sunucuda deterministik olarak derlenir.</strong> AI önerileri isteğe bağlıdır; aşağıdan açıp kapatabilirsin.</span></li>
+            : <li><ShieldCheck aria-hidden size={20} /><span><strong>Dış yapay zekâ işleme: kapalı.</strong> Talimatlar bu sunucuda deterministik olarak derlenir; hiçbir veri bir AI sağlayıcısına gönderilmez.</span></li>}
           <li><ShieldCheck aria-hidden size={20} /><span>İçe aktardığın URL’ler, promptlar, kurallar ve kurulum komutları yalnızca metin olarak saklanır; asla açılmaz, indirilmez ya da çalıştırılmaz.</span></li>
           <li><ShieldCheck aria-hidden size={20} /><span>Etkinlik kaydı ve sunucu günlükleri içerik değil, yalnızca işlem türü, kayıt kimliği ve sayı tutar.</span></li>
         </ul>
+        {ai?.available && <AiConsent initial={ai} onNotice={onNotice} />}
       </div>
 
       <div className="numbered-section">
@@ -161,7 +166,7 @@ export function PrivacySection({ initial, user, onNotice }: { initial: AccountSu
           </div>
           <Link className="button small" href="/workspace/billing">Aboneliği yönet <ArrowSquareOut aria-hidden size={16} /></Link>
         </div>
-        <p className="muted small" style={{ marginTop: 12 }}>Başka dış entegrasyon yok: GitHub, AI sağlayıcısı veya başka bir hizmet bağlı değil; bu sürümde bağlanamaz.</p>
+        <p className="muted small" style={{ marginTop: 12 }}>GitHub gibi başka bir dış hizmet bağlı değil; bu sürümde bağlanamaz.</p>
       </div>
 
       <div className="danger-zone">

@@ -28,11 +28,11 @@ function idempotencyKey(headers: Record<string, string | string[] | undefined>) 
 }
 
 export async function registerProjectRoutes(app: FastifyInstance, projects: ProjectService) {
-  app.get("/v1/projects", { preHandler: app.authenticate }, async (request) =>
+  app.get("/v1/projects", { onRequest: app.authenticate }, async (request) =>
     projects.list(ownerId(request), projectListQuerySchema.parse(request.query)),
   );
 
-  app.post("/v1/projects", { preHandler: app.authenticate }, async (request, reply) => {
+  app.post("/v1/projects", { onRequest: app.authenticate }, async (request, reply) => {
     await app.entitlements.assertCanCreate(ownerId(request), "projects");
     const result = await projects.create(
       ownerId(request),
@@ -49,12 +49,12 @@ export async function registerProjectRoutes(app: FastifyInstance, projects: Proj
     return reply.code(result.created ? 201 : 200).send({ project: result.project });
   });
 
-  app.get("/v1/projects/:id", { preHandler: app.authenticate }, async (request) => {
+  app.get("/v1/projects/:id", { onRequest: app.authenticate }, async (request) => {
     const { id } = projectParamsSchema.parse(request.params);
     return { project: await projects.get(ownerId(request), id) };
   });
 
-  app.patch("/v1/projects/:id", { preHandler: app.authenticate }, async (request) => {
+  app.patch("/v1/projects/:id", { onRequest: app.authenticate }, async (request) => {
     const { id } = projectParamsSchema.parse(request.params);
     const input = updateProjectSchema.parse(request.body);
     const project = await projects.update(ownerId(request), id, input);
@@ -64,7 +64,7 @@ export async function registerProjectRoutes(app: FastifyInstance, projects: Proj
     return { project };
   });
 
-  app.post("/v1/projects/:id/clone", { preHandler: app.authenticate }, async (request, reply) => {
+  app.post("/v1/projects/:id/clone", { onRequest: app.authenticate }, async (request, reply) => {
     const { id } = projectParamsSchema.parse(request.params);
     await app.entitlements.assertCanCreate(ownerId(request), "projects");
     const result = await projects.clone(ownerId(request), id, cloneProjectSchema.parse(request.body ?? {}), idempotencyKey(request.headers));
@@ -78,7 +78,7 @@ export async function registerProjectRoutes(app: FastifyInstance, projects: Proj
     return reply.code(result.created ? 201 : 200).send({ project: result.project, created: result.created });
   });
 
-  app.put("/v1/projects/:id/profiles", { preHandler: app.authenticate }, async (request) => {
+  app.put("/v1/projects/:id/profiles", { onRequest: app.authenticate }, async (request) => {
     const { id } = projectParamsSchema.parse(request.params);
     const input = setProjectProfilesSchema.parse(request.body);
     const project = await projects.update(ownerId(request), id, input);
@@ -88,14 +88,14 @@ export async function registerProjectRoutes(app: FastifyInstance, projects: Proj
     return { profiles: project.profiles };
   });
 
-  app.delete("/v1/projects/:id", { preHandler: app.authenticate }, async (request) => {
+  app.delete("/v1/projects/:id", { onRequest: app.authenticate }, async (request) => {
     const { id } = projectParamsSchema.parse(request.params);
     const project = await projects.archive(ownerId(request), id);
     await app.telemetry.record(actor(request), { action: "project.archived", entityType: "project", entityId: id });
     return { project };
   });
 
-  app.post("/v1/projects/:id/restore", { preHandler: app.authenticate }, async (request) => {
+  app.post("/v1/projects/:id/restore", { onRequest: app.authenticate }, async (request) => {
     const { id } = projectParamsSchema.parse(request.params);
     await app.entitlements.assertCanCreate(ownerId(request), "projects");
     const project = await projects.restore(ownerId(request), id);

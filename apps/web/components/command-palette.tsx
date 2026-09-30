@@ -185,7 +185,7 @@ export function CommandPalette() {
               ))}
               {state === "loading" && <p className="palette-status">Aranıyor…</p>}
             </div>
-            <footer className="palette-footer"><span>↑↓ gezin</span><span>↵ aç</span><span>esc kapat</span></footer>
+            <footer className="palette-footer"><span>↑↓ seç</span><span>↵ aç</span><span>esc kapat</span></footer>
           </section>
         </div>
       )}

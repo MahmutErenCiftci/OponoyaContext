@@ -36,6 +36,7 @@ function auth(): AuthProvider {
     },
     async verifyPassword() { return true; },
     async deleteUser() { return { setCookie: [] }; },
+    async changePassword() { return { setCookie: [] }; },
   };
 }
 
@@ -48,7 +49,7 @@ function portability(): PortabilityService {
     exportWorkspace: vi.fn(async (ownerUserId) => ({ ...emptyDocument, resources: ownerUserId === ownerA ? [{ ref: "r1", name: "Next.js", type: "framework" as const, description: null, sourceUrl: null, docsUrl: null, repoUrl: null, installCommand: null, notes: null, metadata: {}, tags: [], favorite: false, archived: false, preference: null }] : [] })),
     importWorkspace: vi.fn(async (_ownerUserId, request, idempotencyKey) => {
       const document = request.document as { version?: number };
-      if (document.version === 2) throw Object.assign(new Error("Import document is invalid"), { statusCode: 400, details: [{ path: ["document", "version"], code: "unsupported_version" }], publicMessage: "This file uses DevContext export version 2, which is newer than this app supports (version 1). Update the app before importing it." });
+      if (document.version === 2) throw Object.assign(new Error("Import document is invalid"), { statusCode: 400, details: [{ path: ["document", "version"], code: "unsupported_version" }], publicMessage: "This file uses Oponoya export version 2, which is newer than this app supports (version 1). Update the app before importing it." });
       const replay = idempotencyKey === "00000000-0000-4000-8000-000000000096";
       return { summary: { ...summary, strategy: request.strategy, dryRun: request.dryRun }, applied: !request.dryRun, created: !request.dryRun && !replay };
     }),
@@ -132,14 +133,14 @@ describe("portability, recipes, samples and settings routes", () => {
     const preview = await app.inject({ method: "POST", url: "/v1/workspace/import", headers, payload: { document: emptyDocument } });
     expect(preview.statusCode).toBe(200);
     expect(importResponseSchema.parse(preview.json())).toMatchObject({ applied: false, created: false, summary: { dryRun: true, strategy: "skip" } });
-    expect(portability.importWorkspace).toHaveBeenLastCalledWith(ownerA, { document: emptyDocument, strategy: "skip", dryRun: true }, undefined);
+    expect(portability.importWorkspace).toHaveBeenLastCalledWith(ownerA, { document: emptyDocument, strategy: "skip", dryRun: true }, undefined, expect.any(Function));
     expect(audit.events).toHaveLength(0);
 
     const key = "00000000-0000-4000-8000-000000000095";
     const applied = await app.inject({ method: "POST", url: "/v1/workspace/import", headers: { ...headers, "idempotency-key": key }, payload: { document: emptyDocument, strategy: "copy", dryRun: false } });
     expect(applied.statusCode).toBe(201);
     expect(importResponseSchema.parse(applied.json())).toMatchObject({ applied: true, created: true, summary: { strategy: "copy", dryRun: false } });
-    expect(portability.importWorkspace).toHaveBeenLastCalledWith(ownerA, { document: emptyDocument, strategy: "copy", dryRun: false }, key);
+    expect(portability.importWorkspace).toHaveBeenLastCalledWith(ownerA, { document: emptyDocument, strategy: "copy", dryRun: false }, key, expect.any(Function));
     expect(audit.events).toEqual([expect.objectContaining({ action: "workspace.import_completed", metadata: { strategy: "copy", created: 3, skipped: 1, replaced: 0, copied: 0 } })]);
     expect(JSON.stringify(audit.events)).not.toContain("Next.js");
 

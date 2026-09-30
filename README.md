@@ -1,8 +1,6 @@
-# DevContext OS — AI-Native Developer Workspace
+# Oponoya — AI-Native Developer Workspace
 
-> Working name only. Rename before launch.
-
-DevContext OS is a SaaS for developers and AI-native builders who want one place to store **how they build software**: technologies, frameworks, databases, components, themes, animations, repositories, templates, prompts, AI tools, architectural preferences, deployment choices, and reusable rules.
+Oponoya is a SaaS for developers and AI-native builders who want one place to store **how they build software**: technologies, frameworks, databases, components, themes, animations, repositories, templates, prompts, AI tools, architectural preferences, deployment choices, and reusable rules.
 
 The product turns that personal/team development system into project-specific context for coding agents such as Codex, Claude Code, Cursor and GitHub Copilot.
 
@@ -136,8 +134,9 @@ the local and CI container smoke test and contains no real secret.
 
 ## Status
 
-V1.0 code is complete and covered by 198 unit/integration tests plus 13
-Playwright journeys. The V1.0 launch gate is **BLOCKED** — not on any code or
+V1.0 code is complete and covered by 291 unit/integration tests plus 15
+Playwright journeys. AI suggestions are implemented behind configuration and
+stay off (`AI_PROVIDER=none`) until the owner enables a provider. The V1.0 launch gate is **BLOCKED** — not on any code or
 configuration defect, but on items only the owner can supply: hosting and
 managed PostgreSQL, DNS/TLS, a monitoring destination, and legal values and
 approval. Launch mode is a free beta (`BILLING_PROVIDER=none`).

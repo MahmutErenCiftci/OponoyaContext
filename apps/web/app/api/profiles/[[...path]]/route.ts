@@ -1,28 +1,9 @@
-import type { NextRequest } from "next/server";
-import { getApiBaseUrl } from "../../../../lib/api";
+import { apiProxy } from "../../../../lib/proxy";
 
-type RouteContext = { params: Promise<{ path?: string[] }> };
+const proxy = apiProxy({ prefix: "/v1/profiles", unavailableMessage: "Profil hizmetine şu an ulaşılamıyor." });
 
-async function proxyProfileRequest(request: NextRequest, context: RouteContext) {
-  const { path = [] } = await context.params;
-  const suffix = path.length > 0 ? `/${path.map(encodeURIComponent).join("/")}` : "";
-  const target = new URL(`/v1/profiles${suffix}`, getApiBaseUrl());
-  target.search = request.nextUrl.search;
-  const headers = new Headers(request.headers);
-  headers.delete("host");
-  headers.delete("content-length");
-  const init: RequestInit = { method: request.method, headers, redirect: "manual" };
-  if (!["GET", "HEAD"].includes(request.method)) init.body = await request.arrayBuffer();
-  try {
-    const upstream = await fetch(target, init);
-    return new Response(upstream.body, { status: upstream.status, headers: upstream.headers });
-  } catch {
-    return Response.json({ error: { message: "Profile service is unavailable." } }, { status: 502 });
-  }
-}
-
-export const GET = proxyProfileRequest;
-export const POST = proxyProfileRequest;
-export const PUT = proxyProfileRequest;
-export const PATCH = proxyProfileRequest;
-export const DELETE = proxyProfileRequest;
+export const GET = proxy;
+export const POST = proxy;
+export const PUT = proxy;
+export const PATCH = proxy;
+export const DELETE = proxy;

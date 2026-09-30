@@ -10,8 +10,11 @@ export async function runMigrations(database: Pick<Database, "db">) {
   await migrate(database.db, { migrationsFolder });
 }
 
+/** Index builds and backfills may legitimately run longer than the API's 5 s statement budget. */
+const migrationStatementTimeoutMs = 10 * 60 * 1000;
+
 async function main() {
-  const database = createDatabase(readDatabaseUrl());
+  const database = createDatabase(readDatabaseUrl(), { statementTimeoutMs: migrationStatementTimeoutMs, max: 1 });
   try {
     await runMigrations(database);
     console.log("Database migrations applied successfully.");

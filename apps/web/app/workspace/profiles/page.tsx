@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getProfileList } from "../../../lib/api";
 import { loadSession } from "../../../lib/server-session";
@@ -5,7 +6,7 @@ import { ServiceUnavailable } from "../unavailable";
 import { WorkspaceShell } from "../workspace-shell";
 import { ProfilesClient } from "./profiles-client";
 
-export const dynamic = "force-dynamic";
+export const metadata: Metadata = { title: "Profiller" };
 
 export default async function ProfilesPage({ searchParams }: { searchParams: Promise<{ new?: string }> }) {
   const session = await loadSession();
@@ -13,7 +14,8 @@ export default async function ProfilesPage({ searchParams }: { searchParams: Pro
   if (session.status === "anonymous") redirect("/auth");
   const { user, cookieHeader } = session;
   const query = await searchParams;
-  const initial = await getProfileList(cookieHeader);
+  const initial = await getProfileList(cookieHeader, new URLSearchParams({ limit: "100" }));
+  if (!initial) return <ServiceUnavailable />;
 
   return (
     <WorkspaceShell active="Profiles" user={user}>

@@ -138,7 +138,7 @@ describe("Profiles and composer persistence", () => {
     const [atlas] = (await projects.list(ownerA, { status: "active", limit: 10, offset: 0 })).projects;
     const compiled = await context.compile(ownerA, atlas!.id);
     const { canonical } = compiled.version;
-    expect(canonical.compilerVersion).toBe("0.4.1");
+    expect(canonical.compilerVersion).toBe("0.4.3");
     expect(canonical.rules).toEqual(["Prefer boring technology."]);
     const framework = canonical.decisions.find((decision) => decision.slot === "frontend.framework");
     expect(framework).toMatchObject({ source: "project", mode: "LOCKED" });

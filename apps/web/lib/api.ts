@@ -1,15 +1,18 @@
 import {
   accountSummaryResponseSchema,
+  aiStatusResponseSchema,
+  aiSuggestionListResponseSchema,
   auditEventListResponseSchema,
   billingSummaryResponseSchema,
   legalConfigResponseSchema,
+  authOptionsResponseSchema,
+  type AuthOptions,
   catalogLibraryLinksResponseSchema,
   catalogOverviewResponseSchema,
   catalogStackListResponseSchema,
   catalogStackResponseSchema,
   catalogTechnologyListResponseSchema,
   catalogTechnologyResponseSchema,
-  contextDiffResponseSchema,
   contextStateResponseSchema,
   contextVersionListResponseSchema,
   exportListResponseSchema,
@@ -17,6 +20,7 @@ import {
   healthResponseSchema,
   profileListResponseSchema,
   profileResponseSchema,
+  projectContextStatusResponseSchema,
   projectDecisionsResponseSchema,
   projectListResponseSchema,
   projectResponseSchema,
@@ -26,6 +30,8 @@ import {
   workspaceSettingsResponseSchema,
   workspaceSummarySchema,
   type AccountSummary,
+  type AiStatus,
+  type AiSuggestion,
   type AuditEvent,
   type BillingSummary,
   type LegalConfig,
@@ -43,6 +49,7 @@ import {
   type Profile,
   type ProfileSummary,
   type Project,
+  type ProjectContextStatus,
   type ProjectDecisionView,
   type Recipe,
   type RecipeSummary,
@@ -50,16 +57,38 @@ import {
   type WorkspaceSettings,
   type WorkspaceSummary,
 } from "@devcontext/contracts";
+import { cache } from "react";
 import { z } from "zod";
 import { readSession } from "./session";
 
+/**
+ * Server-side readers for pages. Every response is validated against the
+ * shared contract; anything unexpected (network failure, non-2xx, malformed
+ * body) becomes `null` so pages can show an honest "could not load" state.
+ * Readers keyed by an entity are wrapped in React `cache()`: a page and its
+ * `generateMetadata` share one request per render.
+ */
+
 const apiUrlSchema = z.url().refine((value) => ["http:", "https:"].includes(URL.parse(value)?.protocol ?? ""));
 
-export function getApiBaseUrl(apiUrl: string = process.env.API_URL ?? "http://localhost:4000") {
+/** Development default; a production server without `API_URL` refuses to guess. */
+const developmentApiUrl = "http://localhost:4000";
+
+function configuredApiUrl() {
+  const value = process.env.API_URL;
+  if (value) return value;
+  if (process.env.NODE_ENV === "production") throw new Error("API_URL is not configured");
+  return developmentApiUrl;
+}
+
+export function getApiBaseUrl(apiUrl: string = configuredApiUrl()) {
   return apiUrlSchema.parse(apiUrl);
 }
 
-export async function getWorkspaceStatus(apiUrl: string = process.env.API_URL ?? "http://localhost:4000"): Promise<"connected" | "unavailable"> {
+/** Server-side reads wait at most this long; the page then shows its unavailable state. */
+const readTimeoutMs = 5_000;
+
+export async function getWorkspaceStatus(apiUrl?: string): Promise<"connected" | "unavailable"> {
   try {
     const base = getApiBaseUrl(apiUrl);
     const response = await fetch(new URL("/health", base), {
@@ -74,389 +103,177 @@ export async function getWorkspaceStatus(apiUrl: string = process.env.API_URL ??
 }
 
 /** Server-side read on behalf of the signed-in user; the session cookie is forwarded untouched. */
-function fetchAsUser(path: string, cookieHeader: string, apiUrl: string, searchParams?: URLSearchParams) {
+function fetchAsUser(path: string, cookieHeader: string, apiUrl: string | undefined, searchParams?: URLSearchParams) {
   const target = new URL(path, getApiBaseUrl(apiUrl));
   if (searchParams) target.search = searchParams.toString();
   return fetch(target, {
     cache: "no-store",
     headers: cookieHeader ? { cookie: cookieHeader } : {},
-    signal: AbortSignal.timeout(3_000),
+    signal: AbortSignal.timeout(readTimeoutMs),
   });
 }
 
-/** Signed-in user or null; pages that must tell an outage apart from a signed-out visitor use `readSession`. */
-export async function getCurrentUser(
+/** One validated read: the parsed and picked value, or null for any failure. */
+async function readAsUser<S extends z.ZodType, T>(
+  path: string | null,
+  schema: S,
+  pick: (data: z.infer<S>) => T,
   cookieHeader: string,
-  apiUrl: string = process.env.API_URL ?? "http://localhost:4000",
-): Promise<CurrentUser | null> {
+  apiUrl?: string,
+  searchParams?: URLSearchParams,
+): Promise<T | null> {
+  if (path === null) return null;
+  try {
+    const response = await fetchAsUser(path, cookieHeader, apiUrl, searchParams);
+    if (!response.ok) return null;
+    const parsed = schema.safeParse(await response.json());
+    return parsed.success ? pick(parsed.data) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** One encoded path segment; empty and dot segments (which URL parsing would resolve away) read as "not found". */
+function entityPath(prefix: string, id: string, suffix = ""): string | null {
+  if (id === "" || /^(?:\.|%2e){1,2}$/i.test(id)) return null;
+  return `${prefix}/${encodeURIComponent(id)}${suffix}`;
+}
+
+/** Signed-in user or null; pages that must tell an outage apart from a signed-out visitor use `readSession`. */
+export async function getCurrentUser(cookieHeader: string, apiUrl?: string): Promise<CurrentUser | null> {
   const session = await readSession(cookieHeader, apiUrl);
   return session.status === "authenticated" ? session.user : null;
 }
 
-/** The caller's own audit trail, newest first; empty when it cannot be loaded. */
-export async function getAuditEvents(
-  cookieHeader: string,
-  searchParams: URLSearchParams = new URLSearchParams({ limit: "8" }),
-  apiUrl: string = process.env.API_URL ?? "http://localhost:4000",
-): Promise<AuditEvent[] | null> {
-  try {
-    const response = await fetchAsUser("/v1/audit", cookieHeader, apiUrl, searchParams);
-    if (!response.ok) return null;
-    const parsed = auditEventListResponseSchema.safeParse(await response.json());
-    return parsed.success ? parsed.data.events : null;
-  } catch {
-    return null;
-  }
+/** The caller's own audit trail, newest first; null when it cannot be loaded. */
+export function getAuditEvents(cookieHeader: string, searchParams: URLSearchParams = new URLSearchParams({ limit: "8" }), apiUrl?: string): Promise<AuditEvent[] | null> {
+  return readAsUser("/v1/audit", auditEventListResponseSchema, (data) => data.events, cookieHeader, apiUrl, searchParams);
 }
 
-export async function getResourceList(
-  cookieHeader: string,
-  searchParams: URLSearchParams = new URLSearchParams(),
-  apiUrl: string = process.env.API_URL ?? "http://localhost:4000",
-): Promise<{ resources: Resource[]; total: number }> {
-  try {
-    const response = await fetchAsUser("/v1/resources", cookieHeader, apiUrl, searchParams);
-    if (!response.ok) return { resources: [], total: 0 };
-    const parsed = resourceListResponseSchema.safeParse(await response.json());
-    return parsed.success ? parsed.data : { resources: [], total: 0 };
-  } catch {
-    return { resources: [], total: 0 };
-  }
+/** Library page; null when the list could not be loaded (never an empty list pretending to be real). */
+export function getResourceList(cookieHeader: string, searchParams: URLSearchParams = new URLSearchParams(), apiUrl?: string): Promise<{ resources: Resource[]; total: number } | null> {
+  return readAsUser("/v1/resources", resourceListResponseSchema, (data) => data, cookieHeader, apiUrl, searchParams);
 }
 
-export async function getProjectList(
-  cookieHeader: string,
-  searchParams: URLSearchParams = new URLSearchParams(),
-  apiUrl: string = process.env.API_URL ?? "http://localhost:4000",
-): Promise<{ projects: Project[]; total: number }> {
-  try {
-    const response = await fetchAsUser("/v1/projects", cookieHeader, apiUrl, searchParams);
-    if (!response.ok) return { projects: [], total: 0 };
-    const parsed = projectListResponseSchema.safeParse(await response.json());
-    return parsed.success ? parsed.data : { projects: [], total: 0 };
-  } catch {
-    return { projects: [], total: 0 };
-  }
+export function getProjectList(cookieHeader: string, searchParams: URLSearchParams = new URLSearchParams(), apiUrl?: string): Promise<{ projects: Project[]; total: number } | null> {
+  return readAsUser("/v1/projects", projectListResponseSchema, (data) => data, cookieHeader, apiUrl, searchParams);
 }
 
 /** `null` when the Project is missing or the decisions could not be loaded, so the page can say so. */
-export async function getProjectDecisions(
-  cookieHeader: string,
-  projectId: string,
-  apiUrl: string = process.env.API_URL ?? "http://localhost:4000",
-): Promise<ProjectDecisionView[] | null> {
-  try {
-    const response = await fetchAsUser(`/v1/projects/${encodeURIComponent(projectId)}/decisions`, cookieHeader, apiUrl);
-    if (!response.ok) return null;
-    const parsed = projectDecisionsResponseSchema.safeParse(await response.json());
-    return parsed.success ? parsed.data.decisions : null;
-  } catch {
-    return null;
-  }
+export function getProjectDecisions(cookieHeader: string, projectId: string, apiUrl?: string): Promise<ProjectDecisionView[] | null> {
+  return readAsUser(entityPath("/v1/projects", projectId, "/decisions"), projectDecisionsResponseSchema, (data) => data.decisions, cookieHeader, apiUrl);
 }
 
-export async function getProjectContext(
-  cookieHeader: string,
-  projectId: string,
-  apiUrl: string = process.env.API_URL ?? "http://localhost:4000",
-): Promise<ContextState | null> {
-  try {
-    const response = await fetchAsUser(`/v1/projects/${encodeURIComponent(projectId)}/context`, cookieHeader, apiUrl);
-    if (!response.ok) return null;
-    const parsed = contextStateResponseSchema.safeParse(await response.json());
-    return parsed.success ? parsed.data : null;
-  } catch {
-    return null;
-  }
+/** Full context state (canonical, previews): only the context and stack screens need it. */
+export function getProjectContext(cookieHeader: string, projectId: string, apiUrl?: string): Promise<ContextState | null> {
+  return readAsUser(entityPath("/v1/projects", projectId, "/context"), contextStateResponseSchema, (data) => data, cookieHeader, apiUrl);
 }
 
-export async function getContextVersions(
-  cookieHeader: string,
-  projectId: string,
-  apiUrl: string = process.env.API_URL ?? "http://localhost:4000",
-): Promise<ContextVersionSummary[]> {
-  try {
-    const response = await fetchAsUser(`/v1/projects/${encodeURIComponent(projectId)}/context/versions`, cookieHeader, apiUrl);
-    if (!response.ok) return [];
-    const parsed = contextVersionListResponseSchema.safeParse(await response.json());
-    return parsed.success ? parsed.data.versions : [];
-  } catch {
-    return [];
-  }
+/** Freshness of many Projects in one request, keyed by id; missing ids could not be loaded. */
+export async function getContextStatuses(cookieHeader: string, projectIds: string[], apiUrl?: string): Promise<Map<string, ProjectContextStatus>> {
+  const ids = [...new Set(projectIds)].slice(0, 50);
+  if (ids.length === 0) return new Map();
+  const statuses = await readAsUser("/v1/projects/context-status", projectContextStatusResponseSchema, (data) => data.statuses, cookieHeader, apiUrl, new URLSearchParams({ ids: ids.join(",") }));
+  return new Map((statuses ?? []).map((status) => [status.projectId, status]));
 }
 
-export async function getExportHistory(
-  cookieHeader: string,
-  projectId: string,
-  apiUrl: string = process.env.API_URL ?? "http://localhost:4000",
-): Promise<ExportEvent[]> {
-  try {
-    const response = await fetchAsUser(`/v1/projects/${encodeURIComponent(projectId)}/exports`, cookieHeader, apiUrl);
-    if (!response.ok) return [];
-    const parsed = exportListResponseSchema.safeParse(await response.json());
-    return parsed.success ? parsed.data.exports : [];
-  } catch {
-    return [];
-  }
+export async function getContextVersions(cookieHeader: string, projectId: string, apiUrl?: string): Promise<ContextVersionSummary[]> {
+  return (await readAsUser(entityPath("/v1/projects", projectId, "/context/versions"), contextVersionListResponseSchema, (data) => data.versions, cookieHeader, apiUrl)) ?? [];
 }
 
-export async function getProfileList(
-  cookieHeader: string,
-  searchParams: URLSearchParams = new URLSearchParams(),
-  apiUrl: string = process.env.API_URL ?? "http://localhost:4000",
-): Promise<{ profiles: ProfileSummary[]; total: number }> {
-  try {
-    const response = await fetchAsUser("/v1/profiles", cookieHeader, apiUrl, searchParams);
-    if (!response.ok) return { profiles: [], total: 0 };
-    const parsed = profileListResponseSchema.safeParse(await response.json());
-    return parsed.success ? parsed.data : { profiles: [], total: 0 };
-  } catch {
-    return { profiles: [], total: 0 };
-  }
+export async function getExportHistory(cookieHeader: string, projectId: string, apiUrl?: string): Promise<ExportEvent[]> {
+  return (await readAsUser(entityPath("/v1/projects", projectId, "/exports"), exportListResponseSchema, (data) => data.exports, cookieHeader, apiUrl)) ?? [];
 }
 
-export async function getProfile(
-  cookieHeader: string,
-  profileId: string,
-  apiUrl: string = process.env.API_URL ?? "http://localhost:4000",
-): Promise<Profile | null> {
-  try {
-    const response = await fetchAsUser(`/v1/profiles/${encodeURIComponent(profileId)}`, cookieHeader, apiUrl);
-    if (!response.ok) return null;
-    const parsed = profileResponseSchema.safeParse(await response.json());
-    return parsed.success ? parsed.data.profile : null;
-  } catch {
-    return null;
-  }
+export function getProfileList(cookieHeader: string, searchParams: URLSearchParams = new URLSearchParams(), apiUrl?: string): Promise<{ profiles: ProfileSummary[]; total: number } | null> {
+  return readAsUser("/v1/profiles", profileListResponseSchema, (data) => data, cookieHeader, apiUrl, searchParams);
 }
 
-export async function getGlobalDecisions(
-  cookieHeader: string,
-  apiUrl: string = process.env.API_URL ?? "http://localhost:4000",
-): Promise<DecisionRecord[]> {
-  try {
-    const response = await fetchAsUser("/v1/global-decisions", cookieHeader, apiUrl);
-    if (!response.ok) return [];
-    const parsed = globalDecisionsResponseSchema.safeParse(await response.json());
-    return parsed.success ? parsed.data.decisions : [];
-  } catch {
-    return [];
-  }
+export const getProfile = cache((cookieHeader: string, profileId: string, apiUrl?: string): Promise<Profile | null> =>
+  readAsUser(entityPath("/v1/profiles", profileId), profileResponseSchema, (data) => data.profile, cookieHeader, apiUrl));
+
+export async function getGlobalDecisions(cookieHeader: string, apiUrl?: string): Promise<DecisionRecord[]> {
+  return (await readAsUser("/v1/global-decisions", globalDecisionsResponseSchema, (data) => data.decisions, cookieHeader, apiUrl)) ?? [];
 }
 
-export async function getWorkspaceSummary(
-  cookieHeader: string,
-  apiUrl: string = process.env.API_URL ?? "http://localhost:4000",
-): Promise<WorkspaceSummary | null> {
-  try {
-    const response = await fetchAsUser("/v1/workspace/summary", cookieHeader, apiUrl);
-    if (!response.ok) return null;
-    const parsed = z.object({ summary: workspaceSummarySchema }).safeParse(await response.json());
-    return parsed.success ? parsed.data.summary : null;
-  } catch {
-    return null;
-  }
+export function getWorkspaceSummary(cookieHeader: string, apiUrl?: string): Promise<WorkspaceSummary | null> {
+  return readAsUser("/v1/workspace/summary", z.object({ summary: workspaceSummarySchema }), (data) => data.summary, cookieHeader, apiUrl);
 }
 
-export async function getContextDiff(
-  cookieHeader: string,
-  projectId: string,
-  apiUrl: string = process.env.API_URL ?? "http://localhost:4000",
-): Promise<ContextDiffResult | null> {
-  try {
-    const response = await fetchAsUser(`/v1/projects/${encodeURIComponent(projectId)}/context/diff`, cookieHeader, apiUrl);
-    if (!response.ok) return null;
-    const parsed = contextDiffResponseSchema.safeParse(await response.json());
-    return parsed.success ? parsed.data : null;
-  } catch {
-    return null;
-  }
+export function getRecipeList(cookieHeader: string, searchParams: URLSearchParams = new URLSearchParams(), apiUrl?: string): Promise<{ recipes: RecipeSummary[]; total: number } | null> {
+  return readAsUser("/v1/recipes", recipeListResponseSchema, (data) => data, cookieHeader, apiUrl, searchParams);
 }
 
-export type ContextDiffResult = z.infer<typeof contextDiffResponseSchema>;
-
-export async function getRecipeList(
-  cookieHeader: string,
-  searchParams: URLSearchParams = new URLSearchParams(),
-  apiUrl: string = process.env.API_URL ?? "http://localhost:4000",
-): Promise<{ recipes: RecipeSummary[]; total: number }> {
-  try {
-    const response = await fetchAsUser("/v1/recipes", cookieHeader, apiUrl, searchParams);
-    if (!response.ok) return { recipes: [], total: 0 };
-    const parsed = recipeListResponseSchema.safeParse(await response.json());
-    return parsed.success ? parsed.data : { recipes: [], total: 0 };
-  } catch {
-    return { recipes: [], total: 0 };
-  }
-}
-
-export async function getRecipe(
-  cookieHeader: string,
-  recipeId: string,
-  apiUrl: string = process.env.API_URL ?? "http://localhost:4000",
-): Promise<Recipe | null> {
-  try {
-    const response = await fetchAsUser(`/v1/recipes/${encodeURIComponent(recipeId)}`, cookieHeader, apiUrl);
-    if (!response.ok) return null;
-    const parsed = recipeResponseSchema.safeParse(await response.json());
-    return parsed.success ? parsed.data.recipe : null;
-  } catch {
-    return null;
-  }
-}
+export const getRecipe = cache((cookieHeader: string, recipeId: string, apiUrl?: string): Promise<Recipe | null> =>
+  readAsUser(entityPath("/v1/recipes", recipeId), recipeResponseSchema, (data) => data.recipe, cookieHeader, apiUrl));
 
 /** Onboarding and sample state; null when the API cannot be reached so pages can say so. */
-export async function getWorkspaceSettings(
-  cookieHeader: string,
-  apiUrl: string = process.env.API_URL ?? "http://localhost:4000",
-): Promise<WorkspaceSettings | null> {
-  try {
-    const response = await fetchAsUser("/v1/workspace/settings", cookieHeader, apiUrl);
-    if (!response.ok) return null;
-    const parsed = workspaceSettingsResponseSchema.safeParse(await response.json());
-    return parsed.success ? parsed.data.settings : null;
-  } catch {
-    return null;
-  }
+export function getWorkspaceSettings(cookieHeader: string, apiUrl?: string): Promise<WorkspaceSettings | null> {
+  return readAsUser("/v1/workspace/settings", workspaceSettingsResponseSchema, (data) => data.settings, cookieHeader, apiUrl);
 }
 
 /** Plan, usage, subscription and provider state; null when the API cannot be reached. */
-export async function getBillingSummary(
-  cookieHeader: string,
-  apiUrl: string = process.env.API_URL ?? "http://localhost:4000",
-): Promise<BillingSummary | null> {
-  try {
-    const response = await fetchAsUser("/v1/billing", cookieHeader, apiUrl);
-    if (!response.ok) return null;
-    const parsed = billingSummaryResponseSchema.safeParse(await response.json());
-    return parsed.success ? parsed.data.billing : null;
-  } catch {
-    return null;
-  }
+export function getBillingSummary(cookieHeader: string, apiUrl?: string): Promise<BillingSummary | null> {
+  return readAsUser("/v1/billing", billingSummaryResponseSchema, (data) => data.billing, cookieHeader, apiUrl);
 }
 
 /** Catalog metadata: counts, domains and the methodology disclaimer; null when the API cannot be reached. */
-export async function getCatalogOverview(
-  cookieHeader: string,
-  apiUrl: string = process.env.API_URL ?? "http://localhost:4000",
-): Promise<CatalogOverview | null> {
-  try {
-    const response = await fetchAsUser("/v1/catalog", cookieHeader, apiUrl);
-    if (!response.ok) return null;
-    const parsed = catalogOverviewResponseSchema.safeParse(await response.json());
-    return parsed.success ? parsed.data.catalog : null;
-  } catch {
-    return null;
-  }
+export function getCatalogOverview(cookieHeader: string, apiUrl?: string): Promise<CatalogOverview | null> {
+  return readAsUser("/v1/catalog", catalogOverviewResponseSchema, (data) => data.catalog, cookieHeader, apiUrl);
 }
 
-export async function getCatalogTechnologies(
-  cookieHeader: string,
-  searchParams: URLSearchParams = new URLSearchParams(),
-  apiUrl: string = process.env.API_URL ?? "http://localhost:4000",
-): Promise<{ technologies: CatalogTechnologySummary[]; total: number } | null> {
-  try {
-    const response = await fetchAsUser("/v1/catalog/technologies", cookieHeader, apiUrl, searchParams);
-    if (!response.ok) return null;
-    const parsed = catalogTechnologyListResponseSchema.safeParse(await response.json());
-    return parsed.success ? parsed.data : null;
-  } catch {
-    return null;
-  }
+export function getCatalogTechnologies(cookieHeader: string, searchParams: URLSearchParams = new URLSearchParams(), apiUrl?: string): Promise<{ technologies: CatalogTechnologySummary[]; total: number } | null> {
+  return readAsUser("/v1/catalog/technologies", catalogTechnologyListResponseSchema, (data) => data, cookieHeader, apiUrl, searchParams);
 }
 
 /** Null for an unknown slug or an unreachable API; pages treat both as "not found". */
-export async function getCatalogTechnology(
-  cookieHeader: string,
-  slug: string,
-  apiUrl: string = process.env.API_URL ?? "http://localhost:4000",
-): Promise<CatalogTechnology | null> {
-  try {
-    const response = await fetchAsUser(`/v1/catalog/technologies/${encodeURIComponent(slug)}`, cookieHeader, apiUrl);
-    if (!response.ok) return null;
-    const parsed = catalogTechnologyResponseSchema.safeParse(await response.json());
-    return parsed.success ? parsed.data.technology : null;
-  } catch {
-    return null;
-  }
+export const getCatalogTechnology = cache((cookieHeader: string, slug: string, apiUrl?: string): Promise<CatalogTechnology | null> =>
+  readAsUser(entityPath("/v1/catalog/technologies", slug), catalogTechnologyResponseSchema, (data) => data.technology, cookieHeader, apiUrl));
+
+export function getCatalogStacks(cookieHeader: string, apiUrl?: string): Promise<CatalogStackSummary[] | null> {
+  return readAsUser("/v1/catalog/stacks", catalogStackListResponseSchema, (data) => data.stacks, cookieHeader, apiUrl);
 }
 
-export async function getCatalogStacks(
-  cookieHeader: string,
-  apiUrl: string = process.env.API_URL ?? "http://localhost:4000",
-): Promise<CatalogStackSummary[] | null> {
-  try {
-    const response = await fetchAsUser("/v1/catalog/stacks", cookieHeader, apiUrl);
-    if (!response.ok) return null;
-    const parsed = catalogStackListResponseSchema.safeParse(await response.json());
-    return parsed.success ? parsed.data.stacks : null;
-  } catch {
-    return null;
-  }
-}
-
-export async function getCatalogStack(
-  cookieHeader: string,
-  slug: string,
-  apiUrl: string = process.env.API_URL ?? "http://localhost:4000",
-): Promise<CatalogStack | null> {
-  try {
-    const response = await fetchAsUser(`/v1/catalog/stacks/${encodeURIComponent(slug)}`, cookieHeader, apiUrl);
-    if (!response.ok) return null;
-    const parsed = catalogStackResponseSchema.safeParse(await response.json());
-    return parsed.success ? parsed.data.stack : null;
-  } catch {
-    return null;
-  }
-}
+export const getCatalogStack = cache((cookieHeader: string, slug: string, apiUrl?: string): Promise<CatalogStack | null> =>
+  readAsUser(entityPath("/v1/catalog/stacks", slug), catalogStackResponseSchema, (data) => data.stack, cookieHeader, apiUrl));
 
 /** Catalog slug → Library Resource id for entries already saved; empty when unavailable. */
-export async function getCatalogLibraryLinks(
-  cookieHeader: string,
-  apiUrl: string = process.env.API_URL ?? "http://localhost:4000",
-): Promise<CatalogLibraryLinks> {
-  try {
-    const response = await fetchAsUser("/v1/catalog/library", cookieHeader, apiUrl);
-    if (!response.ok) return {};
-    const parsed = catalogLibraryLinksResponseSchema.safeParse(await response.json());
-    return parsed.success ? parsed.data.links : {};
-  } catch {
-    return {};
-  }
+export async function getCatalogLibraryLinks(cookieHeader: string, apiUrl?: string): Promise<CatalogLibraryLinks> {
+  return (await readAsUser("/v1/catalog/library", catalogLibraryLinksResponseSchema, (data) => data.links, cookieHeader, apiUrl)) ?? {};
 }
 
-export async function getProject(
-  cookieHeader: string,
-  projectId: string,
-  apiUrl: string = process.env.API_URL ?? "http://localhost:4000",
-): Promise<Project | null> {
-  try {
-    const response = await fetchAsUser(`/v1/projects/${encodeURIComponent(projectId)}`, cookieHeader, apiUrl);
-    if (!response.ok) return null;
-    const parsed = projectResponseSchema.safeParse(await response.json());
-    return parsed.success ? parsed.data.project : null;
-  } catch {
-    return null;
-  }
-}
+export const getProject = cache((cookieHeader: string, projectId: string, apiUrl?: string): Promise<Project | null> =>
+  readAsUser(entityPath("/v1/projects", projectId), projectResponseSchema, (data) => data.project, cookieHeader, apiUrl));
 
 /** What the account stores, its integrations and any pending deletion state; null when the API cannot be reached. */
-export async function getAccountSummary(
-  cookieHeader: string,
-  apiUrl: string = process.env.API_URL ?? "http://localhost:4000",
-): Promise<AccountSummary | null> {
-  try {
-    const response = await fetchAsUser("/v1/account", cookieHeader, apiUrl);
-    if (!response.ok) return null;
-    const parsed = accountSummaryResponseSchema.safeParse(await response.json());
-    return parsed.success ? parsed.data.account : null;
-  } catch {
-    return null;
-  }
+export function getAccountSummary(cookieHeader: string, apiUrl?: string): Promise<AccountSummary | null> {
+  return readAsUser("/v1/account", accountSummaryResponseSchema, (data) => data.account, cookieHeader, apiUrl);
+}
+
+/** AI availability, the user's consent and the monthly quota; null when the API cannot be reached. */
+export function getAiStatus(cookieHeader: string, apiUrl?: string): Promise<AiStatus | null> {
+  return readAsUser("/v1/ai", aiStatusResponseSchema, (data) => data.ai, cookieHeader, apiUrl);
+}
+
+/** Pending AI suggestions of a Project, newest first; empty when unavailable. */
+export async function getAiSuggestions(cookieHeader: string, projectId: string, apiUrl?: string): Promise<AiSuggestion[]> {
+  return (await readAsUser(entityPath("/v1/projects", projectId, "/ai/suggestions"), aiSuggestionListResponseSchema, (data) => data.suggestions, cookieHeader, apiUrl)) ?? [];
 }
 
 /** Public, configuration-driven inputs of the Terms and Privacy pages; null when the API cannot be reached. */
-export async function getLegalConfig(apiUrl: string = process.env.API_URL ?? "http://localhost:4000"): Promise<LegalConfig | null> {
+/** Public sign-in options; an unreachable API means "no optional features", never a broken link. */
+export async function getAuthOptions(apiUrl?: string): Promise<AuthOptions> {
+  try {
+    const response = await fetch(new URL("/v1/auth/options", getApiBaseUrl(apiUrl)), { cache: "no-store", signal: AbortSignal.timeout(3_000) });
+    if (!response.ok) return { passwordReset: false };
+    const parsed = authOptionsResponseSchema.safeParse(await response.json());
+    return parsed.success ? parsed.data.options : { passwordReset: false };
+  } catch {
+    return { passwordReset: false };
+  }
+}
+
+export async function getLegalConfig(apiUrl?: string): Promise<LegalConfig | null> {
   try {
     const response = await fetch(new URL("/v1/legal", getApiBaseUrl(apiUrl)), { cache: "no-store", signal: AbortSignal.timeout(3_000) });
     if (!response.ok) return null;

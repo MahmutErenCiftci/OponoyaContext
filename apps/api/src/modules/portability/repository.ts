@@ -20,6 +20,7 @@ import {
   tags,
   type Database,
   type RepositoryDatabase,
+  readAll,
 } from "@devcontext/db";
 import type { ImportPlan, PlannedDecision, PortabilityRepository, WorkspaceRows } from "./service.js";
 
@@ -58,20 +59,20 @@ function decisionRows<T extends Record<string, string>>(parent: T, decisions: Pl
 export function createPortabilityRepository(database: RepositoryDatabase): PortabilityRepository {
   return {
     async loadWorkspace(ownerUserId): Promise<WorkspaceRows> {
-      const [resourceRows, tagRows, globalRows, profileRows, profileDecisionRows, recipeRows, recipeProfileRows, recipeDecisionRows, projectRows, projectResourceRows, projectProfileRows, projectDecisionRows, ruleRows] = await Promise.all([
-        database.db.select().from(resources).where(eq(resources.ownerUserId, ownerUserId)).orderBy(resources.createdAt, resources.id),
-        database.db.select({ resourceId: resourceTags.resourceId, name: tags.name }).from(resourceTags).innerJoin(tags, eq(resourceTags.tagId, tags.id)).where(eq(tags.ownerUserId, ownerUserId)).orderBy(tags.name),
-        database.db.select().from(globalDecisions).where(eq(globalDecisions.ownerUserId, ownerUserId)),
-        database.db.select().from(profiles).where(eq(profiles.ownerUserId, ownerUserId)).orderBy(profiles.createdAt, profiles.id),
-        database.db.select({ decision: profileDecisions }).from(profileDecisions).innerJoin(profiles, and(eq(profileDecisions.profileId, profiles.id), eq(profiles.ownerUserId, ownerUserId))).orderBy(profileDecisions.slot),
-        database.db.select().from(recipes).where(eq(recipes.ownerUserId, ownerUserId)).orderBy(recipes.createdAt, recipes.id),
-        database.db.select({ recipeId: recipeProfiles.recipeId, profileId: recipeProfiles.profileId, priority: recipeProfiles.priority }).from(recipeProfiles).innerJoin(recipes, and(eq(recipeProfiles.recipeId, recipes.id), eq(recipes.ownerUserId, ownerUserId))),
-        database.db.select({ decision: recipeDecisions }).from(recipeDecisions).innerJoin(recipes, and(eq(recipeDecisions.recipeId, recipes.id), eq(recipes.ownerUserId, ownerUserId))).orderBy(recipeDecisions.slot),
-        database.db.select().from(projects).where(eq(projects.ownerUserId, ownerUserId)).orderBy(projects.createdAt, projects.id),
-        database.db.select({ projectId: projectResources.projectId, resourceId: projectResources.resourceId }).from(projectResources).innerJoin(projects, and(eq(projectResources.projectId, projects.id), eq(projects.ownerUserId, ownerUserId))).orderBy(projectResources.createdAt),
-        database.db.select({ projectId: projectProfiles.projectId, profileId: projectProfiles.profileId, priority: projectProfiles.priority }).from(projectProfiles).innerJoin(projects, and(eq(projectProfiles.projectId, projects.id), eq(projects.ownerUserId, ownerUserId))),
-        database.db.select({ decision: projectDecisions }).from(projectDecisions).innerJoin(projects, and(eq(projectDecisions.projectId, projects.id), eq(projects.ownerUserId, ownerUserId))).orderBy(projectDecisions.slot),
-        database.db.select().from(compatibilityRules).where(eq(compatibilityRules.ownerUserId, ownerUserId)).orderBy(compatibilityRules.createdAt),
+      const [resourceRows, tagRows, globalRows, profileRows, profileDecisionRows, recipeRows, recipeProfileRows, recipeDecisionRows, projectRows, projectResourceRows, projectProfileRows, projectDecisionRows, ruleRows] = await readAll(database.db, [
+        () => database.db.select().from(resources).where(eq(resources.ownerUserId, ownerUserId)).orderBy(resources.createdAt, resources.id),
+        () => database.db.select({ resourceId: resourceTags.resourceId, name: tags.name }).from(resourceTags).innerJoin(tags, eq(resourceTags.tagId, tags.id)).where(eq(tags.ownerUserId, ownerUserId)).orderBy(tags.name),
+        () => database.db.select().from(globalDecisions).where(eq(globalDecisions.ownerUserId, ownerUserId)),
+        () => database.db.select().from(profiles).where(eq(profiles.ownerUserId, ownerUserId)).orderBy(profiles.createdAt, profiles.id),
+        () => database.db.select({ decision: profileDecisions }).from(profileDecisions).innerJoin(profiles, and(eq(profileDecisions.profileId, profiles.id), eq(profiles.ownerUserId, ownerUserId))).orderBy(profileDecisions.slot),
+        () => database.db.select().from(recipes).where(eq(recipes.ownerUserId, ownerUserId)).orderBy(recipes.createdAt, recipes.id),
+        () => database.db.select({ recipeId: recipeProfiles.recipeId, profileId: recipeProfiles.profileId, priority: recipeProfiles.priority }).from(recipeProfiles).innerJoin(recipes, and(eq(recipeProfiles.recipeId, recipes.id), eq(recipes.ownerUserId, ownerUserId))),
+        () => database.db.select({ decision: recipeDecisions }).from(recipeDecisions).innerJoin(recipes, and(eq(recipeDecisions.recipeId, recipes.id), eq(recipes.ownerUserId, ownerUserId))).orderBy(recipeDecisions.slot),
+        () => database.db.select().from(projects).where(eq(projects.ownerUserId, ownerUserId)).orderBy(projects.createdAt, projects.id),
+        () => database.db.select({ projectId: projectResources.projectId, resourceId: projectResources.resourceId }).from(projectResources).innerJoin(projects, and(eq(projectResources.projectId, projects.id), eq(projects.ownerUserId, ownerUserId))).orderBy(projectResources.createdAt),
+        () => database.db.select({ projectId: projectProfiles.projectId, profileId: projectProfiles.profileId, priority: projectProfiles.priority }).from(projectProfiles).innerJoin(projects, and(eq(projectProfiles.projectId, projects.id), eq(projects.ownerUserId, ownerUserId))),
+        () => database.db.select({ decision: projectDecisions }).from(projectDecisions).innerJoin(projects, and(eq(projectDecisions.projectId, projects.id), eq(projects.ownerUserId, ownerUserId))).orderBy(projectDecisions.slot),
+        () => database.db.select().from(compatibilityRules).where(eq(compatibilityRules.ownerUserId, ownerUserId)).orderBy(compatibilityRules.createdAt),
       ]);
       const tagsByResource = groupBy(tagRows, (row) => row.resourceId);
       const preferenceByResource = new Map(globalRows.flatMap((row) => row.resourceId && row.mode !== "AI_DECIDE" ? [[row.resourceId, { slot: row.slot, mode: row.mode }] as const] : []));

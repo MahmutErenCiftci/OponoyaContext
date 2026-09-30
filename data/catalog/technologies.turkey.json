@@ -158,7 +158,7 @@
     },
     {
       "slug": "trendyol-api",
-      "name": "Trendyol / Hepsiburada / N11 Pazaryeri API'leri",
+      "name": "Trendyol / Hepsiburada / n11 Pazaryeri API'leri",
       "type": "service",
       "category": "ecommerce/turkey-marketplace",
       "summary": "Türkiye'nin büyük pazar yerlerinin satıcı entegrasyon API'leri.",
@@ -180,7 +180,7 @@
     },
     {
       "slug": "ticimax-ideasoft",
-      "name": "Ticimax / İdeaSoft / T-Soft",
+      "name": "Ticimax / IdeaSoft / T-Soft",
       "type": "service",
       "category": "ecommerce/turkey-platform",
       "summary": "Türkiye pazarına özel hazır e-ticaret altyapısı sağlayıcıları.",

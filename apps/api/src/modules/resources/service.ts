@@ -28,7 +28,12 @@ export interface ResourceRepository {
   archive(ownerUserId: string, resourceId: string): Promise<Resource | null>;
   restore(ownerUserId: string, resourceId: string): Promise<Resource | null>;
   /** Active Resources of the owner other than `excludeResourceId`, used for duplicate detection. */
-  listDuplicateCandidates(ownerUserId: string, excludeResourceId: string): Promise<DuplicateCandidate[]>;
+  /**
+   * Active Resources that could duplicate `resource`: the same type (name match)
+   * or, when it has a source URL, any Resource with a URL (URL match). Never the
+   * whole Library.
+   */
+  listDuplicateCandidates(ownerUserId: string, resource: Pick<Resource, "id" | "type" | "sourceUrl">): Promise<DuplicateCandidate[]>;
   /** Active and archived Resources created from the technology catalog. */
   listCatalogLinks(ownerUserId: string): Promise<CatalogLink[]>;
 }
@@ -103,7 +108,7 @@ function normalizeUpdateInput(input: UpdateResourceInput): UpdateResourceInput {
 }
 
 async function withDuplicates(repository: ResourceRepository, ownerUserId: string, resource: Resource): Promise<ResourceMutationResult> {
-  const duplicates = findDuplicates(resource, await repository.listDuplicateCandidates(ownerUserId, resource.id));
+  const duplicates = findDuplicates(resource, await repository.listDuplicateCandidates(ownerUserId, resource));
   return { resource, warnings: warningsFor(duplicates), duplicates };
 }
 

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { catalogDomainSchema, resourceTypeSchema } from "@devcontext/contracts";
 import { redirect } from "next/navigation";
 import { getCatalogLibraryLinks, getCatalogOverview, getCatalogStacks, getCatalogTechnologies } from "../../../lib/api";
@@ -6,7 +7,7 @@ import { ServiceUnavailable } from "../unavailable";
 import { WorkspaceShell } from "../workspace-shell";
 import { CatalogClient } from "./catalog-client";
 
-export const dynamic = "force-dynamic";
+export const metadata: Metadata = { title: "Teknoloji kataloğu" };
 
 export default async function CatalogPage({ searchParams }: { searchParams: Promise<{ q?: string; domain?: string; type?: string }> }) {
   const session = await loadSession();

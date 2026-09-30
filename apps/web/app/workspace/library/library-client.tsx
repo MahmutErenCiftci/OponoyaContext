@@ -14,7 +14,7 @@ import {
   type ResourceType,
 } from "@devcontext/contracts";
 import Link from "next/link";
-import { useEffect, useId, useState, type FormEvent } from "react";
+import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import { DecisionBadge, ModeIcon, NoRuleBadge } from "../../../components/decision-badge";
 import { DrawerFrame } from "../../../components/drawer";
 import { PageHead } from "../../../components/page-heading";
@@ -25,6 +25,9 @@ import { catalogSlugFor } from "../../../lib/logos";
 import { typeLabels } from "../../../lib/resource-labels";
 
 type LibraryView = "active" | "favorites" | "archived";
+
+/** Rows per request; the API caps a page at 100. */
+const pageSize = 50;
 type PreferenceFilter = "" | GlobalPreferenceMode;
 type GlobalChoice = "NONE" | GlobalPreferenceMode;
 
@@ -98,9 +101,17 @@ function CompatibilitySection({ resource, library }: { resource: Resource; libra
   }
 
   async function remove(rule: CompatibilityRule) {
-    const response = await fetch(`/api/compatibility-rules/${rule.id}`, { method: "DELETE" });
-    if (response.ok) setRules((previous) => (previous ?? []).filter((item) => item.id !== rule.id));
-    else setError(await responseError(response));
+    if (pending) return;
+    setPending(true);
+    try {
+      const response = await fetch(`/api/compatibility-rules/${rule.id}`, { method: "DELETE" });
+      if (response.ok) setRules((previous) => (previous ?? []).filter((item) => item.id !== rule.id));
+      else setError(await responseError(response));
+    } catch {
+      setError("Kural kaldırılamadı. Tekrar dene.");
+    } finally {
+      setPending(false);
+    }
   }
 
   const others = library.filter((item) => item.id !== resource.id);
@@ -225,7 +236,7 @@ function ResourceEditor({ resource, library, onClose, onSaved }: {
           ))}
         </div>
       </fieldset>
-      <label className="field"><span>Etiketler</span><input onChange={(event) => setTagText(event.target.value)} placeholder="ui, react" value={tagText} /><small>Virgülle ayırarak etiket ekleyin.</small></label>
+      <label className="field"><span>Etiketler</span><input onChange={(event) => setTagText(event.target.value)} placeholder="ui, react" value={tagText} /><small>Etiketleri virgülle ayır.</small></label>
       <label className="field"><span>Notlar</span><textarea maxLength={10000} onChange={(event) => setNotes(event.target.value)} placeholder="Yeni projelerde varsayılan bileşen kütüphanem." rows={3} value={notes} /><small>Bu kaynağa dair ek notlar.</small></label>
       <details className="disclosure" open={Boolean(resource) || Boolean(docsUrl || repoUrl || installCommand || description)}>
         <summary>Gelişmiş bilgiler <CaretDown aria-hidden size={18} /></summary>
@@ -297,6 +308,7 @@ export function LibraryClient({ initial, openCreateOnLoad, initialSearch, initia
   const [view, setView] = useState<LibraryView>(initialView);
   const [editor, setEditor] = useState<"closed" | "create" | Resource>(openCreateOnLoad ? "create" : "closed");
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [notice, setNotice] = useState<{ text: string; duplicates?: ResourceDuplicate[] } | null>(null);
 
   useEffect(() => {
@@ -313,17 +325,21 @@ export function LibraryClient({ initial, openCreateOnLoad, initialSearch, initia
     window.history.replaceState(null, "", `/workspace/library${query ? `?${query}` : ""}`);
   }
 
-  async function load(next: { search?: string; type?: string; preference?: PreferenceFilter; view?: LibraryView } = {}) {
-    const values = { search: next.search ?? search, type: next.type ?? type, preference: next.preference ?? preference, view: next.view ?? view };
-    const params = new URLSearchParams({ archived: values.view === "archived" ? "archived" : "active" });
+  function listParams(values: { search: string; type: string; preference: PreferenceFilter; view: LibraryView }) {
+    const params = new URLSearchParams({ archived: values.view === "archived" ? "archived" : "active", limit: String(pageSize) });
     if (values.view === "favorites") params.set("favorite", "true");
     if (values.search) params.set("q", values.search);
     if (values.type) params.set("type", values.type);
     if (values.preference) params.set("preference", values.preference);
+    return params;
+  }
+
+  async function load(next: { search?: string; type?: string; preference?: PreferenceFilter; view?: LibraryView } = {}) {
+    const values = { search: next.search ?? search, type: next.type ?? type, preference: next.preference ?? preference, view: next.view ?? view };
     setLoading(true);
     syncUrl(values);
     try {
-      const response = await fetch(`/api/resources?${params}`, { cache: "no-store" });
+      const response = await fetch(`/api/resources?${listParams(values)}`, { cache: "no-store" });
       if (!response.ok) throw new Error("Failed to load resources");
       const result = resourceListResponseSchema.parse(await response.json());
       setResources(result.resources);
@@ -335,26 +351,67 @@ export function LibraryClient({ initial, openCreateOnLoad, initialSearch, initia
     }
   }
 
-  async function mutate(resource: Resource, action: "archive" | "restore") {
-    const response = await fetch(`/api/resources/${resource.id}${action === "restore" ? "/restore" : ""}`, { method: action === "restore" ? "POST" : "DELETE" });
-    if (!response.ok) {
-      setNotice({ text: await responseError(response) });
-      return;
+  /** Appends the next page; rows already on screen (after an edit moved them) are not repeated. */
+  async function loadMore() {
+    if (loadingMore) return;
+    setLoadingMore(true);
+    try {
+      const params = listParams({ search, type, preference, view });
+      params.set("offset", String(resources.length));
+      const response = await fetch(`/api/resources?${params}`, { cache: "no-store" });
+      if (!response.ok) throw new Error("Failed to load resources");
+      const result = resourceListResponseSchema.parse(await response.json());
+      setResources((previous) => {
+        const seen = new Set(previous.map((item) => item.id));
+        return [...previous, ...result.resources.filter((item) => !seen.has(item.id))];
+      });
+      setTotal(result.total);
+    } catch {
+      setNotice({ text: "Daha fazla kaynak yüklenemedi. Tekrar dene." });
+    } finally {
+      setLoadingMore(false);
     }
-    setNotice({ text: action === "restore" ? `${resource.name} geri yüklendi.` : `${resource.name} arşive taşındı.` });
-    await load();
+  }
+
+  /** One row action at a time: a double click must not archive twice or race a favorite toggle. */
+  const busy = useRef(false);
+
+  async function mutate(resource: Resource, action: "archive" | "restore") {
+    if (busy.current) return;
+    busy.current = true;
+    try {
+      const response = await fetch(`/api/resources/${resource.id}${action === "restore" ? "/restore" : ""}`, { method: action === "restore" ? "POST" : "DELETE" });
+      if (!response.ok) {
+        setNotice({ text: await responseError(response) });
+        return;
+      }
+      setNotice({ text: action === "restore" ? `${resource.name} geri yüklendi.` : `${resource.name} arşive taşındı.` });
+      await load();
+    } catch {
+      setNotice({ text: "Kütüphane hizmetine ulaşılamıyor. Tekrar dene." });
+    } finally {
+      busy.current = false;
+    }
   }
 
   async function toggleFavorite(resource: Resource) {
-    const response = await fetch(`/api/resources/${resource.id}`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ favorite: !resource.favorite }) });
-    if (!response.ok) {
-      setNotice({ text: await responseError(response) });
-      return;
+    if (busy.current) return;
+    busy.current = true;
+    try {
+      const response = await fetch(`/api/resources/${resource.id}`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ favorite: !resource.favorite }) });
+      if (!response.ok) {
+        setNotice({ text: await responseError(response) });
+        return;
+      }
+      const result = resourceMutationResponseSchema.parse(await response.json());
+      setResources((previous) => previous.map((item) => item.id === result.resource.id ? result.resource : item));
+      setNotice({ text: result.resource.favorite ? `${resource.name} favorilere eklendi.` : `${resource.name} favorilerden kaldırıldı.` });
+      if (view === "favorites" && !result.resource.favorite) void load();
+    } catch {
+      setNotice({ text: "Kütüphane hizmetine ulaşılamıyor. Tekrar dene." });
+    } finally {
+      busy.current = false;
     }
-    const result = resourceMutationResponseSchema.parse(await response.json());
-    setResources((previous) => previous.map((item) => item.id === result.resource.id ? result.resource : item));
-    setNotice({ text: result.resource.favorite ? `${resource.name} favorilere eklendi.` : `${resource.name} favorilerden kaldırıldı.` });
-    if (view === "favorites" && !result.resource.favorite) void load();
   }
 
   function switchView(next: LibraryView) {
@@ -400,7 +457,7 @@ export function LibraryClient({ initial, openCreateOnLoad, initialSearch, initia
       )}
       {!loading && resources.length === 0 && (
         <div className="empty">
-          <span className="mark xl"><Tray size={34} /></span>
+          <span className="mark xl"><Tray aria-hidden size={34} /></span>
           <h2>{view === "archived" ? "Arşiv boş" : view === "favorites" ? "Henüz favorin yok" : filtered ? "Eşleşen kaynak yok" : "Kütüphanen burada başlıyor"}</h2>
           <p>{view === "archived" ? "Arşivlediğin kaynakları buradan geri yükleyebilirsin." : view === "favorites" ? "Sık kullandığın kaynakları yıldızlayarak burada topla." : filtered ? "Başka bir sözcük dene veya filtreleri temizle." : "AI’ın hatırlamasını istediğin bir framework, veritabanı, bileşen veya kural ekle."}</p>
           {view === "active" && !filtered && <button className="button primary" onClick={() => setEditor("create")} type="button">İlk kaynağını ekle</button>}
@@ -408,7 +465,14 @@ export function LibraryClient({ initial, openCreateOnLoad, initialSearch, initia
           {view === "active" && !filtered && <p className="muted small">Ya da <Link className="text-link" href="/workspace/catalog">katalogdan ekle</Link>.</p>}
         </div>
       )}
-      <p aria-live="polite" className="result-count">{loading ? "Yükleniyor…" : `${total} kaynak gösteriliyor`}</p>
+      {!loading && resources.length < total && (
+        <div className="load-more">
+          <button className="button" disabled={loadingMore} onClick={() => void loadMore()} type="button">
+            {loadingMore ? "Yükleniyor…" : `Daha fazla göster (${total - resources.length} kaldı)`}
+          </button>
+        </div>
+      )}
+      <p aria-live="polite" className="result-count">{loading ? "Yükleniyor…" : resources.length < total ? `${total} kaynaktan ${resources.length} tanesi gösteriliyor` : `${total} kaynak gösteriliyor`}</p>
       {notice && (
         <div className="toast" role="status">
           <span>{notice.text}</span>

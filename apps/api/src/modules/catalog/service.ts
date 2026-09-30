@@ -1,4 +1,5 @@
 import {
+  productName,
   profileListQuerySchema,
   type CatalogLibraryAddResult,
   type CatalogOverview,
@@ -25,7 +26,7 @@ import {
   unknownStackReferences,
 } from "@devcontext/catalog";
 import type { ProfileService } from "../profiles/service.js";
-import type { ResourceService } from "../resources/service.js";
+import type { CatalogLink, ResourceService } from "../resources/service.js";
 
 /**
  * Bridges the read-only technology catalog and the user's Library. Catalog
@@ -82,7 +83,7 @@ export function toResourceInput(technology: CatalogTechnology): CreateResourceIn
       v.productionGaps.length > 0 ? `Üretim boşlukları:\n${bullets(v.productionGaps)}` : "",
     ].filter(Boolean).join("\n"));
   }
-  sections.push(`Lisans: ${technology.license} · Fiyatlandırma: ${technology.pricing}. Kaynak: DevContext teknoloji kataloğu ${catalogVersion} (${technology.slug}).`);
+  sections.push(`Lisans: ${technology.license} · Fiyatlandırma: ${technology.pricing}. Kaynak: ${productName} teknoloji kataloğu ${catalogVersion} (${technology.slug}).`);
   const tags = [...new Set([...technology.tags, technology.domain].map((tag) => tag.trim().toLowerCase()).filter((tag) => tag.length > 0 && tag.length <= 60))].slice(0, 30);
   return {
     name: technology.name,
@@ -114,28 +115,57 @@ function catalogSlugOf(resource: Resource) {
   return typeof slug === "string" ? slug : null;
 }
 
-export function createCatalogService(resources: ResourceService, profiles: ProfileService): CatalogService {
-  async function addTechnology(ownerUserId: string, slug: string): Promise<CatalogLibraryAddResult> {
+/** Library services bound to one database transaction. */
+export type CatalogScope = { resources: ResourceService; profiles: ProfileService };
+
+/**
+ * Runs `work` in one transaction that also serializes the owner's catalog
+ * writes, so a stack is added completely or not at all and two concurrent
+ * clicks cannot create the same technology twice.
+ */
+export type CatalogTransaction = <T>(ownerUserId: string, work: (scope: CatalogScope) => Promise<T>) => Promise<T>;
+
+export function createCatalogService(resources: ResourceService, profiles: ProfileService, transaction?: CatalogTransaction): CatalogService {
+  const run: CatalogTransaction = transaction ?? ((_ownerUserId, work) => work({ resources, profiles }));
+
+  /** `links` is the owner's catalog links, updated in place so later steps in the same operation see earlier ones. */
+  async function addWith(scope: CatalogScope, ownerUserId: string, slug: string, links: CatalogLink[]): Promise<CatalogLibraryAddResult> {
     const technology = getTechnology(slug);
     if (!technology) throw notFoundError("technology");
-    const links = await resources.listCatalogLinks(ownerUserId);
     const active = links.find((link) => link.catalogSlug === slug && !link.archived);
-    if (active) return { resource: await resources.get(ownerUserId, active.resourceId), created: false };
+    if (active) return { resource: await scope.resources.get(ownerUserId, active.resourceId), created: false };
     const archived = links.find((link) => link.catalogSlug === slug);
-    if (archived) return { resource: (await resources.restore(ownerUserId, archived.resourceId)).resource, created: false };
-    return { resource: (await resources.create(ownerUserId, toResourceInput(technology))).resource, created: true };
+    if (archived) {
+      const restored = (await scope.resources.restore(ownerUserId, archived.resourceId)).resource;
+      archived.archived = false;
+      return { resource: restored, created: false };
+    }
+    const created = (await scope.resources.create(ownerUserId, toResourceInput(technology))).resource;
+    links.push({ catalogSlug: slug, resourceId: created.id, archived: false });
+    return { resource: created, created: true };
   }
 
-  async function addStack(ownerUserId: string, slug: string): Promise<CatalogStackLibraryResult> {
+  async function addStackWith(scope: CatalogScope, ownerUserId: string, slug: string): Promise<CatalogStackLibraryResult> {
     const items = technologiesForStack(slug);
     if (!items) throw notFoundError("stack");
     const result: CatalogStackLibraryResult = { created: [], existing: [], skipped: unknownStackReferences(slug) };
-    // Sequential on purpose: each step sees the links the previous one created.
+    // One link lookup for the whole stack; sequential because every step shares the transaction.
+    const links = await scope.resources.listCatalogLinks(ownerUserId);
     for (const item of items) {
-      const added = await addTechnology(ownerUserId, item.slug);
+      const added = await addWith(scope, ownerUserId, item.slug, links);
       (added.created ? result.created : result.existing).push(added.resource);
     }
     return result;
+  }
+
+  async function addTechnology(ownerUserId: string, slug: string): Promise<CatalogLibraryAddResult> {
+    if (!getTechnology(slug)) throw notFoundError("technology");
+    return run(ownerUserId, async (scope) => addWith(scope, ownerUserId, slug, await scope.resources.listCatalogLinks(ownerUserId)));
+  }
+
+  function addStack(ownerUserId: string, slug: string): Promise<CatalogStackLibraryResult> {
+    if (!technologiesForStack(slug)) throw notFoundError("stack");
+    return run(ownerUserId, (scope) => addStackWith(scope, ownerUserId, slug));
   }
 
   return {
@@ -164,31 +194,34 @@ export function createCatalogService(resources: ResourceService, profiles: Profi
     async createStackProfile(ownerUserId, slug) {
       const stack = getStack(slug);
       if (!stack) throw notFoundError("stack");
-      const library = await addStack(ownerUserId, slug);
-      const existing = (await profiles.list(ownerUserId, profileListQuerySchema.parse({ q: stack.name, type: "stack", limit: 100 }))).profiles
-        .find((profile) => profile.name === stack.name);
-      if (existing) return { profile: await profiles.get(ownerUserId, existing.id), created: false, decisions: [], library };
-      const byCatalogSlug = new Map<string, Resource>();
-      for (const resource of [...library.created, ...library.existing]) {
-        const catalogSlug = catalogSlugOf(resource);
-        if (catalogSlug) byCatalogSlug.set(catalogSlug, resource);
-      }
-      const profile = await profiles.create(ownerUserId, { name: stack.name, type: "stack", description: stack.summary.slice(0, 2_000) });
-      const decisions: CatalogPresetDecision[] = [];
-      for (const preset of presetDecisionsForStack(slug) ?? []) {
-        const resource = byCatalogSlug.get(preset.technologySlug);
-        if (!resource) continue;
-        await profiles.upsertDecision(ownerUserId, profile.id, preset.slot, {
-          mode: "PREFERRED",
-          resourceId: resource.id,
-          priority: 0,
-          constraints: {},
-          rationale: `From the "${stack.name}" preset in the technology catalog.`,
-          conditions: {},
-        });
-        decisions.push({ slot: preset.slot, resourceId: resource.id, name: resource.name, technologySlug: preset.technologySlug });
-      }
-      return { profile: await profiles.get(ownerUserId, profile.id), created: true, decisions, library };
+      // Library additions, the Profile and its decisions commit together: a failure leaves nothing half-built.
+      return run(ownerUserId, async (scope) => {
+        const library = await addStackWith(scope, ownerUserId, slug);
+        const existing = (await scope.profiles.list(ownerUserId, profileListQuerySchema.parse({ q: stack.name, type: "stack", limit: 100 }))).profiles
+          .find((profile) => profile.name === stack.name);
+        if (existing) return { profile: await scope.profiles.get(ownerUserId, existing.id), created: false, decisions: [], library };
+        const byCatalogSlug = new Map<string, Resource>();
+        for (const resource of [...library.created, ...library.existing]) {
+          const catalogSlug = catalogSlugOf(resource);
+          if (catalogSlug) byCatalogSlug.set(catalogSlug, resource);
+        }
+        const profile = await scope.profiles.create(ownerUserId, { name: stack.name, type: "stack", description: stack.summary.slice(0, 2_000) });
+        const decisions: CatalogPresetDecision[] = [];
+        for (const preset of presetDecisionsForStack(slug) ?? []) {
+          const resource = byCatalogSlug.get(preset.technologySlug);
+          if (!resource) continue;
+          await scope.profiles.upsertDecision(ownerUserId, profile.id, preset.slot, {
+            mode: "PREFERRED",
+            resourceId: resource.id,
+            priority: 0,
+            constraints: {},
+            rationale: `From the "${stack.name}" preset in the technology catalog.`,
+            conditions: {},
+          });
+          decisions.push({ slot: preset.slot, resourceId: resource.id, name: resource.name, technologySlug: preset.technologySlug });
+        }
+        return { profile: await scope.profiles.get(ownerUserId, profile.id), created: true, decisions, library };
+      });
     },
   };
 }

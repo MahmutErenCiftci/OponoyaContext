@@ -26,6 +26,8 @@ const { values } = parseArgs({
     source: { type: "string" },
     target: { type: "string" },
     out: { type: "string", default: "backups/restore-drill.json" },
+    // A target that already holds accounts is only wiped when this is given explicitly.
+    "wipe-nonempty-target": { type: "boolean", default: false },
   },
 });
 
@@ -45,7 +47,20 @@ if (!sourceUrl || !targetUrl) {
   console.error("Usage: restore-drill --target postgresql://…/scratch [--source postgresql://…] [--out file]");
   process.exit(1);
 }
-if (sourceUrl === targetUrl) {
+/** Host, port and database name, with the loopback spellings folded together, so `localhost` and `127.0.0.1` compare equal. */
+function databaseIdentity(url) {
+  const parsed = URL.parse(url);
+  if (!parsed) return null;
+  const host = ["localhost", "127.0.0.1", "[::1]", "::1"].includes(parsed.hostname) ? "loopback" : parsed.hostname.toLowerCase();
+  return `${host}:${parsed.port || "5432"}/${decodeURIComponent(parsed.pathname.replace(/^\//, ""))}`;
+}
+const sourceIdentity = databaseIdentity(sourceUrl);
+const targetIdentity = databaseIdentity(targetUrl);
+if (!sourceIdentity || !targetIdentity) {
+  console.error("Both connection strings must be postgresql:// URLs.");
+  process.exit(1);
+}
+if (sourceIdentity === targetIdentity) {
   console.error("Refusing to restore onto the source database.");
   process.exit(1);
 }
@@ -75,6 +90,16 @@ async function readCounts(exec) {
   const counts = {};
   for (const [key, query] of Object.entries(businessReads)) counts[key] = (await exec(query)).rows[0].value;
   return counts;
+}
+
+// The target is truncated. Accounts on it mean it is somebody's live data (or the source under another address): stop.
+const targetAccounts = await withClient(targetUrl, async (exec) => {
+  const table = (await exec("SELECT to_regclass('public.users') IS NOT NULL AS present")).rows[0].present;
+  return table ? (await exec("SELECT count(*)::int AS value FROM users")).rows[0].value : 0;
+});
+if (targetAccounts > 0 && !values["wipe-nonempty-target"]) {
+  console.error(`The target already holds ${targetAccounts} account(s) and would be wiped. Use an empty scratch database, or pass --wipe-nonempty-target if that is really intended.`);
+  process.exit(1);
 }
 
 const started = Date.now();

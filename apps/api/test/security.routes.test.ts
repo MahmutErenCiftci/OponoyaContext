@@ -51,6 +51,7 @@ function auth(): AuthProvider {
     },
     async verifyPassword() { return true; },
     async deleteUser() { return { setCookie: [] }; },
+    async changePassword() { return { setCookie: [] }; },
   };
 }
 
@@ -76,6 +77,7 @@ function context(): ContextService {
   return {
     compile: vi.fn(async () => ({ version, created: true })),
     current: vi.fn(async () => ({ version, stale: false, draftHash: version.contentHash, draftWarnings: [] })),
+    statuses: vi.fn(async () => []),
     listVersions: vi.fn(async () => []),
     getVersion: vi.fn(async () => version),
     export: vi.fn(async () => ({ export: { ...version.previews[0]!, contextVersion: 1, contentHash: version.contentHash }, event: { id: "00000000-0000-4000-8000-000000000060", target: "agents" as const, fileName: "AGENTS.md", contextVersion: 1, contentHash: version.contentHash, createdAt: now }, created: true })),
@@ -96,11 +98,11 @@ function logCapture() {
   return { lines, stream, text: () => lines.map((line) => JSON.stringify(line)).join("\n") };
 }
 
-async function createApp(overrides: Partial<AppDependencies> = {}, logLevel: LogLevel = "info") {
+async function createApp(overrides: Partial<AppDependencies> = {}, logLevel: LogLevel = "info", env: Record<string, string> = {}) {
   const logs = logCapture();
   const audit = memoryAudit();
   const app = await buildApp(
-    readConfig({ NODE_ENV: "test", DATABASE_URL: "postgresql://test:test@127.0.0.1:1/test", CORS_ORIGIN: "http://localhost:3000" }),
+    readConfig({ NODE_ENV: "test", DATABASE_URL: "postgresql://test:test@127.0.0.1:1/test", CORS_ORIGIN: "http://localhost:3000", ...env }),
     { auth: auth(), resources: resources(), context: context(), audit, logStream: logs.stream, logLevel, entitlements: unlimitedEntitlements(), ...overrides },
   );
   apps.push(app);
@@ -160,7 +162,8 @@ describe("security hardening", () => {
     const blocked = await app.inject({ method: "POST", url: "/api/auth/sign-in/email", payload: { email: "a@example.test", password: "wrong-password" } });
     expect(blocked.statusCode).toBe(429);
     expect(blocked.headers["retry-after"]).toBeDefined();
-    expect((await app.inject({ url: "/api/auth/get-session" })).statusCode).toBe(200);
+    // Reads never touch the anonymous bucket; Better Auth endpoints the UI does not use are simply not there.
+    expect((await app.inject({ url: "/api/auth/get-session" })).statusCode).toBe(404);
     const other = await app.inject({ method: "POST", url: "/api/auth/sign-in/email", remoteAddress: "10.1.1.1", payload: { email: "a@example.test", password: "wrong-password" } });
     expect(other.statusCode).toBe(401);
   });
@@ -286,5 +289,102 @@ describe("security hardening", () => {
     expect(text).not.toContain("correct horse battery staple");
     expect(text).not.toContain("owner-a@example.test");
     expect(text).not.toContain("opaque-session-token-value");
+  });
+  it("exposes only the Better Auth endpoints the product uses", async () => {
+    const provider = auth();
+    const handler = vi.spyOn(provider, "handler");
+    const { app } = await createApp({ auth: provider });
+    for (const [method, url] of [
+      ["POST", "/api/auth/delete-user"],
+      ["POST", "/api/auth/delete-user/callback"],
+      ["POST", "/api/auth/update-user"],
+      ["POST", "/api/auth/change-email"],
+      ["GET", "/api/auth/list-sessions"],
+      ["GET", "/api/auth/get-session"],
+      ["POST", "/api/auth/sign-in/social"],
+    ] as const) {
+      const response = method === "POST"
+        ? await app.inject({ method, url, headers: headersA, payload: {} })
+        : await app.inject({ method, url, headers: headersA });
+      expect(response.statusCode, `${method} ${url}`).toBe(404);
+    }
+    expect(handler).not.toHaveBeenCalled();
+    const signIn = await app.inject({ method: "POST", url: "/api/auth/sign-in/email", payload: { email: "a@example.test", password: "wrong-password" } });
+    expect(signIn.statusCode).toBe(401);
+    expect(handler).toHaveBeenCalledTimes(1);
+    // An absolute-form request line cannot pick the origin Better Auth sees.
+    const forwarded = handler.mock.calls[0]![0];
+    expect(new URL(forwarded.url).origin).toBe("http://localhost:4000");
+  });
+
+  it("keys anonymous limits on the web proxy's client address only when the shared secret matches", async () => {
+    const secret = "a-web-proxy-secret-that-is-long-enough-too";
+    const provider = auth();
+    const handler = vi.spyOn(provider, "handler");
+    const { app } = await createApp({ auth: provider, rateLimits: { auth: { name: "auth", max: 1, windowMs: 60_000 } } }, "info", { WEB_PROXY_SECRET: secret });
+    const signIn = (headers: Record<string, string>) => app.inject({ method: "POST", url: "/api/auth/sign-in/email", headers, payload: { email: "a@example.test", password: "wrong-password" } });
+    const asserted = (ip: string) => ({ "x-devcontext-proxy-secret": secret, "x-devcontext-client-ip": ip });
+
+    expect((await signIn(asserted("203.0.113.5"))).statusCode).toBe(401);
+    expect((await signIn(asserted("203.0.113.5"))).statusCode).toBe(429);
+    expect((await signIn(asserted("203.0.113.6"))).statusCode).toBe(401);
+    // Better Auth sees the resolved address and never the secret.
+    const seen = handler.mock.calls.at(-1)![0].headers;
+    expect(seen.get("x-devcontext-client-ip")).toBe("203.0.113.6");
+    expect(seen.get("x-devcontext-proxy-secret")).toBeNull();
+
+    // Without the secret a claimed address or a forged X-Forwarded-For changes nothing: the socket address is the bucket.
+    expect((await signIn({ "x-devcontext-proxy-secret": "wrong-secret-of-the-right-length-000000", "x-devcontext-client-ip": "198.51.100.1" })).statusCode).toBe(401);
+    expect((await signIn({ "x-devcontext-client-ip": "198.51.100.2" })).statusCode).toBe(429);
+    expect((await signIn({ "x-forwarded-for": "198.51.100.3" })).statusCode).toBe(429);
+    const direct = handler.mock.calls.at(-1)![0].headers;
+    expect(direct.get("x-devcontext-client-ip")).toBe("127.0.0.1");
+  });
+
+  it("refuses cross-site navigations to downloads that record an export", async () => {
+    const { app } = await createApp();
+    const url = `/v1/projects/${projectId}/context/bundle`;
+    const crossSite = await app.inject({ url, headers: { ...headersA, "sec-fetch-site": "cross-site" } });
+    expect(crossSite.statusCode).toBe(403);
+    expect((await app.inject({ url, headers: { ...headersA, "sec-fetch-site": "same-origin" } })).statusCode).toBe(200);
+    // Server-to-server calls carry no Fetch Metadata and keep working.
+    expect((await app.inject({ url, headers: headersA })).statusCode).toBe(200);
+  });
+
+  it("accepts JSON bodies only", async () => {
+    const { app } = await createApp();
+    const response = await app.inject({ method: "POST", url: "/v1/resources", headers: { ...headersA, "content-type": "text/plain" }, payload: JSON.stringify({ name: "X", type: "framework" }) });
+    expect(response.statusCode).toBe(415);
+    expect(apiErrorSchema.parse(response.json()).error.code).toBe("UNSUPPORTED_MEDIA_TYPE");
+  });
+
+  it("answers 400 for values the database cannot store and never logs them", async () => {
+    const service = resources();
+    service.create = vi.fn(async () => {
+      const driverError = Object.assign(new Error("invalid byte sequence for encoding \"UTF8\": 0x00"), { code: "22021" });
+      throw Object.assign(new Error("Failed query: insert into resources ... params: secret-looking-value"), { name: "DrizzleQueryError", cause: driverError });
+    });
+    const { app, logs } = await createApp({ resources: service });
+    const response = await app.inject({ method: "POST", url: "/v1/resources", headers: headersA, payload: { name: "X", type: "framework", notes: "secret-looking-value" } });
+    expect(response.statusCode).toBe(400);
+    expect(apiErrorSchema.parse(response.json()).error).toMatchObject({ code: "VALIDATION_ERROR", details: [{ path: [], code: "invalid_value" }] });
+    expect(logs.text()).not.toContain("secret-looking-value");
+    expect(logs.lines.some((line) => line.category === "unexpected_error")).toBe(false);
+  });
+
+  it("summarizes query-builder errors by their driver error so bound parameters never reach logs", async () => {
+    const service = resources();
+    service.list = vi.fn(async () => {
+      const driverError = Object.assign(new Error("connection terminated"), { code: "57P01" });
+      throw Object.assign(new Error(`Failed query: select ... params: ${"secret.".repeat(5_000)}`), { name: "DrizzleQueryError", cause: driverError });
+    });
+    const { app, logs } = await createApp({ resources: service }, "debug");
+    const started = performance.now();
+    const response = await app.inject({ url: "/v1/resources", headers: headersA });
+    expect(performance.now() - started).toBeLessThan(2_000);
+    expect(response.statusCode).toBe(500);
+    const failure = logs.lines.find((line) => line.category === "unexpected_error") as { error: { name: string; code: string; message: string } } | undefined;
+    expect(failure?.error).toMatchObject({ name: "Error", code: "57P01", message: "connection terminated" });
+    expect(logs.text()).not.toContain("secret.secret");
   });
 });

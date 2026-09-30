@@ -58,7 +58,7 @@ describe("logical backup and restore", () => {
   it("snapshots rows as exact text and records migrations plus checksums", async () => {
     snapshot = await createSnapshot(exec, () => new Date("2026-09-07T00:00:00Z"));
     expect(snapshot.format).toBe(1);
-    expect(snapshot.migrations).toHaveLength(9);
+    expect(snapshot.migrations).toHaveLength(10);
     expect(snapshot.checksums.resources).toMatchObject({ rows: 1 });
     expect(snapshot.checksums.audit_events).toMatchObject({ rows: 1 });
     expect(snapshot.checksums.recipes).toEqual({ rows: 0, hash: "" });

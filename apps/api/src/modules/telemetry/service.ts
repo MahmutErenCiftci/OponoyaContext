@@ -4,9 +4,9 @@ import type { AuditMetadata, AuditRepository } from "../audit/repository.js";
 
 /**
  * Product analytics events from docs/15_ANALYTICS_METRICS.md that the current
- * feature set can emit. Discover, recipes and AI events arrive with their
- * handoffs. Events are structured log lines (`category: "analytics"`) so any
- * log shipper can forward them; no third-party SDK receives user data.
+ * feature set can emit. Discover events arrive with their handoff. Events are
+ * structured log lines (`category: "analytics"`) so any log shipper can
+ * forward them; no third-party SDK receives user data.
  */
 export const analyticsEventNames = [
   "signup_completed",
@@ -17,6 +17,10 @@ export const analyticsEventNames = [
   "decision_changed",
   "context_compiled",
   "context_exported",
+  "ai_consent_changed",
+  "ai_suggestion_requested",
+  "ai_suggestion_accepted",
+  "ai_suggestion_rejected",
 ] as const;
 export type AnalyticsEventName = (typeof analyticsEventNames)[number];
 

@@ -13,7 +13,7 @@ function actor(request: FastifyRequest) {
 
 /** Samples are opt-in: nothing is installed unless the user asks, and removal is one explicit call. */
 export async function registerSampleRoutes(app: FastifyInstance, samples: SampleService) {
-  app.post("/v1/workspace/samples", { preHandler: app.authenticate }, async (request, reply) => {
+  app.post("/v1/workspace/samples", { onRequest: app.authenticate }, async (request, reply) => {
     // The sample set counts against plan limits like anything the user creates.
     await app.entitlements.assertCanCreate(ownerId(request), "resources", sampleResources.length);
     await app.entitlements.assertCanCreate(ownerId(request), "profiles", sampleProfiles.length);
@@ -29,7 +29,7 @@ export async function registerSampleRoutes(app: FastifyInstance, samples: Sample
     return reply.code(result.created ? 201 : 200).send(result);
   });
 
-  app.delete("/v1/workspace/samples", { preHandler: app.authenticate }, async (request) => {
+  app.delete("/v1/workspace/samples", { onRequest: app.authenticate }, async (request) => {
     const result = await samples.remove(ownerId(request));
     await app.telemetry.record(actor(request), {
       action: "workspace.samples_removed", entityType: "workspace", entityId: null, metadata: { ...result.removed },

@@ -1,8 +1,32 @@
 import { drizzle } from "drizzle-orm/node-postgres";
+import { PgTransaction } from "drizzle-orm/pg-core";
 import { Pool } from "pg";
 import * as schema from "./schema.js";
 
-export { aliasedTable, and, asc, count, countDistinct, desc, eq, ilike, inArray, isNotNull, isNull, ne, or, sql } from "drizzle-orm";
+export { aliasedTable, and, asc, count, countDistinct, desc, eq, gte, ilike, inArray, isNotNull, isNull, lt, ne, or, sql } from "drizzle-orm";
+export type { SQL, Table } from "drizzle-orm";
+
+/** `%text%` for ILIKE with `%`, `_` and `\` matched literally (backslash is PostgreSQL's default LIKE escape). */
+export function containsPattern(text: string): string {
+  return `%${text.replace(/[%_\\]/g, (char) => `\\${char}`)}%`;
+}
+
+type Results<T extends readonly (() => PromiseLike<unknown>)[]> = { -readonly [K in keyof T]: T[K] extends () => PromiseLike<infer R> ? R : never };
+
+/**
+ * Runs independent reads. Against the pool they run concurrently, each on its
+ * own connection; inside a transaction, which is a single connection, they run
+ * one after another: node-postgres deprecates (and pg 9 rejects) a query issued
+ * while another one is still running on the same client. Repositories may be
+ * handed a transaction (sample install, import), so they use this instead of
+ * `Promise.all` over queries.
+ */
+export async function readAll<const T extends readonly (() => PromiseLike<unknown>)[]>(executor: object, tasks: T): Promise<Results<T>> {
+  if (!(executor instanceof PgTransaction)) return (await Promise.all(tasks.map((task) => task()))) as Results<T>;
+  const results: unknown[] = [];
+  for (const task of tasks) results.push(await task());
+  return results as Results<T>;
+}
 
 export type Database = ReturnType<typeof createDatabase>;
 /** Query-builder surface shared by the pool and an existing transaction. */

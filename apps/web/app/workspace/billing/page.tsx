@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getBillingSummary } from "../../../lib/api";
 import { loadSession } from "../../../lib/server-session";
@@ -5,7 +6,7 @@ import { ServiceUnavailable } from "../unavailable";
 import { WorkspaceShell } from "../workspace-shell";
 import { BillingClient, type ReturnState } from "./billing-client";
 
-export const dynamic = "force-dynamic";
+export const metadata: Metadata = { title: "Plan" };
 
 function parseReturn(value: string | undefined): ReturnState {
   return value === "success" || value === "canceled" || value === "portal" ? value : null;

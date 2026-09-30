@@ -12,26 +12,26 @@ function ownerId(request: { currentUser: { id: string } | null }) {
 
 /** Reference data is read-only; the Library mutations below record content-free audit events. */
 export async function registerCatalogRoutes(app: FastifyInstance, catalog: CatalogService) {
-  app.get("/v1/catalog", { preHandler: app.authenticate }, async () => ({ catalog: catalog.overview() }));
+  app.get("/v1/catalog", { onRequest: app.authenticate }, async () => ({ catalog: catalog.overview() }));
 
-  app.get("/v1/catalog/technologies", { preHandler: app.authenticate }, async (request) =>
+  app.get("/v1/catalog/technologies", { onRequest: app.authenticate }, async (request) =>
     catalog.listTechnologies(catalogTechnologyListQuerySchema.parse(request.query)));
 
-  app.get("/v1/catalog/technologies/:slug", { preHandler: app.authenticate }, async (request) => ({
+  app.get("/v1/catalog/technologies/:slug", { onRequest: app.authenticate }, async (request) => ({
     technology: catalog.getTechnology(paramsSchema.parse(request.params).slug),
   }));
 
-  app.get("/v1/catalog/stacks", { preHandler: app.authenticate }, async () => ({ stacks: catalog.listStacks() }));
+  app.get("/v1/catalog/stacks", { onRequest: app.authenticate }, async () => ({ stacks: catalog.listStacks() }));
 
-  app.get("/v1/catalog/stacks/:slug", { preHandler: app.authenticate }, async (request) => ({
+  app.get("/v1/catalog/stacks/:slug", { onRequest: app.authenticate }, async (request) => ({
     stack: catalog.getStack(paramsSchema.parse(request.params).slug),
   }));
 
-  app.get("/v1/catalog/library", { preHandler: app.authenticate }, async (request) => ({
+  app.get("/v1/catalog/library", { onRequest: app.authenticate }, async (request) => ({
     links: await catalog.libraryLinks(ownerId(request)),
   }));
 
-  app.post("/v1/catalog/technologies/:slug/library", { preHandler: app.authenticate }, async (request, reply) => {
+  app.post("/v1/catalog/technologies/:slug/library", { onRequest: app.authenticate }, async (request, reply) => {
     const { slug } = paramsSchema.parse(request.params);
     const links = await catalog.libraryLinks(ownerId(request));
     if (!links[slug]) await app.entitlements.assertCanCreate(ownerId(request), "resources");
@@ -51,7 +51,7 @@ export async function registerCatalogRoutes(app: FastifyInstance, catalog: Catal
     if (withProfile) await app.entitlements.assertCanCreate(ownerUserId, "profiles");
   }
 
-  app.post("/v1/catalog/stacks/:slug/library", { preHandler: app.authenticate }, async (request, reply) => {
+  app.post("/v1/catalog/stacks/:slug/library", { onRequest: app.authenticate }, async (request, reply) => {
     const { slug } = paramsSchema.parse(request.params);
     await assertStackFits(ownerId(request), slug, false);
     const result = await catalog.addStack(ownerId(request), slug);
@@ -62,7 +62,7 @@ export async function registerCatalogRoutes(app: FastifyInstance, catalog: Catal
     return reply.code(result.created.length > 0 ? 201 : 200).send(result);
   });
 
-  app.post("/v1/catalog/stacks/:slug/profile", { preHandler: app.authenticate }, async (request, reply) => {
+  app.post("/v1/catalog/stacks/:slug/profile", { onRequest: app.authenticate }, async (request, reply) => {
     const { slug } = paramsSchema.parse(request.params);
     await assertStackFits(ownerId(request), slug, true);
     const result = await catalog.createStackProfile(ownerId(request), slug);

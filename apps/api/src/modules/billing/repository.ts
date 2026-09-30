@@ -12,6 +12,7 @@ import {
   sql,
   subscriptions,
   type RepositoryDatabase,
+  readAll,
 } from "@devcontext/db";
 import type { SubscriptionRecord, UsageRepository } from "./entitlements.js";
 import type { BillingWebhookEvent, ProviderSubscriptionSnapshot } from "./provider.js";
@@ -125,11 +126,11 @@ export function createSubscriptionRepository(database: RepositoryDatabase): Subs
 export function createUsageRepository(database: RepositoryDatabase): UsageRepository {
   return {
     async counts(ownerUserId): Promise<Record<PlanLimitKey, number>> {
-      const [projectRows, resourceRows, profileRows, recipeRows] = await Promise.all([
-        database.db.select({ value: count() }).from(projects).where(and(eq(projects.ownerUserId, ownerUserId), eq(projects.status, "active"))),
-        database.db.select({ value: count() }).from(resources).where(and(eq(resources.ownerUserId, ownerUserId), isNull(resources.archivedAt))),
-        database.db.select({ value: count() }).from(profiles).where(and(eq(profiles.ownerUserId, ownerUserId), isNull(profiles.archivedAt))),
-        database.db.select({ value: count() }).from(recipes).where(and(eq(recipes.ownerUserId, ownerUserId), isNull(recipes.archivedAt))),
+      const [projectRows, resourceRows, profileRows, recipeRows] = await readAll(database.db, [
+        () => database.db.select({ value: count() }).from(projects).where(and(eq(projects.ownerUserId, ownerUserId), eq(projects.status, "active"))),
+        () => database.db.select({ value: count() }).from(resources).where(and(eq(resources.ownerUserId, ownerUserId), isNull(resources.archivedAt))),
+        () => database.db.select({ value: count() }).from(profiles).where(and(eq(profiles.ownerUserId, ownerUserId), isNull(profiles.archivedAt))),
+        () => database.db.select({ value: count() }).from(recipes).where(and(eq(recipes.ownerUserId, ownerUserId), isNull(recipes.archivedAt))),
       ]);
       return {
         projects: projectRows[0]?.value ?? 0,

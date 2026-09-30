@@ -487,7 +487,7 @@
     },
     {
       "slug": "php",
-      "name": "PHP 8",
+      "name": "PHP",
       "type": "language",
       "category": "language",
       "summary": "Web için tasarlanmış, JIT ve tip desteğiyle modernleşmiş sunucu dili.",
