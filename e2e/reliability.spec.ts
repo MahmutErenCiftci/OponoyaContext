@@ -80,7 +80,7 @@ test("recoverable failures: a failed compile can be retried, unknown entities ar
 
   // Foreign or missing entities look identical and land on the not-found screen.
   await page.goto("/workspace/projects/00000000-0000-4000-8000-000000000000");
-  await expect(page.getByRole("heading", { name: "Bu sayfa çalışma alanında bulunamadı." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Bu sayfa bulunamadı." })).toBeVisible();
   await page.getByRole("link", { name: "Genel bakışa dön" }).click();
   await expect(page).toHaveURL(/\/workspace$/);
 

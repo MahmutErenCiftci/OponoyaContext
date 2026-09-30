@@ -15,6 +15,9 @@ const quickActions: Action[] = [
   { id: "go-catalog", label: "Kataloğu aç", hint: "Teknolojileri ve hazır stack’leri keşfet", href: "/workspace/catalog", kind: "action" },
   { id: "go-projects", label: "Projeleri aç", hint: "Proje listesine git", href: "/workspace/projects", kind: "action" },
   { id: "go-profiles", label: "Profilleri aç", hint: "Stack, tasarım, AI ve dağıtım profilleri", href: "/workspace/profiles", kind: "action" },
+  { id: "go-recipes", label: "Tarifleri aç", hint: "Profilleri tekrar kullanılabilir tariflerde birleştir", href: "/workspace/recipes", kind: "action" },
+  { id: "go-plan", label: "Gelişim planını aç", hint: "Abonelik, V1–V3 planı ve Pro", href: "/workspace/billing#gelisim-plani", kind: "action" },
+  { id: "go-settings", label: "Ayarları aç", hint: "Hesap, görünüm, veri aktarımı ve gizlilik", href: "/workspace/settings", kind: "action" },
 ];
 
 const kindLabels: Record<SearchResult["kind"] | "action", string> = {

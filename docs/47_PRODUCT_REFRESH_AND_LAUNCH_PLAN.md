@@ -236,3 +236,76 @@ yönlendirilmeli.
 4. Repo açık mı olacak, özel mi kalacak?
 5. Yenilemede önce hangi faz: Faz 1 (hızlı kazanımlar) mı, doğrudan Faz 2'deki
    Projeler/Kütüphane kartları mı?
+
+Yanıtlanan (2026-09-30): landing üç yönün birleşimi olarak seçildi ve `/`
+oldu; logo "İmleç" seçildi.
+
+---
+
+## C. İlk sürüm yayın öncesi kontrol (2026-09-30 akşam)
+
+Sahip "ilk sürümü yayına hazır hale getir; test, görsel, insanların dokunacağı
+her şey ve güvenlik kontrol edilsin" dedi. Yapılanlar:
+
+### C1. Ürün ve görsel
+
+- Yeni landing `/` oldu (`app/page.tsx`, `app/landing-effects.tsx`); `/landing`
+  kaldırıldı, eski landing CSS'i ve eski markalı `public/design/context-preview.png`
+  silindi. "Çalışma alanı hazır" durum satırı korundu (smoke ve uptime bunu
+  bekliyor).
+- Görsel tur, oturum açık: genel bakış, projeler, proje detayı, teknoloji
+  kararları, talimatlar, sihirbaz, kütüphane, katalog, teknoloji ve stack
+  detayı, profiller ve detay, tarifler ve detay, ayarlar, abonelik; 1440 px ve
+  390 px'te taşma, kırık görsel, "undefined/NaN" ve hata durumu yok. Oturum
+  kapalı: landing, giriş/kayıt, şifremi unuttum, Kullanım Şartları, Gizlilik,
+  404; hepsi temiz. Tarayıcı konsolunda ve dev sunucu günlüğünde hata yok.
+- Düzeltilenler: tarif sayfasında sıralama düğmeleri yan sütunu eziyordu ve
+  "Düzenle" başlığın (h1) içindeydi; stack detayında 56 px satır içi başlık
+  telefon boyutunu eziyordu; iki yan panel telefonda masaüstü kenarlığı
+  taşıyordu; yasal sayfalar telefonda belge bağlantılarını ve "Giriş yap"ı
+  gizliyordu; landing telefonda "Giriş yap"ı gizliyordu; puan göstergesinin
+  ekran okuyucu metni İngilizceydi; 404 metni yalnız çalışma alanına göreydi ve
+  sekme başlığı yoktu; Abonelik sayfasının sekme başlığı "Plan"dı; komut
+  paletine Tarifler, Gelişim planı ve Ayarlar eklendi; "Şifremi unuttum" sayfası
+  `LEGAL_CONTACT_EMAIL` varsa iletişim adresini gösteriyor.
+- İki kontrast düzeltmesi uygulandı: `--muted-2` #687285, `--warning` #8a5a12
+  (açık tema).
+- Kullanım Şartları §6, sahibin kararlarıyla uyumlu hale getirildi (şu an
+  ücretsiz, Free kalıcı, Pro ileride); metin hâlâ hukuki onay bekleyen taslak.
+
+### C2. Güvenlik denetimi (salt-okunur ajan + elle doğrulama)
+
+Kritik bulgu yok; IDOR ve XSS yok. Düzeltilenler:
+
+| Önem | Bulgu | Düzeltme |
+|---|---|---|
+| Yüksek | Çok sayıda paralel 32 MB içe aktarma, gövde ayrıştırıldıktan sonra kontrol edildiği için API belleğini tüketip süreci düşürebiliyordu | İçe aktarma kendi hız kuralını aldı (kullanıcı başına 10 / 10 dk, gövde okunmadan önce), kullanıcı yuvası `onRequest`'te ayrılıyor, örnek başına en çok 2 eşzamanlı içe aktarma (`import_busy`) |
+| Orta | Talimat sürümleri hiç budanmıyordu; düzenle-derle döngüsü depolamayı ve hesap dışa aktarımını sınırsız büyütebiliyordu | Proje başına en yeni 100 sürüm tutuluyor; eskiler derleme işleminde budanıyor, dışa aktarma kayıtları korunuyor (sürüm bağı `null`) |
+| Düşük | Kullanıcı metnindeki `<!--`, GitHub'da ve önizlemede gizlenip ajan dosyalarında okunabiliyordu | Derleyici `<!--`'yu `<\!--` olarak yazıyor; `COMPILER_VERSION` 0.4.4, golden ve örnekler güncellendi |
+| Düşük | Çok derin iç içe JSON (metadata, karar kısıtları) boyut kontrolünde yığın taşmasıyla 500 veriyordu | Boyuttan önce yinelemeli derinlik kontrolü (en çok 10 seviye) |
+
+Açık kalanlar (sahip veya sonraki iş):
+
+- **Orta — repo yayını:** `origin/main` geçmişi iç belgeleri içeren dev
+  commit'lerine ulaşıyor ve `dev` aynı repoda. Repo açılacaksa önce
+  `node scripts/sync-main.mjs --fresh` + bilinçli force-push; `dev` özel kalmalı.
+- Düşük — e-posta doğrulaması yokken kayıt ekranı e-postanın kayıtlı olduğunu
+  söylüyor; giriş sınırı IP başına. E-posta sağlayıcısı gelince
+  `requireEmailVerification` ve e-posta başına giriş sınırı.
+- Düşük — web servisi `WEB_PROXY_SECRET` olmadan yalnız uyarı veriyor ve
+  `X-Forwarded-For` kenarda eklenmezse taklit edilebilir: dağıtımda
+  `CLIENT_IP_HEADER` kullan, gizli değeri zorunlu tut, sahte XFF ile dene.
+- Düşük — Free planda Pro önizlemeleri ve 3'ten eski sürümler API'den
+  okunabiliyor; ücretsiz betada zararsız, Pro'dan önce kapatılmalı.
+- Düşük — `/health` ve `/ready` dışarı açıksa ortam ve sürüm bilgisini veriyor;
+  yük dengeleyicide iç ağa kısıtla.
+- Bağımlılık taraması (`pnpm audit --prod`) bu makinede çalışmıyor (App
+  Control yerel pnpm'i engelliyor); CI her push'ta çalıştırıyor, sonucu
+  GitHub Actions'ta kontrol et.
+
+### C3. Kapı
+
+Yerel kapı (typecheck, lint, birim testler, build, bundle, test:db, e2e)
+bu değişikliklerle yeşil. `docs/44` kararı değişmedi: **BLOCKED**; kalanlar
+B4'teki sahip işleri (barındırma, veritabanı, alan adı, e-posta, izleme,
+hukuk) ve yukarıdaki repo yayını kararı.

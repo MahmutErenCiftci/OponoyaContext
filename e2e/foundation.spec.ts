@@ -3,9 +3,9 @@ import { addResource, noHorizontalOverflow, password, rowAction, skipFirstRun } 
 
 test("landing page presents the product and connects to the API", async ({ page }, testInfo) => {
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "Teknolojilerini bir kez anlat. Her projede hatırlansın." })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: /Her yeni projede aynı şeyleri tekrar anlatma/ })).toBeVisible();
   await expect(page.getByRole("status")).toHaveText("Çalışma alanı hazır");
-  await expect(page.getByRole("img", { name: /proje kararları ve AI talimatlarının önizlemesi/ })).toBeVisible();
+  await expect(page.getByRole("img", { name: /çalışma alanının önizlemesi/ })).toBeVisible();
   // Identity: tab title, favicon and install metadata are served.
   await expect(page).toHaveTitle(/Oponoya/);
   expect((await page.request.get("/favicon.ico")).headers()["content-type"]).toContain("image/png");

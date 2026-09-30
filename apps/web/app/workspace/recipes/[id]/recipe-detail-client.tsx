@@ -215,7 +215,10 @@ export function RecipeDetailClient({ initial, library, profiles }: { initial: Re
       <Breadcrumb items={[{ label: "Tarifler", href: "/workspace/recipes" }, { label: recipe.name }]} />
       <div className="project-head">
         <div style={{ minWidth: 0 }}>
-          <h1 className="page-title">{recipe.name}{archived && <span className="chip">Arşivde</span>}<button className="button quiet" onClick={() => setEditingMeta(true)} style={{ fontSize: 15 }} type="button"><PencilSimple aria-hidden size={18} />Düzenle</button></h1>
+          <div className="title-row">
+            <h1 className="page-title">{recipe.name}{archived && <span className="chip">Arşivde</span>}</h1>
+            <button className="button quiet" onClick={() => setEditingMeta(true)} style={{ fontSize: 15 }} type="button"><PencilSimple aria-hidden size={18} />Düzenle</button>
+          </div>
           <p className="lead">{recipe.description || "Henüz açıklama yok."}</p>
         </div>
         <div className="actions">

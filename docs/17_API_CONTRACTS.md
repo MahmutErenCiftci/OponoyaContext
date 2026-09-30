@@ -216,8 +216,14 @@ Implemented (Handoff 6):
   `entityId`, `metadata`, `requestId`, `createdAt`). Actions are
   `<entity>.<verb>` such as `project.cloned`, `project.decision_changed`,
   `project.compiled`, `project.exported`, `resource.preference_changed`,
-  `profile.created`, `account.created`. Metadata holds identifiers, enum
-  values, slot keys and counts only. There is no update or delete route.
+  `profile.created`, `account.created`, `account.signed_in` (recorded by the
+  auth proxy on every successful password sign-in; actor and request id only).
+  Metadata holds identifiers, enum values, slot keys and counts only. There is
+  no update or delete route.
+- `GET /v1/audit/presence` -> `{ presence: { previousSignInAt, lastActivity } }`
+  for the overview greeting: the sign-in before the current one (null on a
+  first visit; `account.created` counts as the first sign-in) and the newest
+  event that is not a sign-in (or null). Owner-scoped like the list.
 
 ## Recipes, onboarding and portability (Handoff 9)
 
@@ -329,6 +335,13 @@ session. Scores are 1–5 editor assessments, never measurements.
   `highlights`, and separate `prototypeSpeed` / `productionReadiness`.
 - `GET /v1/catalog/library`: `{ links: { [catalogSlug]: resourceId } }` for the
   caller's active Resources created from the catalog.
+- `GET /v1/catalog/suggestions`: `{ suggestions: { technologies[{ technology,
+  reason: "pairs_with" | "alternative", because[] }], stacks[{ stack, matched }] } }`.
+  Read-only picks for the overview, derived from the caller's catalog-linked
+  Resources plus Resources whose name matches a catalog technology: companions
+  outrank alternatives, stacks rank by how many of their technologies the
+  Library holds, and an empty Library gets curated starter stacks (`matched: 0`).
+  Nothing is added to the Library.
 - `POST /v1/catalog/technologies/:slug/library`: `{ resource, created }`; 201 on
   creation, 200 when an active copy exists or an archived copy was restored.
 - `POST /v1/catalog/stacks/:slug/library`: `{ created[], existing[], skipped[] }`

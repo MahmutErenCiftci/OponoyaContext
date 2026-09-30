@@ -85,7 +85,10 @@ Before Team launch:
 - Structured logs with request ids; cookies, bodies, query strings and error
   messages are never logged at info level, and the debug-level message is
   redacted (connection strings, credentials, tokens, e-mail addresses).
-- Append-only audit trail of major mutations with content-free metadata.
+- Append-only audit trail of major mutations with content-free metadata, plus
+  one `account.signed_in` row per password sign-in (actor and request id only,
+  no IP or user agent) so the overview can show the previous sign-in; kept
+  until the account is deleted. The Privacy page lists it.
 - Web security headers (CSP, frame denial, nosniff, referrer policy).
 - Weekly and per-push dependency audit in CI failing on high/critical.
 

@@ -49,7 +49,7 @@ export default function TermsPage() {
             </ul>
 
             <h2>6. Planlar ve ödeme</h2>
-            <p>Hizmet ücretsiz bir plan ve ücretli bir “Pro” plan sunar. Plan sınırları ve güncel fiyat, uygulamadaki Plan sayfasında gösterilir. {billingText} İptal, ödenmiş dönemin sonunda geçerli olur; iptalde hiçbir veri silinmez, hesap ücretsiz plana döner. İade koşulları hukuki onayla birlikte belirlenecektir; bu metinde iade vaadi yer almaz.</p>
+            <p>Hizmet geliştirme aşamasındadır ve şu anda ücretsiz sunulur; ücretsiz (Free) plan kalıcıdır. İleride ücretli bir “Pro” plan sunulabilir; plan sınırları, fiyat ve Pro’nun ne zaman sunulacağı uygulamadaki Plan sayfasında gösterilir. {billingText} İptal, ödenmiş dönemin sonunda geçerli olur; iptalde hiçbir veri silinmez, hesap ücretsiz plana döner. İade koşulları hukuki onayla birlikte belirlenecektir; bu metinde iade vaadi yer almaz.</p>
 
             <h2>7. Verilerin, dışa aktarma ve silme</h2>
             <p>Verilerini her zaman taşınabilir JSON biçiminde indirebilirsin. Hesap silme talebi, şifre doğrulamasının ardından tüm kaynaklarını, kararlarını, profillerini, tariflerini, projelerini, derlenmiş talimat sürümlerini, dışa/içe aktarma kayıtlarını, oturumlarını ve etkinlik kayıtlarını kalıcı olarak siler. Yalnızca hukuken gerekli asgari fatura kayıtları (sağlayıcı kimlikleri, tarih, plan) saklanır; ayrıntılar <Link href="/legal/privacy">Gizlilik Politikası</Link>’ndadır.</p>
