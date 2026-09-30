@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   contextVersions,
   count,
+  desc,
   eq,
   exportEvents,
   globalDecisions,
@@ -13,7 +14,7 @@ import {
   type Database,
 } from "@devcontext/db";
 import { createTestDatabase } from "@devcontext/db/testing";
-import { createContextRepository } from "../src/modules/context/repository.js";
+import { createContextRepository, retainedContextVersions } from "../src/modules/context/repository.js";
 import { createContextService, type ContextService } from "../src/modules/context/service.js";
 
 const ownerA = "00000000-0000-4000-8000-000000000001";
@@ -120,5 +121,18 @@ describe("Context persistence", () => {
     const other = await service.compile(ownerB, projectB);
     expect(other.version.canonical.decisions).toEqual([]);
     expect(other.version.canonical.resources).toEqual([]);
+  });
+
+  it("keeps only the newest versions per Project and leaves export records in place", async () => {
+    const repository = createContextRepository(database);
+    const [latest] = await database.db.select().from(contextVersions).where(eq(contextVersions.projectId, projectA)).orderBy(desc(contextVersions.version)).limit(1);
+    for (let index = 0; index < retainedContextVersions + 5; index += 1) {
+      await repository.createVersionIfChanged(ownerA, projectA, latest!.canonical, `retention-${index}`, latest!.compilerVersion);
+    }
+    const versions = (await database.db.select({ version: contextVersions.version }).from(contextVersions).where(eq(contextVersions.projectId, projectA))).map((row) => row.version);
+    expect(versions).toHaveLength(retainedContextVersions);
+    expect(Math.max(...versions) - Math.min(...versions)).toBe(retainedContextVersions - 1);
+    // Export history survives pruning; only the link to the pruned version is cleared.
+    expect((await database.db.select({ value: count() }).from(exportEvents).where(eq(exportEvents.projectId, projectA)))[0]?.value).toBe(2);
   });
 });

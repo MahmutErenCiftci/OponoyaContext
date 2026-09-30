@@ -8,6 +8,7 @@ import {
   exportEvents,
   globalDecisions,
   inArray,
+  lt,
   profileDecisions,
   profiles,
   projectDecisions,
@@ -25,6 +26,13 @@ import {
 import type { ContextRepository, ContextVersionRow, ExportEventRow, LatestVersionSummary } from "./service.js";
 
 type Executor = Pick<Database["db"], "select" | "insert" | "update" | "delete">;
+
+/**
+ * Newest versions kept per Project (Pro shows 50). Older ones are pruned when a
+ * new version is stored, so repeated edit-and-compile cycles cannot grow
+ * storage or the account export without bound (security review 2026-09-30).
+ */
+export const retainedContextVersions = 100;
 type DecisionRow = typeof projectDecisions.$inferSelect | typeof globalDecisions.$inferSelect | typeof profileDecisions.$inferSelect | typeof recipeDecisions.$inferSelect;
 
 function toDecisionInput(scope: Scope, row: DecisionRow): DecisionInput {
@@ -292,6 +300,10 @@ export function createContextRepository(database: Pick<Database, "db">): Context
           .insert(contextVersions)
           .values({ projectId, version: (latest?.version ?? 0) + 1, compilerVersion, canonical, contentHash })
           .returning();
+        // Bounded history: export events keep their record (their version link is set to null).
+        await transaction
+          .delete(contextVersions)
+          .where(and(eq(contextVersions.projectId, projectId), lt(contextVersions.version, inserted!.version - retainedContextVersions + 1)));
         return { row: inserted!, created: true };
       });
     },

@@ -109,9 +109,21 @@ export const resourcePreferenceInputSchema = z.object({
   mode: globalPreferenceModeSchema,
 });
 
+/** True when a JSON value nests deeper than `max` levels; iterative, so hostile input cannot overflow the stack. */
+function nestsDeeperThan(value: unknown, max: number): boolean {
+  const pending: Array<[unknown, number]> = [[value, 0]];
+  while (pending.length > 0) {
+    const [current, depth] = pending.pop()!;
+    if (current === null || typeof current !== "object") continue;
+    if (depth >= max) return true;
+    for (const child of Object.values(current)) pending.push([child, depth + 1]);
+  }
+  return false;
+}
+
 const metadataSchema = z.record(z.string().max(100), z.unknown()).refine(
-  (value) => JSON.stringify(value).length <= 20_000,
-  "Metadata is too large",
+  (value) => !nestsDeeperThan(value, 10) && JSON.stringify(value).length <= 20_000,
+  "Metadata is too large or nested too deeply",
 );
 
 export const createResourceSchema = z.object({
@@ -344,8 +356,8 @@ export type DecisionOrigin = z.infer<typeof decisionOriginSchema>;
 export type DecisionScope = z.infer<typeof decisionScopeSchema>;
 
 const decisionJsonSchema = z.record(z.string().max(100), z.unknown()).refine(
-  (value) => JSON.stringify(value).length <= 5_000,
-  "Value is too large",
+  (value) => !nestsDeeperThan(value, 10) && JSON.stringify(value).length <= 5_000,
+  "Value is too large or nested too deeply",
 );
 
 /**

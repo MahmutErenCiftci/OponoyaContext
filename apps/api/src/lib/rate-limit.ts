@@ -23,6 +23,8 @@ export type RateLimitPolicy = {
   ai: RateLimitRule;
   /** Password-checked account actions (deletion, password change), keyed by user: the password is never an unthrottled oracle. */
   sensitive: RateLimitRule;
+  /** Workspace imports keyed by user: a document may be tens of megabytes, so bursts are refused before the body is read. */
+  imports: RateLimitRule;
 };
 
 export const defaultRateLimitPolicy: RateLimitPolicy = {
@@ -32,12 +34,18 @@ export const defaultRateLimitPolicy: RateLimitPolicy = {
   expensive: { name: "expensive", max: 60, windowMs: 60_000 },
   ai: { name: "ai", max: 6, windowMs: 60_000 },
   sensitive: { name: "sensitive", max: 5, windowMs: 60_000 },
+  imports: { name: "imports", max: 10, windowMs: 10 * 60_000 },
 };
 
 /** Route patterns that verify the account password. */
 export const sensitiveRoutes = new Set([
   "DELETE /v1/account",
   "PUT /v1/account/password",
+]);
+
+/** Route patterns that upload a whole portable document. */
+export const importRoutes = new Set([
+  "POST /v1/workspace/import",
 ]);
 
 /** Route patterns that reach the external AI provider. */
@@ -61,7 +69,6 @@ export const expensiveRoutes = new Set([
   "POST /v1/workspace/samples",
   "DELETE /v1/workspace/samples",
   "GET /v1/workspace/export",
-  "POST /v1/workspace/import",
   "POST /v1/catalog/stacks/:slug/library",
   "POST /v1/catalog/stacks/:slug/profile",
 ]);
@@ -69,6 +76,7 @@ export const expensiveRoutes = new Set([
 export function ruleForRoute(policy: RateLimitPolicy, method: string, route: string | undefined): RateLimitRule {
   if (route && sensitiveRoutes.has(`${method} ${route}`)) return policy.sensitive;
   if (route && aiRoutes.has(`${method} ${route}`)) return policy.ai;
+  if (route && importRoutes.has(`${method} ${route}`)) return policy.imports;
   if (route && expensiveRoutes.has(`${method} ${route}`)) return policy.expensive;
   return method === "GET" || method === "HEAD" ? policy.read : policy.mutate;
 }

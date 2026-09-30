@@ -67,7 +67,7 @@ only one numbered handoff prompt at a time.
   (suggestions, consent, stack suggestion) render faded with "Yakında · Pro"
   (`components/coming-soon.tsx`); compiled "AI talimatları" and the AI_DECIDE
   decision mode are core features and stay active.
-  A compiler semantic change must bump `COMPILER_VERSION` (now 0.4.3), regenerate
+  A compiler semantic change must bump `COMPILER_VERSION` (now 0.4.4), regenerate
   golden snapshots and `examples/generated-context`. Export adapters treat user
   text as data (report 45): keep using the `inline`/`paragraph`/`codeSpan`
   helpers for anything a user, an import or an AI proposal wrote.

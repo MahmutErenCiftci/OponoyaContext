@@ -6,7 +6,7 @@
  * Bump COMPILER_VERSION whenever ordering or semantics of the canonical object
  * change and document it in docs/09_CONTEXT_COMPILER.md.
  */
-export const COMPILER_VERSION = "0.4.3";
+export const COMPILER_VERSION = "0.4.4";
 
 /** Product name printed in export headers; kept equal to `productName` in @devcontext/contracts (asserted by the API tests). */
 export const GENERATOR_NAME = "Oponoya";
@@ -392,9 +392,16 @@ export function stableStringify(value: unknown): string {
 
 const controlRun = /[\p{Cc}\p{Zl}\p{Zp}]+/gu;
 
+/**
+ * An HTML comment hides text from rendered Markdown (GitHub, previews) while
+ * coding agents still read it, so user text cannot open one (0.4.4). `<\!--`
+ * renders as the literal characters and is plainly not a comment to an agent.
+ */
+const commentOpen = /<!--/g;
+
 /** One line of text: line breaks and other control characters become single spaces. */
 function inline(value: string): string {
-  return value.replace(controlRun, " ").trim();
+  return value.replace(controlRun, " ").replace(commentOpen, "<\\!--").trim();
 }
 
 /** A code span its content cannot close: the delimiter is longer than any backtick run inside. */
@@ -412,7 +419,7 @@ const blockStart = /^(?:#|>|<|```|~~~|[-=]+$|([-*_])(?:\s*\1){2,}$)/;
 /** Multi-line text keeps its lines (and list items), but none of them can open a block that changes the document structure. */
 function paragraph(value: string): string[] {
   return value.split(/\r\n?|\n/).map((line) => {
-    const clean = line.replace(controlRun, " ").trimEnd();
+    const clean = line.replace(controlRun, " ").replace(commentOpen, "<\\!--").trimEnd();
     const bare = clean.trimStart();
     return blockStart.test(bare) ? `\\${bare}` : clean;
   });
