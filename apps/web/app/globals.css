@@ -164,6 +164,11 @@ img { max-width: 100%; height: auto; }
 /* Header menus (account menu in the workspace top bar) */
 .brand { display: inline-flex; align-items: center; gap: 14px; font-size: 24px; font-weight: 700; letter-spacing: -.045em; white-space: nowrap; }
 .brand-mark { width: 36px; height: 36px; display: inline-grid; place-items: center; border-radius: 8px; background: var(--accent); color: var(--accent-ink); font-size: 20px; font-weight: 800; letter-spacing: 0; }
+/* The drawn mark (components/logo-mark.tsx): O + text cursor; the cursor blinks while the logo is hovered. */
+.logo-mark { display: block; }
+.brand-mark .logo-mark { width: 66%; height: 66%; }
+.brand:hover .logo-cursor, .lp-header .logo-cursor { animation: logo-blink 1.1s steps(1) infinite; }
+@keyframes logo-blink { 50% { opacity: 0; } }
 .header-menu { position: relative; display: flex; align-items: stretch; }
 .header-menu > summary { list-style: none; cursor: pointer; user-select: none; }
 .header-menu > summary::-webkit-details-marker { display: none; }
@@ -1595,7 +1600,7 @@ details.disclosure > .disclosure-body { padding: 4px 0 20px; display: grid; gap:
   .lp-footer { flex-wrap: wrap; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .lp-marquee-track, .lp-float, .lp-app-toast, .lp-plan .next::after, .lp-final::before, .lp-caret { animation: none !important; }
+  .lp-marquee-track, .lp-float, .lp-app-toast, .lp-plan .next::after, .lp-final::before, .lp-caret, .logo-cursor { animation: none !important; }
   .lp-app-toast { opacity: 1; }
   .lp-app { transform: none; }
 }

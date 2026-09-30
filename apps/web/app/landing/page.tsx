@@ -5,6 +5,7 @@ import { ArrowRight, CheckCircle, CircleDashed, Clock, Database, DownloadSimple,
 import type { CSSProperties } from "react";
 import { productName } from "@devcontext/contracts/brand";
 import { BrandMark } from "../../components/brand-mark";
+import { LogoMark } from "../../components/logo-mark";
 import { TechLogo } from "../../components/tech-logo";
 import { ThemeToggle } from "../../components/theme-toggle";
 import { proPricing } from "../../lib/roadmap";
@@ -112,7 +113,7 @@ export default async function LandingPreviewPage() {
             <div className="lp-app-bar"><i /><i /><i /><span>oponoya.com/workspace</span></div>
             <div className="lp-app-body">
               <div className="lp-app-side">
-                <b><span className="brand-mark">O</span>Oponoya</b>
+                <b><span className="brand-mark"><LogoMark /></span>Oponoya</b>
                 <span className="on"><i />Genel bakış</span>
                 <span>Projeler</span>
                 <span>Kütüphane</span>

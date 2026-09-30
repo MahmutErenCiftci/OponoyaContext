@@ -73,10 +73,13 @@ After coding:
 ## Product name
 
 The product is **Oponoya** (owner decision 2026-09-30), served from
-`oponoya.com`. Everything people see — UI, page titles, icons and monogram,
-legal pages, the AI system prompt and the header of exported context files —
-comes from `productName` in `packages/contracts/src/brand.ts` and
-`GENERATOR_NAME` in the context compiler (a test keeps them equal); rename there,
+`oponoya.com`. Everything people see — UI, page titles, legal pages, the AI
+system prompt and the header of exported context files — comes from
+`productName` in `packages/contracts/src/brand.ts` and `GENERATOR_NAME` in the
+context compiler (a test keeps them equal). The logo is a drawn mark (an O and
+a text cursor, owner pick 2026-09-30) whose geometry lives only in
+`apps/web/components/logo-mark.tsx`; the in-app tile, favicon, app icons and
+link-preview image all draw from it. Rename there,
 never by hand in screens. Technical identifiers keep the old `devcontext` name
 on purpose and must not be renamed: the `@devcontext/*` package scope, the
 cookie prefix, the portable JSON format id `"devcontext"` (changing it would
