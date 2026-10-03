@@ -1,0 +1,90 @@
+# Production stack for Dokploy on the single Oponoya VDS (Docker Compose service type).
+#
+# Dokploy clones the repository, writes the variables of its Environment tab to
+# deploy/.env (next to this file, never committed) and runs
+# `docker compose up -d --build` here. Same order as deploy/compose.staging.yml:
+# the one-shot `migrate` job, then the API, then the web.
+#
+# - PostgreSQL is a separate Dokploy database service on `dokploy-network` with
+#   TLS on (server certificate in /opt/oponoya/postgres-tls on the host).
+#   DATABASE_URL points at its internal host with
+#   `sslmode=verify-full&sslrootcert=/run/postgres/server.crt`; the certificate
+#   is mounted read-only below and its CN/SAN is that internal host name.
+# - Only the web is routed: assign oponoya.com → service `web`, port 3000 in
+#   Dokploy's Domains tab (HTTPS on, certificate None: Cloudflare Origin CA).
+#   The browser never calls the API directly; the web proxies every call
+#   server-side through API_URL, so the API has no public route.
+# - The web container gets only what it needs, never the database or session
+#   secrets from deploy/.env.
+# - No host ports are published; Traefik reaches the web over dokploy-network.
+
+services:
+  migrate:
+    build:
+      context: ..
+      dockerfile: apps/api/Dockerfile
+    image: oponoya-api:${RELEASE:-latest}
+    env_file:
+      - .env
+    command: ["node", "node_modules/@devcontext/db/dist/migrate.js"]
+    volumes:
+      - /opt/oponoya/postgres-tls/server.crt:/run/postgres/server.crt:ro
+    networks:
+      - default
+      - dokploy-network
+    restart: "no"
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  api:
+    image: oponoya-api:${RELEASE:-latest}
+    env_file:
+      - .env
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    volumes:
+      - /opt/oponoya/postgres-tls/server.crt:/run/postgres/server.crt:ro
+    networks:
+      - default
+      - dokploy-network
+    stop_grace_period: 15s
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  web:
+    build:
+      context: ..
+      dockerfile: apps/web/Dockerfile
+    image: oponoya-web:${RELEASE:-latest}
+    environment:
+      NODE_ENV: production
+      API_URL: http://api:4000
+      WEB_PROXY_SECRET: ${WEB_PROXY_SECRET:?WEB_PROXY_SECRET must be set in the Dokploy environment}
+      SITE_URL: ${SITE_URL:-}
+      CLIENT_IP_HEADER: ${CLIENT_IP_HEADER:-}
+      TRUSTED_PROXY_HOPS: ${TRUSTED_PROXY_HOPS:-1}
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - default
+      - dokploy-network
+    stop_grace_period: 15s
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+networks:
+  dokploy-network:
+    external: true

@@ -250,6 +250,21 @@ shared folders and delete drill snapshots after use.
   working. If a migration itself must be undone, restore from the managed
   snapshot taken before the release (below) or write a forward migration.
 
+### Dokploy on a single VDS (owner decision, 2026-10-04)
+- `deploy/compose.dokploy.yml` is the production stack for a Dokploy
+  "Docker Compose" service: migrate → api → web, no published host ports,
+  `deploy/.env` written by Dokploy from its Environment tab (never committed).
+- PostgreSQL 18.6 is a separate Dokploy database service on `dokploy-network`
+  with TLS on (self-signed server certificate whose CN/SAN is the service's
+  internal host); `DATABASE_URL` uses `sslmode=verify-full` with
+  `sslrootcert` pointing at the mounted certificate.
+- Only the web has a domain (oponoya.com behind Cloudflare, Full (strict) with a
+  Cloudflare Origin CA certificate); the API is reachable only inside the stack
+  because the web proxies every browser call server-side.
+- With Cloudflare in front, set `CLIENT_IP_HEADER=cf-connecting-ip` only once
+  the origin accepts 80/443 from Cloudflare's ranges alone; otherwise a direct
+  request could choose its own rate-limit key.
+
 ### Observability and alerts
 - Error reporting: set `SENTRY_DSN` (store endpoint spoken directly) or
   `ERROR_REPORTING_URL` plus `ERROR_REPORTING_TOKEN`. Reports carry class,
