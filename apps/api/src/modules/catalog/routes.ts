@@ -31,6 +31,11 @@ export async function registerCatalogRoutes(app: FastifyInstance, catalog: Catal
     links: await catalog.libraryLinks(ownerId(request)),
   }));
 
+  /** Suggestions only read the Library; adding anything stays an explicit user action. */
+  app.get("/v1/catalog/suggestions", { onRequest: app.authenticate }, async (request) => ({
+    suggestions: await catalog.suggestions(ownerId(request)),
+  }));
+
   app.post("/v1/catalog/technologies/:slug/library", { onRequest: app.authenticate }, async (request, reply) => {
     const { slug } = paramsSchema.parse(request.params);
     const links = await catalog.libraryLinks(ownerId(request));

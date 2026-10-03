@@ -44,7 +44,7 @@ export default async function CatalogStackPage({ params }: { params: Promise<{ s
     <WorkspaceShell active="Catalog" user={user}>
       <section className="page">
         <Breadcrumb items={[{ label: "Katalog", href: "/workspace/catalog" }, { label: "Hazır stack’ler", href: "/workspace/catalog" }, { label: stack.name }]} />
-        <h1 className="page-title" style={{ fontSize: 56 }}>{stack.name}</h1>
+        <h1 className="page-title">{stack.name}</h1>
         <p className="page-lead" style={{ fontSize: 18 }}>{stack.summary}</p>
         <div className="chip-group" style={{ marginTop: 14 }}>
           <span className="chip">{teamSizeLabels[stack.teamSize]}</span>
@@ -87,7 +87,7 @@ export default async function CatalogStackPage({ params }: { params: Promise<{ s
               <p style={{ color: "var(--ink-2)" }}>{stack.aiFriendliness}</p>
             </section>
           </div>
-          <aside className="rail" style={{ borderLeft: "1px solid var(--line)", paddingLeft: 32 }}>
+          <aside className="rail bordered">
             <section aria-labelledby="fit-title">
               <h3 className="section-title small" id="fit-title" style={{ marginBottom: 16 }}>Uygun kullanım</h3>
               <ul className="check-rows">

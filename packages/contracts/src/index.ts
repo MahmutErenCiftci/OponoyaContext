@@ -109,9 +109,21 @@ export const resourcePreferenceInputSchema = z.object({
   mode: globalPreferenceModeSchema,
 });
 
+/** True when a JSON value nests deeper than `max` levels; iterative, so hostile input cannot overflow the stack. */
+function nestsDeeperThan(value: unknown, max: number): boolean {
+  const pending: Array<[unknown, number]> = [[value, 0]];
+  while (pending.length > 0) {
+    const [current, depth] = pending.pop()!;
+    if (current === null || typeof current !== "object") continue;
+    if (depth >= max) return true;
+    for (const child of Object.values(current)) pending.push([child, depth + 1]);
+  }
+  return false;
+}
+
 const metadataSchema = z.record(z.string().max(100), z.unknown()).refine(
-  (value) => JSON.stringify(value).length <= 20_000,
-  "Metadata is too large",
+  (value) => !nestsDeeperThan(value, 10) && JSON.stringify(value).length <= 20_000,
+  "Metadata is too large or nested too deeply",
 );
 
 export const createResourceSchema = z.object({
@@ -344,8 +356,8 @@ export type DecisionOrigin = z.infer<typeof decisionOriginSchema>;
 export type DecisionScope = z.infer<typeof decisionScopeSchema>;
 
 const decisionJsonSchema = z.record(z.string().max(100), z.unknown()).refine(
-  (value) => JSON.stringify(value).length <= 5_000,
-  "Value is too large",
+  (value) => !nestsDeeperThan(value, 10) && JSON.stringify(value).length <= 5_000,
+  "Value is too large or nested too deeply",
 );
 
 /**
@@ -805,6 +817,18 @@ export const auditEventListQuerySchema = z.object({
 export type AuditEventListQuery = z.infer<typeof auditEventListQuerySchema>;
 
 export const auditEventListResponseSchema = z.object({ events: z.array(auditEventSchema) });
+
+/**
+ * Overview greeting inputs. `previousSignInAt` is the sign-in before the
+ * current one (null on a first visit); `lastActivity` is the newest audit
+ * event that is not a sign-in.
+ */
+export const auditPresenceSchema = z.object({
+  previousSignInAt: z.iso.datetime().nullable(),
+  lastActivity: auditEventSchema.nullable(),
+});
+export type AuditPresence = z.infer<typeof auditPresenceSchema>;
+export const auditPresenceResponseSchema = z.object({ presence: auditPresenceSchema });
 
 // ---------------------------------------------------------------------------
 // V1 recipes, onboarding, samples and portability (Handoff 9)
@@ -1349,6 +1373,33 @@ export const catalogStackSchema = catalogStackSummarySchema.extend({
   velocity: catalogVelocitySchema.nullable(),
 });
 export type CatalogStack = z.infer<typeof catalogStackSchema>;
+
+/**
+ * Read-only catalog suggestions built from the technologies already in the
+ * Library: companions (`pairs_with`) first, then alternatives. `because` names
+ * the Library technologies that led to the suggestion. Nothing is added to
+ * the Library until the user does it explicitly.
+ */
+export const catalogTechnologySuggestionSchema = z.object({
+  technology: catalogTechnologySummarySchema,
+  reason: z.enum(["pairs_with", "alternative"]),
+  because: z.array(catalogReferenceSchema),
+});
+export type CatalogTechnologySuggestion = z.infer<typeof catalogTechnologySuggestionSchema>;
+
+/** `matched` counts the stack's known technologies already in the Library (0 for starter picks). */
+export const catalogStackSuggestionSchema = z.object({
+  stack: catalogStackSummarySchema,
+  matched: z.number().int().nonnegative(),
+});
+export type CatalogStackSuggestion = z.infer<typeof catalogStackSuggestionSchema>;
+
+export const catalogSuggestionsSchema = z.object({
+  technologies: z.array(catalogTechnologySuggestionSchema),
+  stacks: z.array(catalogStackSuggestionSchema),
+});
+export type CatalogSuggestions = z.infer<typeof catalogSuggestionsSchema>;
+export const catalogSuggestionsResponseSchema = z.object({ suggestions: catalogSuggestionsSchema });
 
 export const catalogDomainInfoSchema = z.object({
   id: catalogDomainSchema,

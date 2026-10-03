@@ -15,6 +15,9 @@ const quickActions: Action[] = [
   { id: "go-catalog", label: "Kataloğu aç", hint: "Teknolojileri ve hazır stack’leri keşfet", href: "/workspace/catalog", kind: "action" },
   { id: "go-projects", label: "Projeleri aç", hint: "Proje listesine git", href: "/workspace/projects", kind: "action" },
   { id: "go-profiles", label: "Profilleri aç", hint: "Stack, tasarım, AI ve dağıtım profilleri", href: "/workspace/profiles", kind: "action" },
+  { id: "go-recipes", label: "Tarifleri aç", hint: "Profilleri tekrar kullanılabilir tariflerde birleştir", href: "/workspace/recipes", kind: "action" },
+  { id: "go-plan", label: "Gelişim planını aç", hint: "Abonelik, V1–V3 planı ve Pro", href: "/workspace/billing#gelisim-plani", kind: "action" },
+  { id: "go-settings", label: "Ayarları aç", hint: "Hesap, görünüm, veri aktarımı ve gizlilik", href: "/workspace/settings", kind: "action" },
 ];
 
 const kindLabels: Record<SearchResult["kind"] | "action", string> = {
@@ -42,7 +45,7 @@ function hrefFor(result: SearchResult) {
  * Workspace-wide search and quick actions. Opens with the header button or
  * Ctrl/Cmd+K; results are owner-scoped by the API and navigable by keyboard.
  */
-export function CommandPalette() {
+export function CommandPalette({ variant = "icon" }: { variant?: "icon" | "field" }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -134,9 +137,17 @@ export function CommandPalette() {
 
   return (
     <>
-      <button aria-haspopup="dialog" aria-label="Çalışma alanında ara" className="icon-button" onClick={() => setOpen(true)} title="Ara (Ctrl+K)" type="button">
-        <MagnifyingGlass aria-hidden size={24} />
-      </button>
+      {variant === "field" ? (
+        <button aria-haspopup="dialog" aria-label="Çalışma alanında ara" className="search-trigger" onClick={() => setOpen(true)} title="Ara (Ctrl+K)" type="button">
+          <MagnifyingGlass aria-hidden size={18} />
+          <span className="search-trigger-text">Ara veya hızlı işlem…</span>
+          <kbd>Ctrl K</kbd>
+        </button>
+      ) : (
+        <button aria-haspopup="dialog" aria-label="Çalışma alanında ara" className="icon-button" onClick={() => setOpen(true)} title="Ara (Ctrl+K)" type="button">
+          <MagnifyingGlass aria-hidden size={24} />
+        </button>
+      )}
       {open && (
         <div className="drawer-backdrop dialog-center" onMouseDown={(event) => { if (event.currentTarget === event.target) close(); }} role="presentation">
           <section aria-label="Çalışma alanında ara" aria-modal="true" className="dialog" role="dialog">

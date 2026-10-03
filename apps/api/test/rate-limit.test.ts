@@ -40,6 +40,9 @@ describe("process-local rate limiter", () => {
       const [method, pattern] = route.split(" ");
       expect(ruleForRoute(defaultRateLimitPolicy, method!, pattern)).toBe(defaultRateLimitPolicy.expensive);
     }
+    // Imports have their own slow bucket, checked before the body is read.
+    expect(ruleForRoute(defaultRateLimitPolicy, "POST", "/v1/workspace/import")).toBe(defaultRateLimitPolicy.imports);
+    expect(defaultRateLimitPolicy.imports.max / defaultRateLimitPolicy.imports.windowMs).toBeLessThan(defaultRateLimitPolicy.expensive.max / defaultRateLimitPolicy.expensive.windowMs);
     expect(ruleForRoute(defaultRateLimitPolicy, "GET", "/v1/projects/:id/compile")).toBe(defaultRateLimitPolicy.read);
     expect(ruleForRoute(defaultRateLimitPolicy, "GET", "/v1/resources")).toBe(defaultRateLimitPolicy.read);
     expect(ruleForRoute(defaultRateLimitPolicy, "HEAD", "/v1/resources")).toBe(defaultRateLimitPolicy.read);

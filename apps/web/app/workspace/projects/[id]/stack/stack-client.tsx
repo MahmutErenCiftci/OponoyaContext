@@ -9,9 +9,10 @@ import {
   type ProjectDecisionView,
   type Resource,
 } from "@devcontext/contracts";
-import { Info, Plus } from "@phosphor-icons/react/dist/ssr";
+import { Info, Plus, Sparkle } from "@phosphor-icons/react/dist/ssr";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
+import { ComingSoonBadge } from "../../../../../components/coming-soon";
 import { DecisionBadge } from "../../../../../components/decision-badge";
 import { DecisionEditor } from "../../../../../components/decision-editor";
 import { GroupedDecisionTable, type DecisionRow } from "../../../../../components/decision-table";
@@ -109,6 +110,7 @@ export function StackClient({ project, initial, library, warnings: initialWarnin
         </div>
         <div className="right">
           <span className="note" role="note"><Info aria-hidden size={18} />Proje kararları profil ve kütüphane tercihlerini geçersiz kılar.</span>
+          {!archived && !ai?.available && <button className="button soon-button" disabled title="Pro ile V2’de gelecek" type="button"><Sparkle aria-hidden size={18} />AI ile stack öner<ComingSoonBadge label="Yakında" /></button>}
           {!archived && <button className="button primary" onClick={() => setPicking(true)} type="button"><Plus aria-hidden size={18} />Karar ekle</button>}
         </div>
       </div>

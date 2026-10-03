@@ -81,7 +81,7 @@ try {
   await step("web landing", async () => {
     const response = await request(`${web}/`);
     const text = await response.text();
-    if (!response.ok || !text.includes("DevContext")) throw new Error(`status ${response.status}`);
+    if (!response.ok || !text.includes("Oponoya")) throw new Error(`status ${response.status}`);
     const csp = response.headers.get("content-security-policy");
     if (!csp || !csp.includes("frame-ancestors 'none'")) throw new Error("security headers missing");
   });
@@ -110,7 +110,7 @@ try {
   await step("protected page (/workspace)", async () => {
     const response = await request(`${web}/workspace`);
     const text = await response.text();
-    if (response.status !== 200 || !text.includes("Merhaba")) throw new Error(`status ${response.status}`);
+    if (response.status !== 200 || !text.includes("aria-label=\"Çalışma alanı\"")) throw new Error(`status ${response.status}`);
   });
   await step("anonymous access refused", async () => {
     const saved = cookie;

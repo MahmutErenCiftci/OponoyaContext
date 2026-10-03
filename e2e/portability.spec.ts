@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { expect, test } from "@playwright/test";
 import { upgradeToPro } from "./support/billing";
-import { decisionRow, noHorizontalOverflow, openMoreMenu, projectSections, signUp, workspaceNav } from "./support/workspace";
+import { decisionRow, noHorizontalOverflow, openActivity, openMoreMenu, projectSections, signUp, workspaceNav } from "./support/workspace";
 
 test("first run: sample data, recipe inheritance, bundle download, export and import round trip, removal", async ({ page }, testInfo) => {
   const email = `playwright-portability-${Date.now()}@example.test`;
@@ -16,7 +16,7 @@ test("first run: sample data, recipe inheritance, bundle download, export and im
   await page.getByRole("button", { name: "Örnekleri ekle ve başla" }).click();
   await expect(page.getByRole("heading", { name: "Örneklerin hazır." })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Kurulum: 2 / 4 tamamlandı" })).toBeVisible();
-  await expect(page.getByRole("list", { name: "Son etkinlikler" })).toContainText("Örnek veriler yüklendi");
+  await expect(await openActivity(page)).toContainText("Örnek veriler yüklendi");
 
   // The recipe exists with its profiles and decisions.
   await openMoreMenu(page, "Tarifler");

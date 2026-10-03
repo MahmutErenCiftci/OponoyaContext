@@ -14,10 +14,10 @@ import {
   type ImportSummary,
   type WorkspaceSettings,
 } from "@devcontext/contracts";
-import { CheckCircle, CreditCard, Database, DownloadSimple, File, Info, Lock, Monitor, Question, ShieldCheck, UploadSimple, User, WarningCircle } from "@phosphor-icons/react/dist/ssr";
+import { CheckCircle, ClockCounterClockwise, CreditCard, Database, DownloadSimple, File, Info, Lock, Monitor, Question, ShieldCheck, UploadSimple, User, WarningCircle } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useId, useRef, useState, useSyncExternalStore, type MouseEvent } from "react";
+import { useEffect, useId, useRef, useState, useSyncExternalStore, type MouseEvent, type ReactNode } from "react";
 
 function subscribeHash(callback: () => void) {
   window.addEventListener("hashchange", callback);
@@ -50,6 +50,7 @@ const counterLabels: Array<[keyof ImportSummary["counts"], string]> = [
 
 const sections = [
   { id: "settings-account", label: "Hesap", icon: User },
+  { id: "settings-activity", label: "Etkinlik geçmişi", icon: ClockCounterClockwise },
   { id: "settings-appearance", label: "Görünüm", icon: Monitor },
   { id: "settings-samples", label: "Örnek veriler", icon: Database },
   { id: "import", label: "Veri aktarımı", icon: DownloadSimple },
@@ -225,7 +226,7 @@ function ImportSection({ onNotice, onExport, exporting }: { onNotice: Notify; on
   );
 }
 
-export function SettingsClient({ settings: initialSettings, account, ai, theme, user, initialSection }: { settings: WorkspaceSettings | null; account: AccountSummary | null; ai: AiStatus | null; theme: Theme; user: CurrentUser; initialSection?: string | undefined }) {
+export function SettingsClient({ settings: initialSettings, account, ai, theme, user, initialSection, activity }: { settings: WorkspaceSettings | null; account: AccountSummary | null; ai: AiStatus | null; theme: Theme; user: CurrentUser; initialSection?: string | undefined; activity: ReactNode }) {
   const router = useRouter();
   const [settings, setSettings] = useState(initialSettings);
   const [pending, setPending] = useState<string | null>(null);
@@ -346,6 +347,12 @@ export function SettingsClient({ settings: initialSettings, account, ai, theme, 
               {settings?.onboardingState !== "completed" && <button className="button" disabled={pending !== null} onClick={() => void updateOnboarding("completed")} type="button">Kurulumu tamamla</button>}
             </div>
             <PasswordForm onNotice={notify} />
+          </section>
+
+          <section aria-labelledby="settings-activity-title" className="settings-section" id="settings-activity">
+            <h2 id="settings-activity-title">Etkinlik geçmişi</h2>
+            <p className="lead">Çalışma alanında yaptığın son değişiklikler. Kayıtlar yalnızca işlem türünü tutar; adlar ve içerikler yazılmaz.</p>
+            {activity}
           </section>
 
           <section aria-labelledby="settings-appearance-title" className="settings-section" id="settings-appearance">

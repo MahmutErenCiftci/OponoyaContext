@@ -40,9 +40,24 @@ describe("audit trail persistence", () => {
   });
 
   it("exposes no update or delete and follows the actor on account deletion", async () => {
-    expect(Object.keys(audit).sort()).toEqual(["list", "record"]);
+    expect(Object.keys(audit).sort()).toEqual(["list", "presence", "record"]);
     await database.db.delete(users).where(eq(users.id, ownerB));
     expect(await audit.list(ownerB, { limit: 20 })).toEqual([]);
     expect((await database.db.select({ value: count() }).from(auditEvents))[0]?.value).toBe(3);
+  });
+
+  it("reports the sign-in before the current one and the newest non-sign-in event", async () => {
+    const before = await audit.presence(ownerA);
+    expect(before.previousSignInAt).toBeNull();
+    expect(before.lastActivity?.action).toBe("profile.created");
+
+    await audit.record({ actorUserId: ownerA, action: "account.created", entityType: "account", entityId: ownerA, metadata: {}, requestId: "req-10" });
+    expect((await audit.presence(ownerA)).previousSignInAt).toBeNull();
+    await audit.record({ actorUserId: ownerA, action: "account.signed_in", entityType: "account", entityId: ownerA, metadata: {}, requestId: "req-11" });
+    const [created] = await audit.list(ownerA, { entityType: "account", limit: 20 }).then((events) => events.filter((event) => event.action === "account.created"));
+    const after = await audit.presence(ownerA);
+    expect(after.previousSignInAt).toBe(created?.createdAt);
+    // A sign-in is never "what you did last".
+    expect(after.lastActivity?.action).toBe("account.created");
   });
 });

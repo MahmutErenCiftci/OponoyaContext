@@ -9,6 +9,7 @@ import { typeLabels } from "../lib/resource-labels";
 import { catalogSlugFor } from "../lib/logos";
 import { AiSuggestionPanel } from "./ai-suggestion-panel";
 import { ChipField } from "./chip-field";
+import { AiComingSoon } from "./coming-soon";
 import { ModeIcon } from "./decision-badge";
 import { DrawerFrame } from "./drawer";
 import { TechLogo } from "./tech-logo";
@@ -198,7 +199,9 @@ export function DecisionEditor<TSaved, TRemoved>({
       {delegated ? (
         <>
           <p className="note" role="note"><Info aria-hidden size={20} />Bu kararda kaynak seçilmez. Coding agent aşağıdaki kısıtlar içinde en uygun seçeneği belirler ve gerekçesini yazar.</p>
-          {ai?.status.available && record?.mode === "AI_DECIDE" && <AiSuggestionPanel onAccepted={ai.onAccepted} projectId={ai.projectId} slot={slot} status={ai.status} />}
+          {ai?.status.available
+            ? record?.mode === "AI_DECIDE" && <AiSuggestionPanel onAccepted={ai.onAccepted} projectId={ai.projectId} slot={slot} status={ai.status} />
+            : <AiComingSoon action="AI önerisi iste" text="Bu karar için AI’dan gerekçeli öneri almak Pro ile V2’de geliyor. O zamana kadar karar, dışa aktardığın talimatlarda coding agent’a bırakılır." title="AI karar önerisi" />}
         </>
       ) : (
         <div className="field">

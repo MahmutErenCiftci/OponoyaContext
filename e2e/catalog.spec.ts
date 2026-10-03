@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { noHorizontalOverflow, openMoreMenu, signUp, skipFirstRun, workspaceNav } from "./support/workspace";
+import { discoverNav, noHorizontalOverflow, openMoreMenu, signUp, skipFirstRun, workspaceNav } from "./support/workspace";
 
 test("technology catalog: browse, add to Library with logos, stack preset to profile, light theme", async ({ page }, testInfo) => {
   const email = `playwright-catalog-${Date.now()}@example.test`;
@@ -9,7 +9,7 @@ test("technology catalog: browse, add to Library with logos, stack preset to pro
   await skipFirstRun(page);
 
   // Catalog overview: research counts, disclaimer, presets and search.
-  await sidebar.getByRole("link", { name: "Katalog" }).click();
+  await discoverNav(page).getByRole("link", { name: "Katalog" }).click();
   await expect(page.getByRole("heading", { name: "Teknoloji kataloğu" })).toBeVisible();
   await expect(page.getByText("246 teknoloji · 15 hazır stack")).toBeVisible();
   await expect(page.getByRole("link", { name: /T3 Stack/ }).first()).toBeAttached();
@@ -70,7 +70,7 @@ test("technology catalog: browse, add to Library with logos, stack preset to pro
   await page.reload();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
   await expect(page.getByRole("radio", { name: /^Açık/ })).toBeChecked();
-  await sidebar.getByRole("link", { name: "Katalog" }).click();
+  await discoverNav(page).getByRole("link", { name: "Katalog" }).click();
   await expect(page.getByRole("heading", { name: "Teknoloji kataloğu" })).toBeVisible();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
   // Every brand mark on the page is painted in the light theme too.

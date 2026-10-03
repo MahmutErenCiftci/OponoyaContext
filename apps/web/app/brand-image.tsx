@@ -1,4 +1,4 @@
-import { productMonogram } from "@devcontext/contracts/brand";
+import { logoGeometry } from "../components/logo-mark";
 
 /**
  * Colours of the generated brand images. Image generation cannot read CSS
@@ -32,26 +32,21 @@ export async function brandFonts(text: string, weights: Array<500 | 800> = [800]
   return fonts;
 }
 
-/** The monogram tile used by every app icon size; `radius` is a share of the size. */
-export function MonogramTile({ size, radius = 0.22 }: { size: number; radius?: number }) {
+/**
+ * The logo tile used by every app icon size and the link preview: the drawn
+ * mark from components/logo-mark.tsx on the accent square. `radius` is a
+ * share of the size. Colours are explicit because image generation has no
+ * `currentColor` from CSS.
+ */
+export function LogoTile({ size, radius = 0.22 }: { size: number; radius?: number }) {
+  const inner = Math.round(size * 0.66);
+  const { ring, cursor } = logoGeometry;
   return (
-    <div
-      style={{
-        width: size,
-        height: size,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        borderRadius: Math.round(size * radius),
-        background: brandColors.accent,
-        color: brandColors.accentInk,
-        fontFamily: "Manrope",
-        fontSize: Math.round(size * 0.6),
-        fontWeight: 800,
-        lineHeight: 1,
-      }}
-    >
-      {productMonogram}
+    <div style={{ width: size, height: size, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: Math.round(size * radius), background: brandColors.accent }}>
+      <svg height={inner} viewBox="0 0 100 100" width={inner}>
+        <circle cx={ring.cx} cy={ring.cy} fill="none" r={ring.r} stroke={brandColors.accentInk} strokeWidth={ring.width} />
+        <rect fill={brandColors.accentInk} height={cursor.height} rx={cursor.radius} width={cursor.width} x={cursor.x} y={cursor.y} />
+      </svg>
     </div>
   );
 }

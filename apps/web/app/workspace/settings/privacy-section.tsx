@@ -7,6 +7,7 @@ import { useState, type FormEvent } from "react";
 import { DrawerFrame } from "../../../components/drawer";
 import { readApiError } from "../../../lib/errors";
 import { formatDateTime } from "../../../lib/resource-labels";
+import { AiComingSoon } from "../../../components/coming-soon";
 import { AiConsent } from "./ai-consent";
 
 const storedLabels: Array<[keyof AccountSummary["stored"], string]> = [
@@ -138,7 +139,9 @@ export function PrivacySection({ initial, user, ai, onNotice }: { initial: Accou
           <li><ShieldCheck aria-hidden size={20} /><span>İçe aktardığın URL’ler, promptlar, kurallar ve kurulum komutları yalnızca metin olarak saklanır; asla açılmaz, indirilmez ya da çalıştırılmaz.</span></li>
           <li><ShieldCheck aria-hidden size={20} /><span>Etkinlik kaydı ve sunucu günlükleri içerik değil, yalnızca işlem türü, kayıt kimliği ve sayı tutar.</span></li>
         </ul>
-        {ai?.available && <AiConsent initial={ai} onNotice={onNotice} />}
+        {ai?.available
+          ? <AiConsent initial={ai} onNotice={onNotice} />
+          : <AiComingSoon action="AI önerilerine izin ver" text="İsteğe bağlı AI önerileri Pro ile V2’de geliyor; en yeni AI özellikleri V3’ten sonra. Açılana kadar hiçbir veri bir AI sağlayıcısına gönderilmez." title="AI önerileri" />}
       </div>
 
       <div className="numbered-section">

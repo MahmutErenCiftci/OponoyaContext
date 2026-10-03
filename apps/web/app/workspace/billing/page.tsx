@@ -6,7 +6,7 @@ import { ServiceUnavailable } from "../unavailable";
 import { WorkspaceShell } from "../workspace-shell";
 import { BillingClient, type ReturnState } from "./billing-client";
 
-export const metadata: Metadata = { title: "Plan" };
+export const metadata: Metadata = { title: "Abonelik" };
 
 function parseReturn(value: string | undefined): ReturnState {
   return value === "success" || value === "canceled" || value === "portal" ? value : null;

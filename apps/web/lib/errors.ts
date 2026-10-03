@@ -20,6 +20,7 @@ const detailText: Record<string, string> = {
   decision_limit: `Bir proje, profil ya da tarif en fazla ${portableLimits.decisionsPerEntity} karar tutabilir. Yenisini eklemeden önce birini kaldır.`,
   rule_limit: `Çalışma alanın en fazla ${portableLimits.compatibilityRules} uyumluluk kuralı tutabilir. Yenisini eklemeden önce birini kaldır.`,
   import_in_progress: "Başka bir içe aktarma sürüyor. Bitmesini bekleyip tekrar dene.",
+  import_busy: "Sunucu şu an başka içe aktarmaları işliyor. Birkaç dakika sonra tekrar dene.",
   invalid_value: "Gönderilen bir değer saklanamıyor (ör. görünmez bir kontrol karakteri). Metni düzenleyip tekrar dene.",
   too_big: "Dosya bir dışa aktarmanın içerebileceğinden fazla kayıt içeriyor.",
   json_depth: "Dosya çok derin iç içe geçmiş ya da döngüsel referans içeriyor.",

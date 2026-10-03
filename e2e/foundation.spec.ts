@@ -3,9 +3,9 @@ import { addResource, noHorizontalOverflow, password, rowAction, skipFirstRun } 
 
 test("landing page presents the product and connects to the API", async ({ page }, testInfo) => {
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "Teknolojilerini bir kez anlat. Her projede hatırlansın." })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: /Her yeni projede aynı şeyleri tekrar anlatma/ })).toBeVisible();
   await expect(page.getByRole("status")).toHaveText("Çalışma alanı hazır");
-  await expect(page.getByRole("img", { name: /proje kararları ve AI talimatlarının önizlemesi/ })).toBeVisible();
+  await expect(page.getByRole("img", { name: /çalışma alanının önizlemesi/ })).toBeVisible();
   // Identity: tab title, favicon and install metadata are served.
   await expect(page).toHaveTitle(/Oponoya/);
   expect((await page.request.get("/favicon.ico")).headers()["content-type"]).toContain("image/png");
@@ -33,7 +33,7 @@ test("user can sign up, access the protected workspace, sign out and sign in", a
 
   await expect(page).toHaveURL(/\/workspace$/);
   await skipFirstRun(page);
-  await expect(page.getByRole("heading", { name: /^Merhaba, / })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /hoş geldin, /i })).toBeVisible();
   if (await page.locator(".account-menu").getAttribute("open") === null) await page.getByLabel("Hesap menüsü").click();
   await expect(page.getByText(email)).toBeVisible();
 
@@ -46,7 +46,7 @@ test("user can sign up, access the protected workspace, sign out and sign in", a
   await page.getByRole("button", { name: "Giriş yap", exact: true }).click();
 
   await expect(page).toHaveURL(/\/workspace$/);
-  await expect(page.getByRole("heading", { name: /^Merhaba, / })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /hoş geldin, /i })).toBeVisible();
 
   await page.getByRole("navigation", { name: "Çalışma alanı" }).getByRole("link", { name: "Kütüphane", exact: true }).click();
   await addResource(page, { name: "Animate UI Toggle", type: "component", url: "https://animate-ui.com/docs/components/radix/toggle", tags: "frontend, component" });

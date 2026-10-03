@@ -1,5 +1,5 @@
 import type { AuditEvent } from "@devcontext/contracts";
-import type { AuditEventInput, AuditRepository } from "../../src/modules/audit/repository.js";
+import { signInAction, type AuditEventInput, type AuditRepository } from "../../src/modules/audit/repository.js";
 
 export type MemoryAudit = AuditRepository & { events: AuditEventInput[] };
 
@@ -27,6 +27,17 @@ export function memoryAudit(): MemoryAudit {
           requestId: event.requestId,
           createdAt: new Date(0).toISOString(),
         }));
+    },
+    async presence(actorUserId) {
+      const own = events.filter((event) => event.actorUserId === actorUserId);
+      const signIns = own.filter((event) => event.action === signInAction || event.action === "account.created");
+      const latest = own.filter((event) => event.action !== signInAction).at(-1);
+      return {
+        previousSignInAt: signIns.length > 1 ? new Date(0).toISOString() : null,
+        lastActivity: latest
+          ? { id: "00000000-0000-4000-8000-000000000001", action: latest.action, entityType: latest.entityType, entityId: latest.entityId, metadata: latest.metadata, requestId: latest.requestId, createdAt: new Date(0).toISOString() }
+          : null,
+      };
     },
   };
 }

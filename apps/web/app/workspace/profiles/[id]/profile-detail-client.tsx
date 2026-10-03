@@ -100,7 +100,7 @@ export function ProfileDetailClient({ initial, library }: { initial: Profile; li
             showSource={false}
           />
         </section>
-        <aside className="rail" style={{ borderLeft: "1px solid var(--line)", paddingLeft: 40 }}>
+        <aside className="rail bordered">
           <section aria-labelledby="reuse-title">
             <h3 className="section-title small" id="reuse-title">Yeniden kullanım</h3>
             <p className="muted" style={{ marginTop: 8 }}>Bu profil projelere ve tariflere eklenebilir.</p>

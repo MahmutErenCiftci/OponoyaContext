@@ -12,21 +12,36 @@ export async function signUp(page: Page, name: string, email: string) {
   await expect(page).toHaveURL(/\/workspace$/);
 }
 
-/** Dismisses the first-run guide so the regular overview (checklist, projects, activity) renders. */
+/** Dismisses the first-run guide so the regular overview (checklist, project and technology rails) renders. */
 export async function skipFirstRun(page: Page) {
   await expect(page.getByRole("heading", { name: "Çalışma alanın hazır." })).toBeVisible();
   await page.getByRole("button", { name: "Şimdilik atla" }).click();
   await expect(page.getByRole("heading", { name: "Çalışma alanın hazır." })).toHaveCount(0);
 }
 
+/** The left sidebar: every work section (overview, projects, library, profiles, recipes, plan, settings). */
 export function workspaceNav(page: Page) {
   return page.getByRole("navigation", { name: "Çalışma alanı" });
 }
 
-/** Opens the "Daha fazla" header menu and follows one of its links. */
+/** The top bar's learning and discovery links (catalog, news). */
+export function discoverNav(page: Page) {
+  return page.getByRole("navigation", { name: "Keşfet" });
+}
+
+/** Follows a sidebar link; on phones the sidebar is a drawer behind the "Menüyü aç" button. */
 export async function openMoreMenu(page: Page, link: string) {
-  await page.locator(".workspace-navigation .header-menu > summary").click();
-  await workspaceNav(page).getByRole("link", { name: link }).click();
+  const menu = page.getByRole("button", { name: "Menüyü aç" });
+  if (await menu.isVisible()) await menu.click();
+  await workspaceNav(page).getByRole("link", { name: link, exact: true }).click();
+}
+
+/** The last-activity trail lives in Settings › Etkinlik geçmişi. */
+export async function openActivity(page: Page) {
+  await page.goto("/workspace/settings#settings-activity");
+  const activity = page.getByRole("list", { name: "Son etkinlikler" });
+  await expect(activity).toBeVisible();
+  return activity;
 }
 
 export function projectSections(page: Page) {

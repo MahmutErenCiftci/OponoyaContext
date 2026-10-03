@@ -12,4 +12,8 @@ export async function registerAuditRoutes(app: FastifyInstance, audit: AuditRepo
   app.get("/v1/audit", { onRequest: app.authenticate }, async (request) => ({
     events: await audit.list(ownerId(request), auditEventListQuerySchema.parse(request.query)),
   }));
+
+  app.get("/v1/audit/presence", { onRequest: app.authenticate }, async (request) => ({
+    presence: await audit.presence(ownerId(request)),
+  }));
 }

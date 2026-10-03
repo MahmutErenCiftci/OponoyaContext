@@ -4,15 +4,31 @@ import { billingReconcileResponseSchema, billingRedirectResponseSchema, exportTa
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { Flask } from "@phosphor-icons/react/dist/ssr";
 import { PageHead } from "../../../components/page-heading";
+import { Roadmap } from "../../../components/roadmap";
 import { entitlementSentence, exportTargetLabels, limitLabels, subscriptionStatusLabels } from "../../../lib/billing-labels";
 import { readApiError } from "../../../lib/errors";
 import { formatDate } from "../../../lib/resource-labels";
+import { proPricing } from "../../../lib/roadmap";
 import { useHydrated } from "../../../lib/use-hydrated";
 
 export type ReturnState = "success" | "canceled" | "portal" | null;
 
 const limitKeys: PlanLimitKey[] = ["projects", "resources", "profiles", "recipes"];
+
+/** Owner decision 2026-09-30: nothing is charged while the product is in development. */
+function DevelopmentNotice() {
+  return (
+    <aside aria-label="Geliştirme aşaması" className="dev-notice">
+      <span aria-hidden="true" className="dev-notice-icon"><Flask size={24} /></span>
+      <div>
+        <strong>Oponoya şu an geliştirme aşamasında.</strong>
+        <p>Bu yüzden herhangi bir ücret gerektirmez; V1’deki tüm özellikleri ücretsiz kullanabilirsin. Pro, V2 ile gelecek; Free hesap ise her zaman kalacak.</p>
+      </div>
+    </aside>
+  );
+}
 
 function UsageMeter({ label, used, limit }: { label: string; used: number; limit: number }) {
   const ratio = limit === 0 ? 1 : Math.min(1, used / limit);
@@ -76,7 +92,9 @@ export function BillingClient({ summary: initial, returnState }: { summary: Bill
     return (
       <section className="page">
         <PageHead title="Abonelik" />
+        <DevelopmentNotice />
         <p className="note warning" role="status" style={{ marginTop: 20 }}>Plan bilgileri yüklenemedi. Verilerin ve mevcut planın etkilenmedi; birazdan tekrar dene.</p>
+        <Roadmap />
       </section>
     );
   }
@@ -90,6 +108,8 @@ export function BillingClient({ summary: initial, returnState }: { summary: Bill
     <section className="page">
       <PageHead lead="Planını, kullanımını ve Pro özelliklerini incele. Limitler yalnızca aktif kayıtlara uygulanır; planın bittiğinde verilerin korunur." title="Abonelik" />
       {notice && <p className="toast" role="status">{notice}</p>}
+      <DevelopmentNotice />
+      <Roadmap />
       {entitlement.paymentProblem && (
         <p className="note warning" role="alert" style={{ marginTop: 20 }}>Ödeme sorunu: son yenileme başarısız oldu. {entitlementSentence(entitlement)} {subscription.manageable ? "Ödeme yöntemini “Aboneliği yönet” ile güncelle." : ""}</p>
       )}
@@ -144,7 +164,7 @@ export function BillingClient({ summary: initial, returnState }: { summary: Bill
               <tr><th scope="row" style={{ fontWeight: 500, color: "var(--ink)" }}>Gösterilen sürüm geçmişi</th><td>Son {free.features.historyLimit}</td><td>Son {pro.features.historyLimit}</td></tr>
               <tr><th scope="row" style={{ fontWeight: 500, color: "var(--ink)" }}>Sürüm karşılaştırması</th><td>{free.features.diff ? "Dahil" : "—"}</td><td>{pro.features.diff ? "Dahil" : "—"}</td></tr>
               <tr><th scope="row" style={{ fontWeight: 500, color: "var(--ink)" }}>Verilerini içe ve dışa aktarma</th><td>Dahil</td><td>Dahil</td></tr>
-              <tr><th scope="row" style={{ fontWeight: 500, color: "var(--ink)" }}>Fiyat</th><td>Ücretsiz</td><td>{pro.priceLabel ?? "Ödeme sistemi açıldığında duyurulacak"}</td></tr>
+              <tr><th scope="row" style={{ fontWeight: 500, color: "var(--ink)" }}>Fiyat</th><td>Ücretsiz</td><td>{pro.priceLabel ?? `V2 ile · ${proPricing.launch} / ${proPricing.period} (gelişim indirimi, sonra ${proPricing.regular})`}</td></tr>
             </tbody>
           </table>
         </div>

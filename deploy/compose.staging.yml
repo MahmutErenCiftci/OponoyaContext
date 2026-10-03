@@ -61,6 +61,11 @@ services:
       API_URL: http://api:4000
       # Empty means "not configured": sign-in limits then key on the web container (fine for CI only).
       WEB_PROXY_SECRET: ${WEB_PROXY_SECRET:-}
+      # Public web origin (absolute metadata, sitemap, HSTS and upgrade-insecure-requests).
+      SITE_URL: ${SITE_URL:-}
+      # How the web proxy finds the client address behind the edge (apps/web/lib/client-ip.ts).
+      CLIENT_IP_HEADER: ${CLIENT_IP_HEADER:-}
+      TRUSTED_PROXY_HOPS: ${TRUSTED_PROXY_HOPS:-1}
     depends_on:
       api:
         condition: service_healthy

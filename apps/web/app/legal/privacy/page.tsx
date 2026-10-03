@@ -29,7 +29,7 @@ export default function PrivacyPage() {
                 <tr><td>Hesap</td><td>E-posta, ad, şifre özeti (hash), hesap tarihi</td><td>Giriş ve hesabın sana ait olduğunu doğrulama</td></tr>
                 <tr><td>Oturum</td><td>Oturum belirteci, oluşturulma/son kullanma zamanı, IP adresi ve tarayıcı bilgisi</td><td>Oturumu sürdürmek ve kötüye kullanımı sınırlamak</td></tr>
                 <tr><td>Çalışma alanı içeriği</td><td>Kaynaklar, etiketler, kararlar, profiller, tarifler, projeler, uyumluluk kuralları, derlenmiş talimat sürümleri, dışa/içe aktarma kayıtları</td><td>Hizmetin kendisi; yalnızca sana gösterilir</td></tr>
-                <tr><td>Etkinlik kaydı</td><td>Yapılan işlemin türü, ilgili kaydın kimliği, sayılar ve istek kimliği; içerik metni yok</td><td>Hesabındaki değişiklikleri sana açıklamak</td></tr>
+                <tr><td>Etkinlik kaydı</td><td>Yapılan işlemin türü, ilgili kaydın kimliği, sayılar ve istek kimliği; her oturum açmanın zamanı. İçerik metni, IP adresi veya tarayıcı bilgisi yok</td><td>Hesabındaki değişiklikleri sana açıklamak ve genel bakışta son girişini göstermek</td></tr>
                 <tr><td>Abonelik</td><td>Plan, durum, dönem tarihleri ve ödeme sağlayıcısının müşteri/abonelik kimlikleri. Kart, fatura adresi veya ödeme bilgisi saklanmaz.</td><td>Plan sınırlarını uygulamak ve faturalama olaylarını eşleştirmek</td></tr>
                 <tr><td>Sunucu günlükleri</td><td>İstek kimliği, yol, durum kodu, süre, hata sınıfı. Çerezler, istek gövdeleri, e-posta adresleri ve içerik günlüklere yazılmaz.</td><td>Arıza ve güvenlik analizi</td></tr>
               </tbody>
@@ -56,7 +56,7 @@ export default function PrivacyPage() {
               : <p>Alt işlemci listesi: <Value name="LEGAL_SUBPROCESSORS" value={null} />.</p>}
 
             <h2>5. Çerezler</h2>
-            <p>Yalnızca iki çerez kullanılır: oturum çerezi (HttpOnly, SameSite, HTTPS’te Secure) ve tema tercihi. Reklam, izleme veya üçüncü taraf çerezi yoktur.</p>
+            <p>Oturum çerezi (HttpOnly, SameSite, HTTPS’te Secure) ve yalnızca bu tarayıcıda görünümü hatırlayan üç tercih çerezi kullanılır: tema, kenar çubuğunun daraltılmış olup olmadığı ve kapatılan son duyuru. Tercih çerezleri kimliğini içermez ve sunucuda saklanmaz. Reklam, izleme veya üçüncü taraf çerezi yoktur.</p>
 
             <h2>6. Saklama ve silme</h2>
             <ul>

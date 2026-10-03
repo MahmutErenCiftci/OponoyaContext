@@ -7,7 +7,8 @@ test("user composes a project from a saved Library resource, edits, archives and
 
   await signUp(page, "Project Composer", email);
   await skipFirstRun(page);
-  await expect(page.getByText("Henüz proje yok")).toBeVisible();
+  // With no projects the rail holds only the "create your first project" card.
+  await expect(page.getByRole("link", { name: /İlk projeni oluştur/ })).toBeVisible();
 
   await sidebar.getByRole("link", { name: "Kütüphane" }).click();
   await addResource(page, { name: "Next.js", type: "framework", url: "https://nextjs.org", tags: "frontend" });
