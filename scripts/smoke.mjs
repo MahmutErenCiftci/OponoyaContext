@@ -81,7 +81,7 @@ try {
   await step("web landing", async () => {
     const response = await request(`${web}/`);
     const text = await response.text();
-    if (!response.ok || !text.includes("Oponoya")) throw new Error(`status ${response.status}`);
+    if (!response.ok || !text.includes("hooliee")) throw new Error(`status ${response.status}`);
     const csp = response.headers.get("content-security-policy");
     if (!csp || !csp.includes("frame-ancestors 'none'")) throw new Error("security headers missing");
   });

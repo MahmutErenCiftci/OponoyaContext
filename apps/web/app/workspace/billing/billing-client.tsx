@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Flask } from "@phosphor-icons/react/dist/ssr";
+import { productName } from "@devcontext/contracts/brand";
 import { useLocale } from "../../../components/locale-provider";
 import { PageHead } from "../../../components/page-heading";
 import { Roadmap } from "../../../components/roadmap";
@@ -24,7 +25,7 @@ type Pricing = (typeof proPricing)["tr"];
 const copy = defineCopy({
   tr: {
     devLabel: "Geliştirme aşaması",
-    devTitle: "Oponoya şu an geliştirme aşamasında.",
+    devTitle: `${productName} şu an geliştirme aşamasında.`,
     devText: "Bu yüzden herhangi bir ücret gerektirmez; V1’deki tüm özellikleri ücretsiz kullanabilirsin. Pro, V2 ile gelecek; Free hesap ise her zaman kalacak.",
     usageAria: (used: number, limit: number, label: string) => `${used} / ${limit} ${label.toLowerCase()} kullanıldı`,
     canceled: "Ödeme iptal edildi. Hiçbir şey değişmedi; mevcut planındasın.",
@@ -69,7 +70,7 @@ const copy = defineCopy({
   },
   en: {
     devLabel: "Development stage",
-    devTitle: "Oponoya is in development right now.",
+    devTitle: `${productName} is in development right now.`,
     devText: "That is why nothing costs money; you can use every V1 feature for free. Pro arrives with V2, and the Free account will always stay.",
     usageAria: (used: number, limit: number, label: string) => `${used} of ${limit} ${label.toLowerCase()} used`,
     canceled: "The payment was canceled. Nothing changed; you are on your current plan.",

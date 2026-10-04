@@ -266,9 +266,11 @@ shared folders and delete drill snapshots after use.
   with TLS on (self-signed server certificate whose CN/SAN is the service's
   internal host); `DATABASE_URL` uses `sslmode=verify-full` with
   `sslrootcert` pointing at the mounted certificate.
-- Only the web has a domain (oponoya.com behind Cloudflare, Full (strict) with a
+- Only the web has a domain (hooliee.com behind Cloudflare, Full (strict) with a
   Cloudflare Origin CA certificate); the API is reachable only inside the stack
-  because the web proxies every browser call server-side.
+  because the web proxies every browser call server-side. Moving from
+  oponoya.com to hooliee.com (2026-10-05) is a runbook of its own:
+  `docs/48_HOOLIEE_DOMAIN_MOVE.md`.
 - With Cloudflare in front, set `CLIENT_IP_HEADER=cf-connecting-ip` only once
   the origin accepts 80/443 from Cloudflare's ranges alone; otherwise a direct
   request could choose its own rate-limit key.

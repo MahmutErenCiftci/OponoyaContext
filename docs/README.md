@@ -78,6 +78,7 @@ The durable state is `30_PRODUCTION_EXECUTION_PLAN.md`. Completed work has repor
 - `45_PRODUCTION_HARDENING_REPORT.md` — security review fixes, performance, AI groundwork (2026-09-26)
 - `46_PRODUCT_GAP_RESEARCH.md` — kesin eksikler, ajan formatları ve rakip araştırması, öneriler (2026-09-26)
 - `47_PRODUCT_REFRESH_AND_LAUNCH_PLAN.md` — yeni tasarım dilini tüm ekranlara taşıma planı, Faz 0 yayın düzeltmeleri, sahip kontrol listesi ve yayın sırası (2026-09-30)
+- `48_HOOLIEE_DOMAIN_MOVE.md` — ürünün hooliee adına ve hooliee.com'a geçişi: kod değişiklikleri, Cloudflare/Hostinger ve Dokploy adımları, oponoya.com yönlendirmesi (2026-10-05)
 
 Every implementation handoff (1–12) has a report. The launch gate found no
 code defect but is blocked on owner-only items: hosting, managed PostgreSQL,

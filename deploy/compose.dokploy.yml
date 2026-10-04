@@ -1,4 +1,7 @@
-# Production stack for Dokploy on the single Oponoya VDS (Docker Compose service type).
+# Production stack for Dokploy on the single VDS (Docker Compose service type).
+# The `oponoya-*` image names and /opt/oponoya on the host predate the rename to
+# hooliee and stay: renaming them changes nothing people see and would mean
+# moving the database certificate on the server.
 #
 # Dokploy clones the repository, writes the variables of its Environment tab to
 # deploy/.env (next to this file, never committed) and runs
@@ -10,7 +13,7 @@
 #   DATABASE_URL points at its internal host with
 #   `sslmode=verify-full&sslrootcert=/run/postgres/server.crt`; the certificate
 #   is mounted read-only below and its CN/SAN is that internal host name.
-# - Only the web is routed: assign oponoya.com → service `web`, port 3000 in
+# - Only the web is routed: assign hooliee.com → service `web`, port 3000 in
 #   Dokploy's Domains tab (HTTPS on, certificate None: Cloudflare Origin CA).
 #   The browser never calls the API directly; the web proxies every call
 #   server-side through API_URL, so the API has no public route.

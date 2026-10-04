@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, type CSSProperties, type PointerEvent, type ReactNode } from "react";
+import { productName } from "@devcontext/contracts/brand";
 import { useLocale } from "../components/locale-provider";
 import { defineCopy } from "../lib/i18n";
 
@@ -75,7 +76,7 @@ const copy = defineCopy({
         agent: "Claude Code",
         lines: [
           { text: "# Atlas Finance", tone: "title" },
-          { text: "Bu dosya Oponoya ile oluşturuldu · sürüm 3", tone: "muted" },
+          { text: `Bu dosya ${productName} ile oluşturuldu · sürüm 3`, tone: "muted" },
           { text: "" },
           { text: "## Değiştirme", tone: "head" },
           { text: "Next.js ve PostgreSQL kilitli; başka seçenek önerme.", tone: "locked" },
@@ -136,7 +137,7 @@ const copy = defineCopy({
         agent: "Claude Code",
         lines: [
           { text: "# Atlas Finance", tone: "title" },
-          { text: "Generated with Oponoya · version 3", tone: "muted" },
+          { text: `Generated with ${productName} · version 3`, tone: "muted" },
           { text: "" },
           { text: "## Do not change", tone: "head" },
           { text: "Next.js and PostgreSQL are locked; don't suggest alternatives.", tone: "locked" },

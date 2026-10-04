@@ -72,14 +72,18 @@ After coding:
 
 ## Product name
 
-The product is **Oponoya** (owner decision 2026-09-30), served from
-`oponoya.com`. Everything people see — UI, page titles, legal pages, the AI
-system prompt and the header of exported context files — comes from
-`productName` in `packages/contracts/src/brand.ts` and `GENERATOR_NAME` in the
-context compiler (a test keeps them equal). The logo is a drawn mark (an O and
-a text cursor, owner pick 2026-09-30) whose geometry lives only in
-`apps/web/components/logo-mark.tsx`; the in-app tile, favicon, app icons and
-link-preview image all draw from it. Rename there,
+The product is **hooliee**, always lower case (owner decision 2026-10-05,
+`docs/48_HOOLIEE_DOMAIN_MOVE.md`), served from `hooliee.com`. **Oponoya** is
+the studio that builds it (`developerName`/`developerUrl`, credited in the
+landing footer); oponoya.com becomes the studio's own site. Everything people
+see — UI, page titles, legal pages, the AI system prompt and the header of
+exported context files — comes from `productName` in
+`packages/contracts/src/brand.ts` and `GENERATOR_NAME` in the context compiler
+(a test keeps them equal); copy interpolates `productName` except where a
+Turkish suffix follows the name. The logo is a drawn mark (the "oo" as two
+interlocked rings, owner pick 2026-10-04) whose geometry lives only in
+`apps/web/components/logo-mark.tsx`; the in-app tile, the button spinner,
+favicon, app icons and link-preview image all draw from it. Rename there,
 never by hand in screens. Technical identifiers keep the old `devcontext` name
 on purpose and must not be renamed: the `@devcontext/*` package scope, the
 cookie prefix, the portable JSON format id `"devcontext"` (changing it would

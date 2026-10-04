@@ -105,7 +105,7 @@ type Detail = { path: string[]; code: string };
 /**
  * Structural bounds applied before schema validation. A complete export at
  * every `portableLimits` maximum stays well inside them; anything larger is
- * not an Oponoya document and is refused without allocating per node.
+ * not a hooliee document and is refused without allocating per node.
  */
 export const maxPortableNodes = 1_500_000;
 export const maxPortableArrayLength = 10_000;

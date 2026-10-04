@@ -10,8 +10,9 @@
  * This module has no dependencies, so browser code that only needs the name
  * (`@devcontext/contracts/brand`) does not pull every schema and Zod along.
  */
-export const productName = "Oponoya";
+export const productName = "hooliee";
 export const productTagline = "Teknolojilerini bir kez anlat. Her projede hatırlansın.";
 export const productDescription = "Araçlarını, tercihlerini ve kurallarını kodlama ajanlarının anlayacağı talimatlara dönüştür.";
-/** Single-letter mark used in the logo tile and the app icon. */
-export const productMonogram = productName.charAt(0).toUpperCase();
+/** The studio that builds the product (owner decision 2026-10-05): credited in the landing footer, linking to its own site. */
+export const developerName = "Oponoya";
+export const developerUrl = "https://oponoya.com";

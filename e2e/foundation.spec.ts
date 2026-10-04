@@ -7,7 +7,7 @@ test("landing page presents the product and connects to the API", async ({ page 
   await expect(page.getByRole("status")).toHaveText("Çalışma alanı hazır");
   await expect(page.getByRole("img", { name: /çalışma alanının önizlemesi/ })).toBeVisible();
   // Identity: tab title, favicon and install metadata are served.
-  await expect(page).toHaveTitle(/Oponoya/);
+  await expect(page).toHaveTitle(/hooliee/);
   expect((await page.request.get("/favicon.ico")).headers()["content-type"]).toContain("image/png");
   expect((await page.request.get("/manifest.webmanifest")).ok()).toBe(true);
   expect(await page.locator('link[rel="icon"]').count()).toBeGreaterThan(0);

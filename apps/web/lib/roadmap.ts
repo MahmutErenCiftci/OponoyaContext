@@ -1,3 +1,4 @@
+import { productName } from "@devcontext/contracts/brand";
 import { defineCopy } from "./i18n";
 
 /**
@@ -33,7 +34,7 @@ export const roadmap = defineCopy<RoadmapStage[]>({
       name: "Temel",
       status: "now",
       statusLabel: "Şu an · Ücretsiz",
-      summary: "Bugün kullandığın sürüm. Oponoya geliştirme aşamasında olduğu için tamamen ücretsiz.",
+      summary: `Bugün kullandığın sürüm. ${productName} geliştirme aşamasında olduğu için tamamen ücretsiz.`,
       groups: [
         { title: "Çalışma alanı", items: [
           "Kütüphane: araçlarını, kurallarını ve tercihlerini kaydet",
@@ -142,7 +143,7 @@ export const roadmap = defineCopy<RoadmapStage[]>({
       name: "Foundation",
       status: "now",
       statusLabel: "Now · Free",
-      summary: "The version you use today. Oponoya is still in development, so it is completely free.",
+      summary: `The version you use today. ${productName} is still in development, so it is completely free.`,
       groups: [
         { title: "Workspace", items: [
           "Library: save your tools, rules and preferences",

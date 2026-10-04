@@ -73,7 +73,7 @@ describe("account routes", () => {
   it("serves the legal configuration publicly as an unapproved draft", async () => {
     const { app } = await createApp();
     const legal = legalConfigResponseSchema.parse((await app.inject("/v1/legal")).json()).legal;
-    expect(legal).toMatchObject({ productName: "Oponoya", draft: true, approvedAt: null });
+    expect(legal).toMatchObject({ productName: "hooliee", draft: true, approvedAt: null });
   });
 
   it("downloads the export as an attachment and records only counts", async () => {

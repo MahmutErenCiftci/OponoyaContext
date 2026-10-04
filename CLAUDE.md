@@ -109,7 +109,9 @@ only one numbered handoff prompt at a time.
   decision that also needs the Privacy text and subprocessors), password
   change, migration 0009 and the remaining owner decisions. Product identity
   lives in `packages/contracts/src/brand.ts` (`productName` etc.) and
-  `GENERATOR_NAME` in the compiler; an API test keeps them equal.
+  `GENERATOR_NAME` in the compiler; an API test keeps them equal. Since
+  2026-10-05 the product is "hooliee" (lower case) on hooliee.com and Oponoya
+  is the studio credited in the footer; the move is `docs/48_HOOLIEE_DOMAIN_MOVE.md`.
   `WEB_PROXY_SECRET` must match on the API and the web service. Per-entity
   decisions (80) and compatibility rules (500) are bounded like the portable
   format. Password reset runs through Better Auth behind

@@ -2,8 +2,10 @@
  * Product news shown on the overview: the newest entry feeds the top banner,
  * the list feeds "Yenilikler" / "What's new". Entries describe shipped changes
  * only; add a new one at the top when a release lands, in both languages with
- * the same id. `version` is set only for real tags.
+ * the same id. `version` is set only for real tags. Earlier rename notices
+ * keep the name they announced.
  */
+import { productName } from "@devcontext/contracts/brand";
 import { defineCopy } from "./i18n";
 import { proPricing } from "./roadmap";
 
@@ -27,12 +29,21 @@ export const announcementKindLabels = defineCopy<Record<AnnouncementKind, string
 export const announcements = defineCopy<Announcement[]>({
   tr: [
     {
+      id: "2026-10-05-hooliee",
+      date: "2026-10-05",
+      kind: "notice",
+      version: null,
+      title: "Oponoya artık hooliee",
+      summary: "Ürünün yeni adı hooliee, adresi hooliee.com. Oponoya, hooliee’yi geliştiren stüdyo olarak kalıyor. Hesabın, kayıtlı verilerin ve daha önce aldığın dışa aktarımlar aynen çalışıyor; yeni adreste bir kez giriş yapman yeterli.",
+      href: null,
+    },
+    {
       id: "2026-10-04-english-feedback",
       date: "2026-10-04",
       kind: "new",
       version: null,
       title: "İngilizce arayüz ve geri bildirim",
-      summary: "Oponoya artık İngilizce de kullanılabiliyor; dili üst bardan değiştirebilirsin. Öneri, şikayet ve hataları da üst bardaki Geri bildirim düğmesiyle doğrudan bize iletebilirsin.",
+      summary: `${productName} artık İngilizce de kullanılabiliyor; dili üst bardan değiştirebilirsin. Öneri, şikayet ve hataları da üst bardaki Geri bildirim düğmesiyle doğrudan bize iletebilirsin.`,
       href: "/workspace/feedback",
     },
     {
@@ -41,7 +52,7 @@ export const announcements = defineCopy<Announcement[]>({
       kind: "notice",
       version: null,
       title: "Gelişim planı ve Pro",
-      summary: `Oponoya geliştirme aşamasında ve şu an tamamen ücretsiz. Pro, V2 ile gelişim indirimiyle ${proPricing.tr.launch} / ${proPricing.tr.period} olarak geliyor; Free hesap her zaman kalacak.`,
+      summary: `${productName} geliştirme aşamasında ve şu an tamamen ücretsiz. Pro, V2 ile gelişim indirimiyle ${proPricing.tr.launch} / ${proPricing.tr.period} olarak geliyor; Free hesap her zaman kalacak.`,
       href: "/workspace/billing#gelisim-plani",
     },
     {
@@ -83,12 +94,21 @@ export const announcements = defineCopy<Announcement[]>({
   ],
   en: [
     {
+      id: "2026-10-05-hooliee",
+      date: "2026-10-05",
+      kind: "notice",
+      version: null,
+      title: "Oponoya is now hooliee",
+      summary: "The product's new name is hooliee, at hooliee.com. Oponoya stays on as the studio that builds it. Your account, saved data and earlier exports keep working; sign in once at the new address.",
+      href: null,
+    },
+    {
       id: "2026-10-04-english-feedback",
       date: "2026-10-04",
       kind: "new",
       version: null,
       title: "English interface and feedback",
-      summary: "Oponoya now speaks English too; switch the language from the top bar. Send us suggestions, complaints and bug reports with the Feedback button in the top bar.",
+      summary: `${productName} now speaks English too; switch the language from the top bar. Send us suggestions, complaints and bug reports with the Feedback button in the top bar.`,
       href: "/workspace/feedback",
     },
     {
@@ -97,7 +117,7 @@ export const announcements = defineCopy<Announcement[]>({
       kind: "notice",
       version: null,
       title: "Development plan and Pro",
-      summary: `Oponoya is in development and completely free for now. Pro arrives with V2 at a development discount of ${proPricing.en.launch} / ${proPricing.en.period}; the Free account will always stay.`,
+      summary: `${productName} is in development and completely free for now. Pro arrives with V2 at a development discount of ${proPricing.en.launch} / ${proPricing.en.period}; the Free account will always stay.`,
       href: "/workspace/billing#gelisim-plani",
     },
     {

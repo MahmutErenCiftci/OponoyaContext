@@ -34,6 +34,7 @@ import {
 } from "@phosphor-icons/react/dist/ssr";
 import { DecisionBadge, ModeIcon } from "../../../../../components/decision-badge";
 import { useLocale } from "../../../../../components/locale-provider";
+import { LogoSpinner } from "../../../../../components/logo-mark";
 import { TechLogo } from "../../../../../components/tech-logo";
 import { ContextStatusLabel } from "../../../../../components/status-label";
 import { catalogSlugFor } from "../../../../../lib/logos";
@@ -697,8 +698,8 @@ export function ContextClient({ project, initial, versions: initialVersions, exp
   }
 
   const compileButton = (
-    <button className={`button${current ? "" : " primary"}`} disabled={busy !== null} onClick={() => void compile()} type="button">
-      <ArrowsClockwise aria-hidden size={18} />
+    <button aria-busy={busy === "compile"} className={`button${current ? "" : " primary"}`} disabled={busy !== null} onClick={() => void compile()} type="button">
+      {busy === "compile" ? <LogoSpinner /> : <ArrowsClockwise aria-hidden size={18} />}
       {busy === "compile" ? t.creating : current ? t.recreate : t.create}
     </button>
   );
@@ -714,7 +715,7 @@ export function ContextClient({ project, initial, versions: initialVersions, exp
               <small>{t.staleText(current.version + 1)}{state.draftWarnings.length > 0 ? t.draftWarnings(state.draftWarnings.length) : ""}</small>
             </div>
           </div>
-          <button className="button primary" disabled={busy !== null} onClick={() => void compile()} type="button">{busy === "compile" ? t.creating : t.recreate}</button>
+          <button aria-busy={busy === "compile"} className="button primary" disabled={busy !== null} onClick={() => void compile()} type="button">{busy === "compile" && <LogoSpinner />}{busy === "compile" ? t.creating : t.recreate}</button>
         </div>
       )}
 

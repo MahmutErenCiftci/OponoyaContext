@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Eye, EyeSlash } from "@phosphor-icons/react/dist/ssr";
 import { useLocale } from "../../components/locale-provider";
+import { LogoSpinner } from "../../components/logo-mark";
 import { defineCopy } from "../../lib/i18n";
 
 type Mode = "sign-in" | "sign-up";
@@ -169,6 +170,7 @@ export function AuthForm({ initialMode = "sign-up", signInNarrative, signUpNarra
             <p className="legal-note">{t.legal.before}<Link href="/legal/terms">{t.legal.terms}</Link>{t.legal.between}<Link href="/legal/privacy">{t.legal.privacy}</Link>{t.legal.after}</p>
           )}
           <button aria-busy={pending} className="button primary large full" disabled={pending} type="submit">
+            {pending && <LogoSpinner />}
             {pending ? t.pending : mode === "sign-up" ? t.signUp : t.signIn}
           </button>
           <p className="alt">

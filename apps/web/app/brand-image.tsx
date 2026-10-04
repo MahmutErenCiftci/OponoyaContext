@@ -1,4 +1,4 @@
-import { logoGeometry } from "../components/logo-mark";
+import { logoGeometry, logoOverArc } from "../components/logo-mark";
 
 /**
  * Colours of the generated brand images. Image generation cannot read CSS
@@ -36,16 +36,23 @@ export async function brandFonts(text: string, weights: Array<500 | 800> = [800]
  * The logo tile used by every app icon size and the link preview: the drawn
  * mark from components/logo-mark.tsx on the accent square. `radius` is a
  * share of the size. Colours are explicit because image generation has no
- * `currentColor` from CSS.
+ * `currentColor` from CSS. Instead of masks (which image generation does not
+ * reliably support) the crossings are painted: a band in the tile colour cuts
+ * the ring underneath, and the left ring's over-pass is drawn back on top,
+ * a little longer than its cut so no seam shows at the ends.
  */
 export function LogoTile({ size, radius = 0.22 }: { size: number; radius?: number }) {
-  const inner = Math.round(size * 0.66);
-  const { ring, cursor } = logoGeometry;
+  const inner = Math.round(size * 0.8);
+  const { width, cutWidth, leftRing, rightRing } = logoGeometry;
+  const { accent, accentInk } = brandColors;
   return (
-    <div style={{ width: size, height: size, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: Math.round(size * radius), background: brandColors.accent }}>
+    <div style={{ width: size, height: size, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: Math.round(size * radius), background: accent }}>
       <svg height={inner} viewBox="0 0 100 100" width={inner}>
-        <circle cx={ring.cx} cy={ring.cy} fill="none" r={ring.r} stroke={brandColors.accentInk} strokeWidth={ring.width} />
-        <rect fill={brandColors.accentInk} height={cursor.height} rx={cursor.radius} width={cursor.width} x={cursor.x} y={cursor.y} />
+        <path d={leftRing} fill="none" stroke={accentInk} strokeWidth={width} />
+        <path d={logoOverArc("right")} fill="none" stroke={accent} strokeWidth={cutWidth} />
+        <path d={rightRing} fill="none" stroke={accentInk} strokeWidth={width} />
+        <path d={logoOverArc("left")} fill="none" stroke={accent} strokeWidth={cutWidth} />
+        <path d={logoOverArc("left", 47)} fill="none" stroke={accentInk} strokeWidth={width} />
       </svg>
     </div>
   );

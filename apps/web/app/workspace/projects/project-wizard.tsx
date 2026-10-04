@@ -21,9 +21,11 @@ import {
 import { ArrowLeft, ArrowRight, CaretDown, Check, CheckCircle, MagnifyingGlass, PencilSimple, Plus, ShieldCheck, Sparkle, Warning, X } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 import { useEffect, useId, useRef, useState, type FormEvent } from "react";
+import { productName } from "@devcontext/contracts/brand";
 import { ChipField } from "../../../components/chip-field";
 import { DecisionBadge, ModeIcon } from "../../../components/decision-badge";
 import { useLocale } from "../../../components/locale-provider";
+import { LogoSpinner } from "../../../components/logo-mark";
 import { Breadcrumb } from "../../../components/page-heading";
 import { RowMenu } from "../../../components/row-menu";
 import { TechLogo } from "../../../components/tech-logo";
@@ -349,7 +351,7 @@ const reasonCopy = defineCopy({
   tr: {
     pairedWith: (name: string) => `${name} ile uyumlu`,
     usedBefore: "daha önce kullandın",
-    popularHere: "Oponoya’da popüler",
+    popularHere: "hooliee’de popüler",
     pairsWith: "Kütüphanenle uyumlu",
     widelyUsed: "yaygın",
     catalog: "katalogdan",
@@ -357,7 +359,7 @@ const reasonCopy = defineCopy({
   en: {
     pairedWith: (name: string) => `works with ${name}`,
     usedBefore: "you used it before",
-    popularHere: "popular on Oponoya",
+    popularHere: `popular on ${productName}`,
     pairsWith: "works with your Library",
     widelyUsed: "widely used",
     catalog: "from the catalog",
@@ -1091,7 +1093,7 @@ export function ProjectWizard({ project, decisions, library, suggestions, profil
           <div className="right">
             {step < steps.length - 1
               ? <button className="button primary large" type="submit">{nextLabels[step]}<ArrowRight aria-hidden size={18} /></button>
-              : <button className="button primary large" disabled={pending} type="submit">{pending ? t.saving : editing ? t.saveChanges : t.create}<ArrowRight aria-hidden size={18} /></button>}
+              : <button aria-busy={pending} className="button primary large" disabled={pending} type="submit">{pending && <LogoSpinner />}{pending ? t.saving : editing ? t.saveChanges : t.create}{!pending && <ArrowRight aria-hidden size={18} />}</button>}
           </div>
         </div>
       </form>

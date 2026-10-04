@@ -18,7 +18,7 @@ import { catalogSlugByName, foldName } from "./service.js";
  * catalog technologies `slotsForTechnology` maps to the slot; the score adds:
  *
  * - used before: the user had it in the Library and archived it (+6)
- * - popular on Oponoya: how many users keep it, log-scaled (+2·log2(1+n)), counted only from three users up
+ * - popular on hooliee: how many users keep it, log-scaled (+2·log2(1+n)), counted only from three users up
  * - pairs with the Library: catalog `pairsWith` links to what the user owns (+1.5 each, two at most)
  * - catalog popularity: very common 4 … niche 1
  *
@@ -26,7 +26,7 @@ import { catalogSlugByName, foldName } from "./service.js";
  * first in the wizard instead, ordered by how many projects used them.
  */
 export const slotSuggestionLimit = 8;
-/** "Popular on Oponoya" is only claimed once a few people keep the technology. */
+/** "Popular on hooliee" is only claimed once a few people keep the technology. */
 const popularHereThreshold = 3;
 const popularityPoints: Record<CatalogPopularity, number> = { "very-high": 4, high: 3, medium: 2, niche: 1 };
 

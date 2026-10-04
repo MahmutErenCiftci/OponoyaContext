@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { Instrument_Serif } from "next/font/google";
 import Link from "next/link";
 import { ArrowRight, CheckCircle, CircleDashed, Clock, Database, DownloadSimple, LockSimple, MinusCircle, Sparkle, Stack, Star } from "@phosphor-icons/react/dist/ssr";
-import type { CSSProperties } from "react";
-import { productName } from "@devcontext/contracts/brand";
+import type { CSSProperties, ReactNode } from "react";
+import { developerName, developerUrl, productName } from "@devcontext/contracts/brand";
 import { BrandMark } from "../components/brand-mark";
 import { LanguageSwitch } from "../components/language-switch";
 import { LocaleProvider } from "../components/locale-provider";
@@ -65,7 +65,7 @@ const copy = defineCopy({
       { tech: "Redis", mode: "Devre dışı", tone: "disabled", icon: MinusCircle, text: "Bu projede kullanılmasın." },
     ],
     faqs: (pricing: { launch: string; period: string }) => [
-      { q: "Oponoya ücretli mi?", a: `Şu an geliştirme aşamasında ve tamamen ücretsiz. Free hesap her zaman kalacak; Pro, V2 ile gelişim indirimiyle ${pricing.launch} / ${pricing.period} olarak gelecek.` },
+      { q: `${productName} ücretli mi?`, a: `Şu an geliştirme aşamasında ve tamamen ücretsiz. Free hesap her zaman kalacak; Pro, V2 ile gelişim indirimiyle ${pricing.launch} / ${pricing.period} olarak gelecek.` },
       { q: "Hangi ajanlarla çalışır?", a: "Genel talimat, AGENTS.md (Codex) ve CLAUDE.md (Claude Code) Free’de; Cursor ve GitHub Copilot çıktıları Pro’da." },
       { q: "Verilerim bir AI’a gönderiliyor mu?", a: "Hayır. Talimatlar sunucuda deterministik olarak derlenir. İleride gelecek AI önerileri yalnızca sen izin verirsen çalışacak." },
       { q: "Verilerimi geri alabilir miyim?", a: "Evet. Tüm çalışma alanını JSON olarak dışa aktarabilir, istediğin an hesabını ve verilerini silebilirsin." },
@@ -75,7 +75,7 @@ const copy = defineCopy({
     startFree: "Ücretsiz başla",
     pill: "Şu an tamamen ücretsiz · Gelişim planı",
     hero: { first: "Her yeni projede", second: "aynı şeyleri", accent: "tekrar", last: "anlatma." },
-    lead: "Teknolojilerini bir kez anlat. Oponoya onları Codex, Claude Code, Cursor ve Copilot’un anlayacağı talimatlara dönüştürür.",
+    lead: `Teknolojilerini bir kez anlat. ${productName} onları Codex, Claude Code, Cursor ve Copilot’un anlayacağı talimatlara dönüştürür.`,
     createWorkspace: "Çalışma alanını oluştur",
     howItWorks: "Nasıl çalışır",
     note: "Kredi kartı gerekmez · Free hesap her zaman kalacak",
@@ -105,7 +105,7 @@ const copy = defineCopy({
     marqueeLabel: "Desteklenen ajanlar ve teknolojiler",
     marquee: "Tek kaynaktan, her ajan için doğru dosya",
     without: {
-      eyebrow: "Oponoya olmadan",
+      eyebrow: <><span className="lp-brand-word">{productName}</span> olmadan</>,
       title: "Her ajan, her projede sıfırdan başlar.",
       items: [
         "Aynı tercihleri her yeni projede yeniden yazarsın.",
@@ -115,7 +115,7 @@ const copy = defineCopy({
       ],
     },
     with: {
-      eyebrow: "Oponoya ile",
+      eyebrow: <><span className="lp-brand-word">{productName}</span> ile</>,
       title: "Bir kez anlatırsın, her projede hatırlanır.",
       items: [
         "Tercihlerin kütüphanende, projeler profillerden devralır.",
@@ -159,7 +159,7 @@ const copy = defineCopy({
     faqTitle: "Sık sorulan",
     faqTitleAccent: "sorular",
     final: { title: "Bir kez anlat.", titleAccent: "Gerisi hatırlansın." },
-    footer: { label: "Yasal", terms: "Kullanım Şartları", privacy: "Gizlilik", feedback: "Geri bildirim" },
+    footer: { label: "Yasal", terms: "Kullanım Şartları", privacy: "Gizlilik", feedback: "Geri bildirim", builtBy: (studio: ReactNode) => <>{studio} tarafından geliştirildi</> },
   },
   en: {
     agents: [
@@ -176,7 +176,7 @@ const copy = defineCopy({
       { tech: "Redis", mode: "Disabled", tone: "disabled", icon: MinusCircle, text: "Not used in this project." },
     ],
     faqs: (pricing: { launch: string; period: string }) => [
-      { q: "Does Oponoya cost anything?", a: `It is in development and completely free right now. The Free account stays for good; Pro arrives with V2 at a development discount of ${pricing.launch} / ${pricing.period}.` },
+      { q: `Does ${productName} cost anything?`, a: `It is in development and completely free right now. The Free account stays for good; Pro arrives with V2 at a development discount of ${pricing.launch} / ${pricing.period}.` },
       { q: "Which agents does it work with?", a: "General instructions, AGENTS.md (Codex) and CLAUDE.md (Claude Code) are in Free; Cursor and GitHub Copilot outputs are in Pro." },
       { q: "Is my data sent to an AI?", a: "No. Instructions are compiled deterministically on the server. Future AI suggestions will only run if you allow them." },
       { q: "Can I take my data with me?", a: "Yes. You can export your whole workspace as JSON and delete your account and data whenever you like." },
@@ -186,7 +186,7 @@ const copy = defineCopy({
     startFree: "Start for free",
     pill: "Completely free for now · Development plan",
     hero: { first: "Stop explaining", second: "the same things", accent: "again", last: "in every new project." },
-    lead: "Describe your technologies once. Oponoya turns them into instructions that Codex, Claude Code, Cursor and Copilot understand.",
+    lead: `Describe your technologies once. ${productName} turns them into instructions that Codex, Claude Code, Cursor and Copilot understand.`,
     createWorkspace: "Create your workspace",
     howItWorks: "How it works",
     note: "No credit card needed · The Free account stays for good",
@@ -216,7 +216,7 @@ const copy = defineCopy({
     marqueeLabel: "Supported agents and technologies",
     marquee: "One source, the right file for every agent",
     without: {
-      eyebrow: "Without Oponoya",
+      eyebrow: <>Without <span className="lp-brand-word">{productName}</span></>,
       title: "Every agent starts from scratch in every project.",
       items: [
         "You rewrite the same preferences in every new project.",
@@ -226,7 +226,7 @@ const copy = defineCopy({
       ],
     },
     with: {
-      eyebrow: "With Oponoya",
+      eyebrow: <>With <span className="lp-brand-word">{productName}</span></>,
       title: "Explain it once; every project remembers.",
       items: [
         "Your preferences live in your Library; projects inherit from profiles.",
@@ -270,7 +270,7 @@ const copy = defineCopy({
     faqTitle: "Frequently asked",
     faqTitleAccent: "questions",
     final: { title: "Say it once.", titleAccent: "We'll remember the rest." },
-    footer: { label: "Legal", terms: "Terms of Use", privacy: "Privacy", feedback: "Feedback" },
+    footer: { label: "Legal", terms: "Terms of Use", privacy: "Privacy", feedback: "Feedback", builtBy: (studio: ReactNode) => <>Built by {studio}</> },
   },
 });
 
@@ -346,10 +346,10 @@ export async function Landing({ locale }: { locale: Locale }) {
             <span aria-hidden="true" className="lp-float f2"><code>CLAUDE.md</code></span>
             <span aria-hidden="true" className="lp-float f3"><code>.mdc</code></span>
             <div aria-hidden="true" className="lp-app">
-              <div className="lp-app-bar"><i /><i /><i /><span>oponoya.com/workspace</span></div>
+              <div className="lp-app-bar"><i /><i /><i /><span>hooliee.com/workspace</span></div>
               <div className="lp-app-body">
                 <div className="lp-app-side">
-                  <b><span className="brand-mark"><LogoMark /></span>Oponoya</b>
+                  <b><span className="brand-mark"><LogoMark /></span>{productName}</b>
                   <span className="on"><i />{t.app.overview}</span>
                   <span>{t.app.projects}</span>
                   <span>{t.app.library}</span>
@@ -470,7 +470,7 @@ export async function Landing({ locale }: { locale: Locale }) {
         <footer className="lp-footer">
           <span className="brand"><BrandMark /></span>
           <nav aria-label={t.footer.label}><Link href="/legal/terms">{t.footer.terms}</Link><Link href="/legal/privacy">{t.footer.privacy}</Link><Link href="/workspace/feedback">{t.footer.feedback}</Link></nav>
-          <span>© {new Date().getFullYear()} {productName}</span>
+          <span>© {new Date().getFullYear()} {productName} · {t.footer.builtBy(<a className="lp-credit" href={developerUrl}>{developerName}</a>)}</span>
         </footer>
       </main>
     </LocaleProvider>
