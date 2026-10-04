@@ -1,7 +1,7 @@
-import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
 import { Pool } from "pg";
 import { databaseUrlSchema, readDatabaseUrl } from "./config.js";
+import { isMainModule } from "./main-module.js";
 
 /**
  * Retention job for the account deletion ledger (Handoff 11/12).
@@ -41,7 +41,7 @@ async function main() {
   }
 }
 
-if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+if (isMainModule(import.meta.url)) {
   main().catch((error: unknown) => {
     if (error instanceof Error && error.message === "usage") console.error("Usage: retention --years N [--dry-run] [--url postgresql://…]");
     else console.error("Retention job failed. Check DATABASE_URL and connectivity.");

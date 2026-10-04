@@ -2,6 +2,7 @@ import { fileURLToPath } from "node:url";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { createDatabase, type Database } from "./index.js";
 import { readDatabaseUrl } from "./config.js";
+import { isMainModule } from "./main-module.js";
 
 const migrationsFolder = fileURLToPath(new URL("../drizzle/", import.meta.url));
 
@@ -23,7 +24,7 @@ async function main() {
   }
 }
 
-if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+if (isMainModule(import.meta.url)) {
   main().catch(() => {
     console.error("Database migration failed. Check DATABASE_URL, connectivity and migration files.");
     process.exitCode = 1;
