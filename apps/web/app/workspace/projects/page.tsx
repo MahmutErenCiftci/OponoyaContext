@@ -10,6 +10,7 @@ import {
   getProjectList,
   getRecipeList,
   getResourceList,
+  getSlotSuggestions,
 } from "../../../lib/api";
 import { contextStatusFrom, type ContextStatus } from "../../../lib/context-status";
 import { loadSession } from "../../../lib/server-session";
@@ -26,7 +27,7 @@ export default async function ProjectsPage({ searchParams }: { searchParams: Pro
   const { user, cookieHeader } = session;
   const query = await searchParams;
   const editId = query.edit && z.uuid().safeParse(query.edit).success ? query.edit : null;
-  const [initial, library, profiles, recipes, globalDecisions, editProject, editDecisions] = await Promise.all([
+  const [initial, library, profiles, recipes, globalDecisions, editProject, editDecisions, suggestions] = await Promise.all([
     getProjectList(cookieHeader),
     getResourceList(cookieHeader, new URLSearchParams({ archived: "active", limit: "100" })),
     getProfileList(cookieHeader, new URLSearchParams({ archived: "active", limit: "100" })),
@@ -34,6 +35,7 @@ export default async function ProjectsPage({ searchParams }: { searchParams: Pro
     getGlobalDecisions(cookieHeader),
     editId ? getProject(cookieHeader, editId) : Promise.resolve(null),
     editId ? getProjectDecisions(cookieHeader, editId) : Promise.resolve(null),
+    getSlotSuggestions(cookieHeader),
   ]);
   if (!initial) return <ServiceUnavailable />;
   // One batch request for every visible project: freshness only, no canonical JSON or previews.
@@ -53,6 +55,7 @@ export default async function ProjectsPage({ searchParams }: { searchParams: Pro
         openCreateOnLoad={query.new === "1"}
         profiles={profiles?.profiles ?? []}
         recipes={recipes?.recipes ?? []}
+        suggestions={suggestions}
       />
     </WorkspaceShell>
   );

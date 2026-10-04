@@ -26,6 +26,7 @@ import { registerAuditRoutes } from "./modules/audit/routes.js";
 import { registerCatalogRoutes } from "./modules/catalog/routes.js";
 import { createCatalogService, type CatalogService } from "./modules/catalog/service.js";
 import { createCatalogTransaction } from "./modules/catalog/transaction.js";
+import { createCatalogUsageRepository, createSlotSuggestionService, type SlotSuggestionService } from "./modules/catalog/slot-suggestions.js";
 import { createFeedbackRepository, type FeedbackRepository } from "./modules/feedback/repository.js";
 import { registerFeedbackRoutes } from "./modules/feedback/routes.js";
 import { createEntitlementService, type EntitlementService } from "./modules/billing/entitlements.js";
@@ -88,6 +89,7 @@ export type AppDependencies = {
   samples?: SampleService;
   portability?: PortabilityService;
   catalog?: CatalogService;
+  slotSuggestions?: SlotSuggestionService;
   /** Plan enforcement; route tests that are not about plans inject `unlimitedEntitlements()`. */
   entitlements?: EntitlementService;
   subscriptions?: SubscriptionRepository;
@@ -155,6 +157,7 @@ export async function buildApp(config: AppConfig, dependencies: AppDependencies 
   const sampleService = dependencies.samples ?? createSampleService(createSampleTransaction(database));
   const portabilityService = dependencies.portability ?? createPortabilityService(createPortabilityRepository(database));
   const catalogService = dependencies.catalog ?? createCatalogService(resourceService, profileService, createCatalogTransaction(database));
+  const slotSuggestionService = dependencies.slotSuggestions ?? createSlotSuggestionService(resourceService, createCatalogUsageRepository(database));
   const subscriptionRepository = dependencies.subscriptions ?? createSubscriptionRepository(database);
   const entitlementService = dependencies.entitlements ?? createEntitlementService(subscriptionRepository, createUsageRepository(database));
   const billingProvider = dependencies.billingProvider !== undefined
@@ -270,7 +273,7 @@ export async function buildApp(config: AppConfig, dependencies: AppDependencies 
   await registerWorkspaceRoutes(app, workspaceRepository);
   await registerSampleRoutes(app, sampleService);
   await registerPortabilityRoutes(app, portabilityService);
-  await registerCatalogRoutes(app, catalogService);
+  await registerCatalogRoutes(app, catalogService, slotSuggestionService);
   await registerBillingRoutes(app, billingService);
   await registerAuditRoutes(app, auditRepository);
   await registerAccountRoutes(app, accountService);

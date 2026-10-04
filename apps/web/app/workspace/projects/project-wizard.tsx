@@ -1,10 +1,12 @@
 "use client";
 
 import {
+  catalogLibraryAddResponseSchema,
   profileResponseSchema,
   projectResponseSchema,
   recipeResponseSchema,
   resourceListResponseSchema,
+  type CatalogSlotSuggestions,
   type DecisionMode,
   type DecisionRecord,
   type ProfileSummary,
@@ -14,6 +16,7 @@ import {
   type Recipe,
   type RecipeSummary,
   type Resource,
+  type SlotSuggestion,
 } from "@devcontext/contracts";
 import { ArrowLeft, ArrowRight, CaretDown, Check, CheckCircle, MagnifyingGlass, PencilSimple, Plus, ShieldCheck, Sparkle, Warning, X } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
@@ -73,15 +76,36 @@ function draftFromRecord(record: DecisionRecord): SlotDraft {
   return { mode: record.mode, resource: record.resource ? pick(record.resource) : null, constraints: record.constraints, rationale: record.rationale, priority: record.priority, conditions: record.conditions };
 }
 
+/** Select values for suggested catalog technologies; anything else is a Library resource id. */
+const catalogOptionPrefix = "catalog:";
+const shownSuggestions = 6;
+
+function catalogSlugOf(resource: Resource | undefined) {
+  const slug = resource?.metadata.catalogSlug;
+  return typeof slug === "string" ? slug : null;
+}
+
+/** One short reason per suggestion; a pairing with this project's own picks beats the general reasons. */
+function suggestionReason(suggestion: SlotSuggestion, pairedWith: string | null) {
+  if (pairedWith) return `${pairedWith} ile uyumlu`;
+  if (suggestion.reasons.includes("used_before")) return "daha önce kullandın";
+  if (suggestion.reasons.includes("popular_here")) return "Oponoya’da popüler";
+  if (suggestion.reasons.includes("pairs_with")) return "Kütüphanenle uyumlu";
+  if (suggestion.reasons.includes("widely_used")) return "yaygın";
+  return "katalogdan";
+}
+
 function splitRules(text: string) {
   return text.split(/\r?\n/).map((line) => line.trim()).filter(Boolean).slice(0, rulesLimit).map((line) => line.slice(0, 500));
 }
 
-export function ProjectWizard({ project, decisions, library, profiles, recipes, globalDecisions, initialRecipeId = null, onClose, onSaved }: {
+export function ProjectWizard({ project, decisions, library, suggestions, profiles, recipes, globalDecisions, initialRecipeId = null, onClose, onSaved }: {
   project: Project | null;
   /** Existing decisions when editing; empty for a new Project. */
   decisions: ProjectDecisionView[];
   library: Resource[];
+  /** Catalog picks per slot and Library usage counts; null lists the Library only. */
+  suggestions: CatalogSlotSuggestions | null;
   profiles: ProfileSummary[];
   recipes: RecipeSummary[];
   globalDecisions: DecisionRecord[];
@@ -123,6 +147,10 @@ export function ProjectWizard({ project, decisions, library, profiles, recipes, 
   const [remote, setRemote] = useState<{ query: string; resources: Resource[] } | null>(null);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // The Library grows while the wizard is open: a suggestion picked here, or a resource saved in another tab.
+  const [libraryItems, setLibraryItems] = useState<Resource[]>(library);
+  /** Slot whose suggested technology is being added to the Library. */
+  const [adding, setAdding] = useState<string | null>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const dirtyRef = useRef(false);
   // One idempotency key per wizard session, so a retried create returns the same project.
@@ -186,6 +214,31 @@ export function ProjectWizard({ project, decisions, library, profiles, recipes, 
     return () => { window.clearTimeout(timer); controller.abort(); };
   }, [resourceQuery]);
 
+  // "Kütüphaneden kaynak seç" opens the Library in another tab; what was saved there shows up when this tab is back in front.
+  useEffect(() => {
+    let controller: AbortController | null = null;
+    async function refresh() {
+      if (document.visibilityState !== "visible") return;
+      controller?.abort();
+      controller = new AbortController();
+      try {
+        const response = await fetch(`/api/resources?${new URLSearchParams({ archived: "active", limit: "100" })}`, { cache: "no-store", signal: controller.signal });
+        if (!response.ok) return;
+        const parsed = resourceListResponseSchema.safeParse(await response.json());
+        if (parsed.success) setLibraryItems(parsed.data.resources);
+      } catch {
+        // Keep the list already on screen.
+      }
+    }
+    window.addEventListener("focus", refresh);
+    document.addEventListener("visibilitychange", refresh);
+    return () => {
+      controller?.abort();
+      window.removeEventListener("focus", refresh);
+      document.removeEventListener("visibilitychange", refresh);
+    };
+  }, []);
+
   const profileName = (profileId: string) => profiles.find((item) => item.id === profileId)?.name ?? project?.profiles.find((item) => item.id === profileId)?.name ?? "Profil";
   const recipeName = activeRecipe?.name ?? recipes.find((item) => item.id === recipeId)?.name ?? project?.recipe?.name ?? null;
 
@@ -244,14 +297,44 @@ export function ProjectWizard({ project, decisions, library, profiles, recipes, 
     });
   }
 
-  function setSlotResource(slot: string, resourceId: string) {
+  /** Picking a resource on a slot left to the AI turns it into a preference for that resource. */
+  function setSlotPicked(slot: string, picked: Picked | null) {
     touch();
-    const resource = library.find((item) => item.id === resourceId);
+    setPresetApplied((previous) => { const next = new Set(previous); next.delete(slot); return next; });
     setDrafts((previous) => {
       const current = previous[slot] ?? { mode: "PREFERRED" as DecisionMode, resource: null, constraints: {}, rationale: null, priority: 0, conditions: {} };
-      if (!resourceId) return { ...previous, [slot]: { ...current, resource: null } };
-      return { ...previous, [slot]: { ...current, mode: current.mode === "AI_DECIDE" ? "PREFERRED" : current.mode, resource: resource ? pick(resource) : null } };
+      if (!picked) return { ...previous, [slot]: { ...current, resource: null } };
+      return { ...previous, [slot]: { ...current, mode: current.mode === "AI_DECIDE" ? "PREFERRED" : current.mode, resource: picked } };
     });
+  }
+
+  function setSlotResource(slot: string, value: string) {
+    if (value.startsWith(catalogOptionPrefix)) {
+      void addSuggested(slot, value.slice(catalogOptionPrefix.length));
+      return;
+    }
+    const resource = libraryItems.find((item) => item.id === value);
+    setSlotPicked(slot, value && resource ? pick(resource) : null);
+  }
+
+  /** A suggestion is a catalog technology: choosing it saves it to the Library (an explicit action, labelled in the list) and picks it. */
+  async function addSuggested(slot: string, slug: string) {
+    setAdding(slot);
+    setError(null);
+    try {
+      const response = await fetch(`/api/catalog/technologies/${encodeURIComponent(slug)}/library`, { method: "POST" });
+      if (!response.ok) {
+        setError((await readApiError(response)).message);
+        return;
+      }
+      const { resource } = catalogLibraryAddResponseSchema.parse(await response.json());
+      setLibraryItems((previous) => previous.some((item) => item.id === resource.id) ? previous : [...previous, resource]);
+      setSlotPicked(slot, pick(resource));
+    } catch {
+      setError("Teknoloji Kütüphanene eklenemedi. Bağlantını kontrol edip tekrar dene.");
+    } finally {
+      setAdding(null);
+    }
   }
 
   function setSlotNotes(slot: string, notes: string) {
@@ -315,10 +398,11 @@ export function ProjectWizard({ project, decisions, library, profiles, recipes, 
     if (!name.trim()) { goTo(0); return; }
     if (incomplete) {
       const [slot] = incomplete;
-      setError(`${slotLabel(slot)} için bir kaynak seç veya kararı AI’a bırak.`);
       const group = slotGroupOf(slot);
       if (group) setGroupId(group.id);
+      // goTo clears the message, so it is set afterwards; otherwise the wizard jumped back without saying why.
       goTo(1);
+      setError(`${slotLabel(slot)} için bir kaynak seç veya kararı AI’a bırak.`);
       return;
     }
     setPending(true);
@@ -381,9 +465,28 @@ export function ProjectWizard({ project, decisions, library, profiles, recipes, 
   }
 
   const lowered = resourceQuery.trim().toLowerCase();
-  const localMatches = library.filter((resource) => !lowered || resource.name.toLowerCase().includes(lowered) || typeLabels[resource.type].toLowerCase().includes(lowered) || resource.tags.some((tag) => tag.includes(lowered)));
+  const localMatches = libraryItems.filter((resource) => !lowered || resource.name.toLowerCase().includes(lowered) || typeLabels[resource.type].toLowerCase().includes(lowered) || resource.tags.some((tag) => tag.includes(lowered)));
   const candidates = lowered && remote?.query === resourceQuery.trim() ? [...remote.resources, ...localMatches.filter((resource) => !remote.resources.some((item) => item.id === resource.id))] : localMatches;
-  const sortedLibrary = [...library].sort((a, b) => a.name.localeCompare(b.name));
+  const usage = suggestions?.usage ?? {};
+  // What the user already used in other projects comes first, then the rest by name.
+  const sortedLibrary = [...libraryItems].sort((a, b) => (usage[b.id] ?? 0) - (usage[a.id] ?? 0) || a.name.localeCompare(b.name));
+  const ownedSlugs = new Set(libraryItems.map(catalogSlugOf).filter((slug): slug is string => slug !== null));
+  // Catalog slugs this project already picked, so suggestions that pair with them rise to the top.
+  const pickedBySlug = new Map(draftEntries.flatMap(([, draft]) => {
+    const slug = draft.resource ? catalogSlugOf(libraryItems.find((item) => item.id === draft.resource?.id)) : null;
+    return slug && draft.mode !== "DISABLED" ? [[slug, draft.resource!.name] as const] : [];
+  }));
+
+  function rankedSuggestions(slot: string) {
+    return (suggestions?.slots[slot] ?? [])
+      .filter((item) => !ownedSlugs.has(item.slug))
+      .map((item) => {
+        const pairedWith = item.pairsWith.find((slug) => pickedBySlug.has(slug));
+        return { item, pairedWith: pairedWith ? pickedBySlug.get(pairedWith)! : null, score: item.score + (pairedWith ? 3 : 0) };
+      })
+      .sort((a, b) => b.score - a.score)
+      .slice(0, shownSuggestions);
+  }
   const explicitCount = draftEntries.filter(([, draft]) => draft.mode !== "AI_DECIDE").length;
   const delegatedCount = draftEntries.filter(([, draft]) => draft.mode === "AI_DECIDE").length;
   const productTypeLabel = productType === "__custom__" ? customProductType.trim() : productType;
@@ -403,16 +506,27 @@ export function ProjectWizard({ project, decisions, library, profiles, recipes, 
     const selectedMode = draft?.mode ?? null;
     const resourceId = draft?.resource?.id ?? (inherited?.record.resource && !draft ? inherited.record.resource.id : "");
     const shownResource = draft?.resource ?? (draft ? null : inherited?.record.resource ?? null);
+    const suggested = rankedSuggestions(slotKey);
     return (
       <div className={`slot-card${draft ? " decided" : ""}`} key={slotKey}>
         <div className="slot-row">
           <strong>{label}</strong>
           <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
             {shownResource && <span className="mark small"><TechLogo name={shownResource.name} size={20} slug={catalogSlugFor(shownResource)} /></span>}
-            <select aria-label={`${label} kaynağı`} className="select" disabled={selectedMode === "AI_DECIDE"} onChange={(event) => setSlotResource(slotKey, event.target.value)} value={selectedMode === "AI_DECIDE" ? "" : resourceId}>
-              <option value="">{hint}</option>
+            {/* Never disabled: picking a technology on a slot left to the AI makes it a preference instead. */}
+            <select aria-busy={adding === slotKey} aria-label={`${label} kaynağı`} className="select" disabled={adding === slotKey} onChange={(event) => setSlotResource(slotKey, event.target.value)} value={selectedMode === "AI_DECIDE" ? "" : resourceId}>
+              <option value="">{adding === slotKey ? "Kütüphanene ekleniyor…" : selectedMode === "AI_DECIDE" ? "AI karar verecek · bir seçim yaparsan tercih olur" : hint}</option>
               {draft?.resource && !sortedLibrary.some((item) => item.id === draft.resource?.id) && <option value={draft.resource.id}>{draft.resource.name}{draft.resource.archivedAt ? " (arşiv)" : ""}</option>}
-              {sortedLibrary.map((resource) => <option key={resource.id} value={resource.id}>{resource.name} · {typeLabels[resource.type]}</option>)}
+              {sortedLibrary.length > 0 && (
+                <optgroup label="Kütüphanen">
+                  {sortedLibrary.map((resource) => <option key={resource.id} value={resource.id}>{resource.name} · {typeLabels[resource.type]}{usage[resource.id] ? ` · ${usage[resource.id]} projede kullandın` : ""}</option>)}
+                </optgroup>
+              )}
+              {suggested.length > 0 && (
+                <optgroup label="Önerilen · seçince Kütüphanene eklenir">
+                  {suggested.map(({ item, pairedWith }) => <option key={item.slug} value={`${catalogOptionPrefix}${item.slug}`}>{item.name} · {suggestionReason(item, pairedWith)}</option>)}
+                </optgroup>
+              )}
             </select>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -439,7 +553,11 @@ export function ProjectWizard({ project, decisions, library, profiles, recipes, 
           : <p className="slot-inherit muted">Devralınan tercih yok</p>}
         <div className="slot-foot">
           <Link className="text-link" href="/workspace/library?add=1" rel="noreferrer" style={{ color: "var(--ink)" }} target="_blank"><Plus aria-hidden size={16} />Kütüphaneden kaynak seç</Link>
-          {sortedLibrary.length === 0 && <small className="muted">Kütüphanende aktif kaynak yok; bir kaynak ekle veya kararı AI’a bırak.</small>}
+          {sortedLibrary.length === 0 && (
+            <small className="muted">{suggested.length > 0
+              ? "Kütüphanen henüz boş: listedeki önerilerden birini seçtiğinde Kütüphanene eklenir."
+              : "Kütüphanende aktif kaynak yok; bir kaynak ekle veya kararı AI’a bırak."}</small>
+          )}
         </div>
       </div>
     );
@@ -601,7 +719,7 @@ export function ProjectWizard({ project, decisions, library, profiles, recipes, 
                     </li>
                   ))}
                 </ul>
-                {candidates.length === 0 && (library.length === 0
+                {candidates.length === 0 && (libraryItems.length === 0
                   ? <p className="note">Kütüphanen boş. Önce bir kaynak ekle ya da referanssız devam et.</p>
                   : <p className="note">“{resourceQuery.trim()}” ile eşleşen aktif kaynak yok.</p>)}
                 <Link className="dashed-button" href="/workspace/library?add=1" rel="noreferrer" target="_blank"><Plus aria-hidden size={18} />Kütüphaneden ekle</Link>

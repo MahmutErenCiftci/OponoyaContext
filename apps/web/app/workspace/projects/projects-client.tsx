@@ -6,6 +6,7 @@ import {
   projectDecisionsResponseSchema,
   projectListResponseSchema,
   projectStageSchema,
+  type CatalogSlotSuggestions,
   type DecisionRecord,
   type ProfileSummary,
   type Project,
@@ -72,7 +73,7 @@ function ProjectRow({ project, status, onEdit, onArchive, onRestore }: {
   );
 }
 
-export function ProjectsClient({ initial, initialStatuses, library, profiles, recipes, globalDecisions, openCreateOnLoad, initialRecipeId, editOnLoad, editDecisions }: {
+export function ProjectsClient({ initial, initialStatuses, library, profiles, recipes, globalDecisions, openCreateOnLoad, initialRecipeId, editOnLoad, editDecisions, suggestions }: {
   initial: { projects: Project[]; total: number };
   initialStatuses: Record<string, ContextStatus>;
   library: Resource[];
@@ -83,6 +84,7 @@ export function ProjectsClient({ initial, initialStatuses, library, profiles, re
   initialRecipeId: string | null;
   editOnLoad: Project | null;
   editDecisions: ProjectDecisionView[];
+  suggestions: CatalogSlotSuggestions | null;
 }) {
   const [editorDecisions, setEditorDecisions] = useState<ProjectDecisionView[]>(editDecisions);
   const router = useRouter();
@@ -229,6 +231,7 @@ export function ProjectsClient({ initial, initialStatuses, library, profiles, re
           profiles={profiles}
           project={editor.kind === "edit" ? editor.project : null}
           recipes={recipes}
+          suggestions={suggestions}
         />
         {notice && <div className="toast" role="status">{notice}</div>}
       </section>

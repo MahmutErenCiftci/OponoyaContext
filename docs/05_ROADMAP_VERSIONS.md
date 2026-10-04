@@ -212,6 +212,12 @@ Goal: turn Library into a growing developer knowledge graph.
 - personal "For You"
 - submit resource
 - moderation/admin tooling
+- measured performance analyses (owner commitment, 2026-10-04): load tests the
+  owner runs with k6 on the project's VDS for catalog technologies and
+  stacks (concurrent users, latency percentiles, throughput, error rates),
+  published with the test setup (server spec, k6 script, date). They are the
+  owner's own measurements and stay labelled as such, apart from the editor
+  estimates in `data/catalog`.
 
 Start curated; do not attempt to index all GitHub.
 

@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { addResource, noHorizontalOverflow, openDisclosure, openNewProject, rowAction, signUp, skipFirstRun, wizard, wizardStep, workspaceNav } from "./support/workspace";
+import { addResource, createProjectFromWizard, noHorizontalOverflow, openDisclosure, openNewProject, rowAction, signUp, skipFirstRun, wizard, wizardStep, workspaceNav } from "./support/workspace";
 
 test("user composes a project from a saved Library resource, edits, archives and restores it", async ({ page }, testInfo) => {
   const email = `playwright-projects-${Date.now()}@example.test`;
@@ -100,4 +100,37 @@ test("user composes a project from a saved Library resource, edits, archives and
   await sidebar.getByRole("link", { name: "Genel bakış" }).click();
   await expect(page).toHaveURL(/\/workspace$/);
   await expect(page.getByRole("link", { name: /Atlas Finance/ }).first()).toBeVisible();
+});
+
+test("a new user with an empty Library picks suggested technologies in the wizard", async ({ page }) => {
+  await signUp(page, "Suggestion Picker", `playwright-suggestions-${Date.now()}@example.test`);
+  await skipFirstRun(page);
+  await workspaceNav(page).getByRole("link", { name: "Projeler" }).click();
+  const editor = await openNewProject(page);
+  await editor.getByLabel("Proje adı *").fill("Comet");
+  await editor.getByRole("button", { name: "Teknoloji kararlarına geç" }).click();
+
+  // An empty Library still offers catalog picks, and no list is locked.
+  await expect(editor.getByText("Kütüphanen henüz boş").first()).toBeVisible();
+  const language = editor.getByLabel("Dil kaynağı");
+  await expect(language.locator("optgroup", { hasText: "TypeScript" })).toHaveAttribute("label", /Önerilen/);
+  await language.selectOption("catalog:typescript");
+  await expect(language.locator("option:checked")).toHaveText(/^TypeScript · /);
+
+  // A slot the freedom preset left to the AI accepts a pick, which turns it into a preference.
+  await editor.getByRole("tab", { name: "Veri" }).click();
+  const queryLayer = editor.getByLabel("Sorgu katmanı kaynağı");
+  await expect(queryLayer).toBeEnabled();
+  await queryLayer.selectOption("catalog:drizzle-orm");
+  await expect(queryLayer.locator("option:checked")).toHaveText(/^Drizzle ORM · /);
+  await expect(editor.getByRole("group", { name: "Sorgu katmanı için karar biçimi" }).getByRole("button", { name: "Tercih" })).toHaveAttribute("aria-pressed", "true");
+
+  await createProjectFromWizard(editor, page);
+  await expect(page.getByText("TypeScript").first()).toBeVisible();
+  await expect(page.getByText("Drizzle ORM").first()).toBeVisible();
+
+  // Both picks were saved to the Library on the way.
+  await workspaceNav(page).getByRole("link", { name: "Kütüphane" }).click();
+  await expect(page.getByText("TypeScript").first()).toBeVisible();
+  await expect(page.getByText("Drizzle ORM").first()).toBeVisible();
 });

@@ -13,6 +13,7 @@ import {
   type AuthOptions,
   catalogLibraryLinksResponseSchema,
   catalogOverviewResponseSchema,
+  catalogSlotSuggestionsResponseSchema,
   catalogStackListResponseSchema,
   catalogStackResponseSchema,
   catalogSuggestionsResponseSchema,
@@ -47,6 +48,7 @@ import {
   type LegalConfig,
   type CatalogLibraryLinks,
   type CatalogOverview,
+  type CatalogSlotSuggestions,
   type CatalogStack,
   type CatalogStackSummary,
   type CatalogSuggestions,
@@ -256,6 +258,11 @@ export const getCatalogStack = cache((cookieHeader: string, slug: string, apiUrl
 /** Read-only catalog picks for the overview, based on the Library; null when unavailable. */
 export function getCatalogSuggestions(cookieHeader: string, apiUrl?: string): Promise<CatalogSuggestions | null> {
   return readAsUser("/v1/catalog/suggestions", catalogSuggestionsResponseSchema, (data) => data.suggestions, cookieHeader, apiUrl);
+}
+
+/** Project wizard picks per decision slot and Library usage counts; null when unavailable (the wizard then lists the Library only). */
+export function getSlotSuggestions(cookieHeader: string, apiUrl?: string): Promise<CatalogSlotSuggestions | null> {
+  return readAsUser("/v1/catalog/slot-suggestions", catalogSlotSuggestionsResponseSchema, (data) => data.suggestions, cookieHeader, apiUrl);
 }
 
 /** Catalog slug → Library Resource id for entries already saved; empty when unavailable. */

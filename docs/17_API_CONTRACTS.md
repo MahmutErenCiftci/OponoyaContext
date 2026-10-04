@@ -342,6 +342,19 @@ session. Scores are 1–5 editor assessments, never measurements.
   outrank alternatives, stacks rank by how many of their technologies the
   Library holds, and an empty Library gets curated starter stacks (`matched: 0`).
   Nothing is added to the Library.
+- `GET /v1/catalog/slot-suggestions` (2026-10-04): `{ suggestions: { slots:
+  { [slot]: [{ slug, name, type, score, reasons[], pairsWith[] }] }, usage:
+  { [resourceId]: projects } } }`. Project-wizard picks, at most eight per
+  decision slot, never a technology already in the Library. Deterministic
+  score (no AI; `modules/catalog/slot-suggestions.ts`): archived from the
+  Library before (`used_before`), kept by at least three users across
+  accounts (`popular_here`, an aggregate count; below three it adds nothing,
+  so the score never hints at one other person), catalog pairings with the
+  Library in both directions (`pairs_with`) and catalog popularity
+  (`widely_used`). `usage` counts the caller's projects that attach or decide
+  each Library resource. Read-only: the wizard adds a picked suggestion
+  through `POST /v1/catalog/technologies/:slug/library` first, labelled
+  "seçince Kütüphanene eklenir".
 - `POST /v1/catalog/technologies/:slug/library`: `{ resource, created }`; 201 on
   creation, 200 when an active copy exists or an archived copy was restored.
 - `POST /v1/catalog/stacks/:slug/library`: `{ created[], existing[], skipped[] }`

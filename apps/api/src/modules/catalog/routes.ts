@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { catalogTechnologyListQuerySchema } from "@devcontext/contracts";
 import type { CatalogService } from "./service.js";
+import type { SlotSuggestionService } from "./slot-suggestions.js";
 
 const paramsSchema = z.object({ slug: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/) });
 
@@ -11,7 +12,7 @@ function ownerId(request: { currentUser: { id: string } | null }) {
 }
 
 /** Reference data is read-only; the Library mutations below record content-free audit events. */
-export async function registerCatalogRoutes(app: FastifyInstance, catalog: CatalogService) {
+export async function registerCatalogRoutes(app: FastifyInstance, catalog: CatalogService, slotSuggestions: SlotSuggestionService) {
   app.get("/v1/catalog", { onRequest: app.authenticate }, async () => ({ catalog: catalog.overview() }));
 
   app.get("/v1/catalog/technologies", { onRequest: app.authenticate }, async (request) =>
@@ -34,6 +35,11 @@ export async function registerCatalogRoutes(app: FastifyInstance, catalog: Catal
   /** Suggestions only read the Library; adding anything stays an explicit user action. */
   app.get("/v1/catalog/suggestions", { onRequest: app.authenticate }, async (request) => ({
     suggestions: await catalog.suggestions(ownerId(request)),
+  }));
+
+  /** Project wizard picks per decision slot plus how often each Library resource was used; read-only like the overview suggestions. */
+  app.get("/v1/catalog/slot-suggestions", { onRequest: app.authenticate }, async (request) => ({
+    suggestions: await slotSuggestions.forOwner(ownerId(request)),
   }));
 
   app.post("/v1/catalog/technologies/:slug/library", { onRequest: app.authenticate }, async (request, reply) => {

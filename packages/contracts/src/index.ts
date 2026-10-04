@@ -1403,6 +1403,35 @@ export const catalogSuggestionsSchema = z.object({
 export type CatalogSuggestions = z.infer<typeof catalogSuggestionsSchema>;
 export const catalogSuggestionsResponseSchema = z.object({ suggestions: catalogSuggestionsSchema });
 
+/**
+ * Why a catalog technology is suggested for a decision slot. Deterministic
+ * rules today (no AI): the user had it before, many Oponoya users keep it,
+ * it pairs with the user's Library, or it is widely used.
+ */
+export const slotSuggestionReasonSchema = z.enum(["used_before", "popular_here", "pairs_with", "widely_used"]);
+export type SlotSuggestionReason = z.infer<typeof slotSuggestionReasonSchema>;
+
+export const slotSuggestionSchema = z.object({
+  slug: z.string(),
+  name: z.string(),
+  type: resourceTypeSchema,
+  score: z.number(),
+  reasons: z.array(slotSuggestionReasonSchema),
+  /** Catalog slugs this technology pairs with; the wizard boosts it when the project already picked one of them. */
+  pairsWith: z.array(z.string()),
+});
+export type SlotSuggestion = z.infer<typeof slotSuggestionSchema>;
+
+/** `GET /v1/catalog/slot-suggestions`: picks for the project wizard. Choosing one adds it to the Library first, as an explicit action. */
+export const catalogSlotSuggestionsSchema = z.object({
+  /** Best first, at most eight per known decision slot; never a technology already in the Library. */
+  slots: z.record(z.string(), z.array(slotSuggestionSchema)),
+  /** Library resource id → how many of the caller's projects attach or decide it, so "used before" sorts first. */
+  usage: z.record(z.string(), z.number().int().nonnegative()),
+});
+export type CatalogSlotSuggestions = z.infer<typeof catalogSlotSuggestionsSchema>;
+export const catalogSlotSuggestionsResponseSchema = z.object({ suggestions: catalogSlotSuggestionsSchema });
+
 export const catalogDomainInfoSchema = z.object({
   id: catalogDomainSchema,
   label: z.string(),

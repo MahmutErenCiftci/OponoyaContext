@@ -118,13 +118,13 @@ export function toResourceInput(technology: CatalogTechnology): CreateResourceIn
 const suggestionLimits = { technologies: 10, stacks: 4, because: 2 };
 
 /** "Sample · Next.js" and "nextjs" both fold to "nextjs". */
-function foldName(name: string) {
+export function foldName(name: string) {
   return name.replace(/^sample\s*·\s*/i, "").normalize("NFKD").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "");
 }
 
 let nameIndex: Map<string, string> | null = null;
 /** Folded catalog technology name (and slug) → slug; built once, the catalog is static. */
-function catalogSlugByName() {
+export function catalogSlugByName() {
   nameIndex ??= new Map(listTechnologies().flatMap((item) => [[foldName(item.name), item.slug], [foldName(item.slug), item.slug]] as const));
   return nameIndex;
 }
