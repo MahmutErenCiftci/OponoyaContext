@@ -173,7 +173,7 @@ export function createAccountService(options: AccountServiceOptions): AccountSer
     },
 
     async exportAccount(user) {
-      const [document, settings, record, versions, exportRows, auditRows, createdAt, aiStatus, suggestions] = await Promise.all([
+      const [document, settings, record, versions, exportRows, auditRows, createdAt, aiStatus, suggestions, feedbackRows] = await Promise.all([
         portability.exportWorkspace(user.id),
         workspace.settings(user.id),
         subscriptions.find(user.id),
@@ -183,6 +183,7 @@ export function createAccountService(options: AccountServiceOptions): AccountSer
         repository.createdAt(user.id),
         ai.status(user.id),
         ai.exportAll(user.id),
+        repository.feedback(user.id),
       ]);
       const entitlement = resolveEntitlement(record, now());
       return {
@@ -209,6 +210,7 @@ export function createAccountService(options: AccountServiceOptions): AccountSer
         exports: exportRows.map((row) => ({ ...row, createdAt: row.createdAt.toISOString() })),
         auditEvents: auditRows,
         aiSuggestions: suggestions,
+        feedback: feedbackRows,
       };
     },
 

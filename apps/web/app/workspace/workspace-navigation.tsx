@@ -2,11 +2,14 @@
 
 import type { CurrentUser } from "@devcontext/contracts";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   BookOpen,
   Books,
   CaretDoubleLeft,
+  ChartBar,
+  ChatCircleDots,
   Compass,
   CreditCard,
   FolderSimple,
@@ -22,6 +25,8 @@ import {
 import type { Icon } from "@phosphor-icons/react";
 import { BrandMark } from "../../components/brand-mark";
 import { CommandPalette } from "../../components/command-palette";
+import { DrawerFrame } from "../../components/drawer";
+import { FeedbackForm } from "../../components/feedback-form";
 import { ThemeToggle } from "../../components/theme-toggle";
 import { sidebarCookie } from "../../lib/sidebar";
 import type { Theme } from "../../lib/theme";
@@ -52,9 +57,16 @@ export const navigationGroups: Array<{ label: string; items: NavItem[] }> = [
     items: [
       { id: "Plan", label: "Abonelik", href: "/workspace/billing", icon: CreditCard },
       { id: "Settings", label: "Ayarlar", href: "/workspace/settings", icon: Gear },
+      { id: "Feedback", label: "Geri bildirim", href: "/workspace/feedback", icon: ChatCircleDots },
     ],
   },
 ];
+
+/** Only users in the API's ADMIN_USER_IDS see it; the API enforces the same list. */
+const adminGroup: { label: string; items: NavItem[] } = {
+  label: "Yönetim",
+  items: [{ id: "Admin", label: "Yönetim paneli", href: "/admin", icon: ChartBar }],
+};
 
 /**
  * Learning and discovery: the top bar. Future informational sections
@@ -88,8 +100,9 @@ function useTopbarTucked() {
  * account. The collapsed state lives in a cookie so the server renders the
  * chosen width without a flash.
  */
-export function WorkspaceFrame({ active, theme, user, initialCollapsed, children }: {
+export function WorkspaceFrame({ active, admin, theme, user, initialCollapsed, children }: {
   active: WorkspaceSection | null;
+  admin: boolean;
   theme: Theme;
   user: CurrentUser | null;
   initialCollapsed: boolean;
@@ -97,8 +110,11 @@ export function WorkspaceFrame({ active, theme, user, initialCollapsed, children
 }) {
   const [collapsed, setCollapsed] = useState(initialCollapsed);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const pathname = usePathname();
   const tucked = useTopbarTucked();
   const topbar = useRef<HTMLElement>(null);
+  const groups = admin ? [...navigationGroups, adminGroup] : navigationGroups;
 
   useEffect(() => {
     function dismiss(event: MouseEvent | KeyboardEvent) {
@@ -131,7 +147,7 @@ export function WorkspaceFrame({ active, theme, user, initialCollapsed, children
           <button aria-label="Menüyü kapat" className="icon-button sidebar-close" onClick={() => setMobileOpen(false)} type="button"><X aria-hidden size={22} /></button>
         </div>
         <nav aria-label="Çalışma alanı" className="sidebar-nav workspace-navigation">
-          {navigationGroups.map((group) => (
+          {groups.map((group) => (
             <div className="sidebar-group" key={group.label}>
               <p className="sidebar-group-label"><span>{group.label}</span></p>
               {group.items.map((item) => {
@@ -184,6 +200,11 @@ export function WorkspaceFrame({ active, theme, user, initialCollapsed, children
           </nav>
           {user && <CommandPalette variant="field" />}
           <div className="topbar-tools">
+            {user && (
+              <button className="button small quiet topbar-feedback" onClick={() => setFeedbackOpen(true)} title="Öneri, şikayet ya da hata bildir" type="button">
+                <ChatCircleDots aria-hidden size={20} /><span>Geri bildirim</span>
+              </button>
+            )}
             <ThemeToggle initialTheme={theme} />
             {user && (
               <details className="header-menu account-menu">
@@ -192,6 +213,7 @@ export function WorkspaceFrame({ active, theme, user, initialCollapsed, children
                   <div className="account-info"><strong>{user.name}</strong><small>{user.email}</small></div>
                   <Link href="/workspace/settings"><Gear aria-hidden size={18} />Hesap ayarları</Link>
                   <Link href="/workspace/profiles"><Stack aria-hidden size={18} />Profiller</Link>
+                  {admin && <Link href="/admin"><ChartBar aria-hidden size={18} />Yönetim paneli</Link>}
                   <LogoutButton />
                 </div>
               </details>
@@ -199,6 +221,11 @@ export function WorkspaceFrame({ active, theme, user, initialCollapsed, children
           </div>
         </header>
         <main id="workspace-content">{children}</main>
+        {feedbackOpen && (
+          <DrawerFrame onClose={() => setFeedbackOpen(false)} subtitle="Öneri, şikayet ya da hata: hepsini okuyoruz." title="Geri bildirim gönder">
+            <FeedbackForm pagePath={pathname} showHistoryLink />
+          </DrawerFrame>
+        )}
       </div>
     </div>
   );

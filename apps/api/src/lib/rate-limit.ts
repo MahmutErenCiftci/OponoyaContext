@@ -25,6 +25,8 @@ export type RateLimitPolicy = {
   sensitive: RateLimitRule;
   /** Workspace imports keyed by user: a document may be tens of megabytes, so bursts are refused before the body is read. */
   imports: RateLimitRule;
+  /** Feedback reports keyed by user: generous for a person, a wall for a script filling the operator inbox. */
+  feedback: RateLimitRule;
 };
 
 export const defaultRateLimitPolicy: RateLimitPolicy = {
@@ -35,6 +37,7 @@ export const defaultRateLimitPolicy: RateLimitPolicy = {
   ai: { name: "ai", max: 6, windowMs: 60_000 },
   sensitive: { name: "sensitive", max: 5, windowMs: 60_000 },
   imports: { name: "imports", max: 10, windowMs: 10 * 60_000 },
+  feedback: { name: "feedback", max: 10, windowMs: 60 * 60_000 },
 };
 
 /** Route patterns that verify the account password. */
@@ -46,6 +49,11 @@ export const sensitiveRoutes = new Set([
 /** Route patterns that upload a whole portable document. */
 export const importRoutes = new Set([
   "POST /v1/workspace/import",
+]);
+
+/** Route patterns that file a feedback report. */
+export const feedbackRoutes = new Set([
+  "POST /v1/feedback",
 ]);
 
 /** Route patterns that reach the external AI provider. */
@@ -77,6 +85,7 @@ export function ruleForRoute(policy: RateLimitPolicy, method: string, route: str
   if (route && sensitiveRoutes.has(`${method} ${route}`)) return policy.sensitive;
   if (route && aiRoutes.has(`${method} ${route}`)) return policy.ai;
   if (route && importRoutes.has(`${method} ${route}`)) return policy.imports;
+  if (route && feedbackRoutes.has(`${method} ${route}`)) return policy.feedback;
   if (route && expensiveRoutes.has(`${method} ${route}`)) return policy.expensive;
   return method === "GET" || method === "HEAD" ? policy.read : policy.mutate;
 }

@@ -502,3 +502,24 @@ export const accountDeletions = pgTable("account_deletions", {
   uniqueIndex("account_deletions_user_unique").on(table.userId),
   index("account_deletions_status_idx").on(table.status, table.requestedAt),
 ]);
+
+/**
+ * Suggestions, complaints and bug reports sent from the site. The message is
+ * the author's own text, shown to them and to operators (ADMIN_USER_IDS)
+ * only, and treated as data everywhere. Rows follow the author on account
+ * deletion; `status` is the operator's triage state.
+ */
+export const feedback = pgTable("feedback", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  kind: text("kind").notNull(),
+  message: text("message").notNull(),
+  /** Workspace path the form was opened on, without query or fragment. */
+  pagePath: text("page_path"),
+  status: text("status").notNull().default("new"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  index("feedback_status_created_idx").on(table.status, table.createdAt),
+  index("feedback_user_created_idx").on(table.userId, table.createdAt),
+]);

@@ -59,7 +59,7 @@ it("upgrades a database that stopped at the previous migration without losing ro
     await client.query("INSERT INTO projects (owner_user_id, name, slug, rules) VALUES ($1, 'Kept project', 'kept-project', '[\"rule\"]'::jsonb)", [owner]);
 
     await migrate(db, { migrationsFolder });
-    expect((await client.query("SELECT count(*)::int AS value FROM drizzle.__drizzle_migrations")).rows[0]).toEqual({ value: 10 });
+    expect((await client.query("SELECT count(*)::int AS value FROM drizzle.__drizzle_migrations")).rows[0]).toEqual({ value: 11 });
     expect((await client.query("SELECT name, favorite FROM resources")).rows).toEqual([{ name: "Kept", favorite: true }]);
     await client.query("INSERT INTO subscriptions (owner_user_id, plan, status) VALUES ($1, 'pro', 'active')", [owner]);
     await expect(client.query("INSERT INTO subscriptions (owner_user_id) VALUES ($1)", [owner])).rejects.toMatchObject({ code: "23505" });

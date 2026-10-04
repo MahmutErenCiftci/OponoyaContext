@@ -11,6 +11,8 @@ import { registerObservability, registerOriginGuard } from "./lib/observability.
 import { createRateLimiter, defaultRateLimitPolicy, type RateLimitPolicy } from "./lib/rate-limit.js";
 import { registerHealthRoutes } from "./modules/health/routes.js";
 import { createAccountRepository } from "./modules/account/repository.js";
+import { createAdminRepository, type AdminRepository } from "./modules/admin/repository.js";
+import { registerAdminRoutes } from "./modules/admin/routes.js";
 import { registerAccountRoutes } from "./modules/account/routes.js";
 import { createAccountService, type AccountService } from "./modules/account/service.js";
 import { createAnthropicProvider } from "./modules/ai/anthropic-provider.js";
@@ -24,6 +26,8 @@ import { registerAuditRoutes } from "./modules/audit/routes.js";
 import { registerCatalogRoutes } from "./modules/catalog/routes.js";
 import { createCatalogService, type CatalogService } from "./modules/catalog/service.js";
 import { createCatalogTransaction } from "./modules/catalog/transaction.js";
+import { createFeedbackRepository, type FeedbackRepository } from "./modules/feedback/repository.js";
+import { registerFeedbackRoutes } from "./modules/feedback/routes.js";
 import { createEntitlementService, type EntitlementService } from "./modules/billing/entitlements.js";
 import { createFakeProvider } from "./modules/billing/fake-provider.js";
 import type { BillingProvider } from "./modules/billing/provider.js";
@@ -92,6 +96,9 @@ export type AppDependencies = {
   audit?: AuditRepository;
   /** Account export, deletion and legal configuration (Handoff 11). */
   account?: AccountService;
+  /** Cross-account operator overview; tests inject a stub. */
+  admin?: AdminRepository;
+  feedback?: FeedbackRepository;
   /** AI provider override; `null` disables AI regardless of configuration. */
   aiProvider?: AiProvider | null;
   ai?: AiService;
@@ -207,6 +214,8 @@ export async function buildApp(config: AppConfig, dependencies: AppDependencies 
     aiProvider: aiProvider?.id ?? null,
     config,
   });
+  const adminRepository = dependencies.admin ?? createAdminRepository(database);
+  const feedbackRepository = dependencies.feedback ?? createFeedbackRepository(database);
   const telemetry = createTelemetry(auditRepository, app.log);
   const limiter = createRateLimiter();
   const policy: RateLimitPolicy = { ...defaultRateLimitPolicy, ...dependencies.rateLimits };
@@ -266,6 +275,8 @@ export async function buildApp(config: AppConfig, dependencies: AppDependencies 
   await registerAuditRoutes(app, auditRepository);
   await registerAccountRoutes(app, accountService);
   await registerAiRoutes(app, aiService);
+  await registerFeedbackRoutes(app, feedbackRepository);
+  await registerAdminRoutes(app, adminRepository, feedbackRepository);
   /**
    * Readiness: the process accepts traffic only while it is not draining and
    * the database answers. Connection details never appear in the response.

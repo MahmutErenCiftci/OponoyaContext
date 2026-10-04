@@ -8,6 +8,7 @@ import {
   count,
   eq,
   exportEvents,
+  feedback,
   importRequests,
   projectDecisions,
   projects,
@@ -126,6 +127,10 @@ beforeAll(async () => {
     ownerUserId: ownerA, projectId: projectA, kind: "decision_proposal", slot: "backend.framework", provider: "fake", model: "fake-deterministic",
     inputHash: "sha256:input", proposal: { resourceId: resourceA, rationale: "Fits.", alternatives: [], risks: [], confidence: "high" }, inputTokens: 10, outputTokens: 5,
   });
+  await database.db.insert(feedback).values([
+    { userId: ownerA, kind: "bug", message: "Kaydet düğmesi çalışmıyor.", pagePath: "/workspace/projects" },
+    { userId: ownerB, kind: "suggestion", message: "Başka bir kullanıcının önerisi." },
+  ]);
   await database.db.insert(subscriptions).values({ ownerUserId: ownerA, plan: "pro", status: "active", provider: "stub", providerCustomerId: "cus_a", providerSubscriptionId: "sub_a" });
 
   const subscriptionRepository = createSubscriptionRepository(database);
@@ -178,7 +183,7 @@ describe("account summary and export", () => {
     const summary = await service.summary(userA);
     expect(summary.stored).toEqual({
       resources: 1, tags: 1, profiles: 0, recipes: 0, projects: 1, decisions: 1, compatibilityRules: 0,
-      contextVersions: 1, exports: 1, auditEvents: 1, importRequests: 1, aiSuggestions: 1, sessions: 2,
+      contextVersions: 1, exports: 1, auditEvents: 1, importRequests: 1, aiSuggestions: 1, feedback: 1, sessions: 2,
     });
     expect(summary.integrations.billing).toMatchObject({ provider: "stub", plan: "pro", status: "active", linked: true });
     expect(summary.processing).toMatchObject({ externalAi: false, aiProvider: null, aiConsentedAt: "2026-09-01T00:00:00.000Z" });
@@ -192,10 +197,11 @@ describe("account summary and export", () => {
     expect(document.contextVersions).toHaveLength(1);
     expect(document.exports).toEqual([expect.objectContaining({ projectId: projectA, target: "agents" })]);
     expect(document.aiSuggestions).toHaveLength(1);
+    expect(document.feedback).toEqual([expect.objectContaining({ kind: "bug", message: "Kaydet düğmesi çalışmıyor.", pagePath: "/workspace/projects", status: "new" })]);
     expect(document.settings.aiConsentedAt).toBe("2026-09-01T00:00:00.000Z");
     expect(document.subscription).toMatchObject({ plan: "pro", status: "active", provider: "stub" });
     const text = JSON.stringify(document);
-    for (const secret of ["hash-secret", "session-token-secret", "cus_a", "sub_a", "203.0.113.9", "Beacon", "Hono"]) {
+    for (const secret of ["hash-secret", "session-token-secret", "cus_a", "sub_a", "203.0.113.9", "Beacon", "Hono", "Başka bir kullanıcının"]) {
       expect(text, secret).not.toContain(secret);
     }
   });
@@ -234,6 +240,7 @@ describe("account deletion", () => {
       ["import_requests", importRequests, importRequests.ownerUserId],
       ["workspace_settings", workspaceSettings, workspaceSettings.ownerUserId],
       ["ai_suggestions", aiSuggestions, aiSuggestions.ownerUserId],
+      ["feedback", feedback, feedback.userId],
       ["subscriptions", subscriptions, subscriptions.ownerUserId],
     ] as const) {
       expect(await rows(table, column, ownerA), name).toBe(0);

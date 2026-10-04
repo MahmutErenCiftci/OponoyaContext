@@ -144,6 +144,21 @@ const envSchema = z.object({
    */
   EMAIL_PROVIDER: z.enum(["none", "log"]).default("none"),
   EMAIL_OUTBOX_FILE: z.string().trim().min(1).optional(),
+  /**
+   * Who may open the cross-account operator overview (`/admin`): a
+   * comma-separated list of user ids. Ids rather than e-mail addresses
+   * because sign-up does not verify addresses, so an e-mail allow-list would
+   * belong to whoever registers that address first. Empty (default) keeps the
+   * overview closed to everyone.
+   */
+  ADMIN_USER_IDS: z.string().trim().default("").transform((value, context) => {
+    const ids = value.split(",").map((entry) => entry.trim().toLowerCase()).filter(Boolean);
+    if (!ids.every((id) => z.uuid().safeParse(id).success)) {
+      context.addIssue({ code: "custom", message: "Expected a comma-separated list of user ids" });
+      return z.NEVER;
+    }
+    return [...new Set(ids)];
+  }),
 }).superRefine((value, context) => {
   if (value.BILLING_PROVIDER === "stripe") {
     context.addIssue({ code: "custom", path: ["BILLING_PROVIDER"], message: "The Stripe adapter is not part of this build; see docs/40_BILLING_HANDOFF.md" });

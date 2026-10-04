@@ -1,3 +1,4 @@
+import type { Feedback } from "@devcontext/contracts";
 import {
   accountDeletions,
   aiSuggestions,
@@ -6,6 +7,7 @@ import {
   desc,
   eq,
   exportEvents,
+  feedback,
   globalDecisions,
   importRequests,
   auditEvents,
@@ -23,6 +25,7 @@ import {
   type RepositoryDatabase,
   type Table,
 } from "@devcontext/db";
+import { toFeedback } from "../feedback/repository.js";
 
 export type DeletionRow = typeof accountDeletions.$inferSelect;
 
@@ -40,6 +43,7 @@ export type StoredCounts = {
   auditEvents: number;
   importRequests: number;
   aiSuggestions: number;
+  feedback: number;
   sessions: number;
 };
 
@@ -69,6 +73,8 @@ export interface AccountRepository {
   counts(userId: string): Promise<StoredCounts>;
   contextVersions(userId: string): Promise<ContextVersionRow[]>;
   exports(userId: string): Promise<ExportRow[]>;
+  /** Every feedback report the user sent, newest first. */
+  feedback(userId: string): Promise<Feedback[]>;
   deletion(userId: string): Promise<DeletionRow | null>;
   /** Creates the ledger row or records one more attempt on the existing one. */
   beginAttempt(userId: string, requestId: string): Promise<DeletionRow>;
@@ -116,6 +122,7 @@ export function createAccountRepository(database: RepositoryDatabase): AccountRe
         auditEvents: owned(auditEvents, auditEvents.actorUserId),
         importRequests: owned(importRequests, importRequests.ownerUserId),
         aiSuggestions: owned(aiSuggestions, aiSuggestions.ownerUserId),
+        feedback: owned(feedback, feedback.userId),
         sessions: owned(sessions, sessions.userId),
       }).from(users).where(eq(users.id, userId)).limit(1);
       return {
@@ -131,6 +138,7 @@ export function createAccountRepository(database: RepositoryDatabase): AccountRe
         auditEvents: row?.auditEvents ?? 0,
         importRequests: row?.importRequests ?? 0,
         aiSuggestions: row?.aiSuggestions ?? 0,
+        feedback: row?.feedback ?? 0,
         sessions: row?.sessions ?? 0,
       };
     },
@@ -151,6 +159,11 @@ export function createAccountRepository(database: RepositoryDatabase): AccountRe
         .where(eq(projects.ownerUserId, userId))
         .orderBy(projects.name, contextVersions.version);
       return rows;
+    },
+
+    async feedback(userId) {
+      const rows = await db.select().from(feedback).where(eq(feedback.userId, userId)).orderBy(desc(feedback.createdAt), desc(feedback.id));
+      return rows.map(toFeedback);
     },
 
     async exports(userId) {

@@ -9,12 +9,15 @@ const user = { id: "00000000-0000-4000-8000-000000000001", email: "dev@example.t
 it("tells a signed-out visitor apart from an unreachable API", async () => {
   const fetch = vi.fn()
     .mockResolvedValueOnce(Response.json({ user }))
+    .mockResolvedValueOnce(Response.json({ user, admin: true }))
     .mockResolvedValueOnce(new Response(null, { status: 401 }))
     .mockResolvedValueOnce(new Response("bad gateway", { status: 502 }))
     .mockRejectedValueOnce(new Error("connect ECONNREFUSED"))
     .mockResolvedValueOnce(Response.json({ user: { id: "not-a-uuid" } }));
   vi.stubGlobal("fetch", fetch);
-  expect(await readSession("session=valid")).toEqual({ status: "authenticated", user, cookieHeader: "session=valid" });
+  // An API without the admin flag reads as "not an admin".
+  expect(await readSession("session=valid")).toEqual({ status: "authenticated", user, admin: false, cookieHeader: "session=valid" });
+  expect(await readSession("session=valid")).toEqual({ status: "authenticated", user, admin: true, cookieHeader: "session=valid" });
   expect(await readSession("session=expired")).toEqual({ status: "anonymous", cookieHeader: "session=expired" });
   expect(await readSession("session=valid")).toEqual({ status: "unavailable", cookieHeader: "session=valid" });
   expect(await readSession("session=valid")).toEqual({ status: "unavailable", cookieHeader: "session=valid" });

@@ -2,6 +2,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { fromNodeHeaders } from "better-auth/node";
 import type { CurrentUser } from "@devcontext/contracts";
 import { applyRateLimitHeaders, rateLimitedError, ruleForRoute, type RateLimiter, type RateLimitPolicy } from "../../lib/rate-limit.js";
+import { isAdmin } from "../admin/routes.js";
 import { signInAction } from "../audit/repository.js";
 import type { Telemetry } from "../telemetry/service.js";
 import type { AuthProvider } from "./service.js";
@@ -131,6 +132,7 @@ export async function registerAuthRoutes(app: FastifyInstance, auth: AuthProvide
 
   app.get("/v1/me", { onRequest: app.authenticate }, async (request) => ({
     user: request.currentUser,
+    admin: request.currentUser ? isAdmin(app.config.ADMIN_USER_IDS, request.currentUser.id) : false,
   }));
 }
 

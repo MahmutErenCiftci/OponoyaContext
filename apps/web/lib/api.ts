@@ -1,5 +1,8 @@
 import {
   accountSummaryResponseSchema,
+  adminFeedbackListResponseSchema,
+  adminOverviewResponseSchema,
+  feedbackListResponseSchema,
   aiStatusResponseSchema,
   aiSuggestionListResponseSchema,
   auditEventListResponseSchema,
@@ -32,6 +35,10 @@ import {
   workspaceSettingsResponseSchema,
   workspaceSummarySchema,
   type AccountSummary,
+  type AdminFeedback,
+  type AdminOverview,
+  type Feedback,
+  type FeedbackStatus,
   type AiStatus,
   type AiSuggestion,
   type AuditEvent,
@@ -272,6 +279,34 @@ export function getAiStatus(cookieHeader: string, apiUrl?: string): Promise<AiSt
 /** Pending AI suggestions of a Project, newest first; empty when unavailable. */
 export async function getAiSuggestions(cookieHeader: string, projectId: string, apiUrl?: string): Promise<AiSuggestion[]> {
   return (await readAsUser(entityPath("/v1/projects", projectId, "/ai/suggestions"), aiSuggestionListResponseSchema, (data) => data.suggestions, cookieHeader, apiUrl)) ?? [];
+}
+
+/** The signed-in user's own feedback reports, newest first; null when they cannot be loaded. */
+export function getOwnFeedback(cookieHeader: string, apiUrl?: string): Promise<Feedback[] | null> {
+  return readAsUser("/v1/feedback", feedbackListResponseSchema, (data) => data.feedback, cookieHeader, apiUrl);
+}
+
+/** Operator feedback inbox for one triage state; null when forbidden or unavailable (the overview tells those apart). */
+export function getAdminFeedback(cookieHeader: string, status: FeedbackStatus | "all", apiUrl?: string): Promise<AdminFeedback[] | null> {
+  return readAsUser("/v1/admin/feedback", adminFeedbackListResponseSchema, (data) => data.feedback, cookieHeader, apiUrl, new URLSearchParams({ status }));
+}
+
+export type AdminOverviewResult =
+  | { status: "ok"; overview: AdminOverview }
+  | { status: "forbidden" }
+  | { status: "unavailable" };
+
+/** Operator overview; "forbidden" (403) is kept apart from an outage so the page can tell them apart. */
+export async function getAdminOverview(cookieHeader: string, apiUrl?: string): Promise<AdminOverviewResult> {
+  try {
+    const response = await fetchAsUser("/v1/admin/overview", cookieHeader, apiUrl);
+    if (response.status === 403) return { status: "forbidden" };
+    if (!response.ok) return { status: "unavailable" };
+    const parsed = adminOverviewResponseSchema.safeParse(await response.json());
+    return parsed.success ? { status: "ok", overview: parsed.data.overview } : { status: "unavailable" };
+  } catch {
+    return { status: "unavailable" };
+  }
 }
 
 /** Public, configuration-driven inputs of the Terms and Privacy pages; null when the API cannot be reached. */

@@ -7,7 +7,7 @@ import { getApiBaseUrl } from "./api";
  * during an outage.
  */
 export type SessionState =
-  | { status: "authenticated"; user: CurrentUser; cookieHeader: string }
+  | { status: "authenticated"; user: CurrentUser; admin: boolean; cookieHeader: string }
   | { status: "anonymous"; cookieHeader: string }
   | { status: "unavailable"; cookieHeader: string };
 
@@ -21,7 +21,7 @@ export async function readSession(cookieHeader: string, apiUrl?: string): Promis
     if (response.status === 401) return { status: "anonymous", cookieHeader };
     if (!response.ok) return { status: "unavailable", cookieHeader };
     const parsed = currentUserResponseSchema.safeParse(await response.json());
-    return parsed.success ? { status: "authenticated", user: parsed.data.user, cookieHeader } : { status: "unavailable", cookieHeader };
+    return parsed.success ? { status: "authenticated", user: parsed.data.user, admin: parsed.data.admin, cookieHeader } : { status: "unavailable", cookieHeader };
   } catch {
     return { status: "unavailable", cookieHeader };
   }

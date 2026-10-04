@@ -22,7 +22,7 @@ only one numbered handoff prompt at a time.
   numbered implementation report and passing acceptance evidence.
 - Handoffs 1–12 are complete (reports 27–43; report 39 is the catalog slice and
   report 41 is the design-pack UI integration, so later reports are offset by
-  two from the prompt names). Migrations 0000–0009 are applied and covered by
+  two from the prompt names). Migrations 0000–0010 are applied and covered by
   tests; never regenerate them. The launch gate `docs/44_V1_LAUNCH_GATE.md`
   (2026-09-09) is **BLOCKED** on owner-only items (hosting, managed
   PostgreSQL, DNS/TLS, monitoring, repository publication, legal approval);
@@ -117,6 +117,16 @@ only one numbered handoff prompt at a time.
   development-only); its routes are proxied only when a sender exists, and a
   real e-mail provider is an owner decision. Report 46 lists the researched
   product gaps and recommendations.
+- Operator panel and feedback (2026-10-04, migration 0010): `/admin` reads
+  cross-account counts through `modules/admin` (the only cross-account
+  module) and is open only to user ids in the API's `ADMIN_USER_IDS`; ids, not
+  e-mails, because sign-up does not verify addresses. Users send suggestions,
+  complaints and bug reports from the top-bar drawer or
+  `/workspace/feedback` (`modules/feedback`, own rate-limit rule); the message
+  is user text, never logged or audited, included in the account export and
+  deleted with the account. Correlated SQL in `modules/admin/repository.ts`
+  names columns through aliases because Drizzle leaves interpolated columns
+  unqualified in single-table selects.
 - At the end of each handoff, update the execution plan and create the exact report
   required by that prompt. Never mark production-ready without a GO decision in
   `docs/44_V1_LAUNCH_GATE.md`.

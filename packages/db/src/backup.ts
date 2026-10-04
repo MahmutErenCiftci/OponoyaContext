@@ -53,6 +53,7 @@ export const backupTableOrder = [
   "audit_events",
   "workspace_samples",
   "ai_suggestions",
+  "feedback",
 ] as const;
 
 export type ColumnDefinition = { name: string; type: string };

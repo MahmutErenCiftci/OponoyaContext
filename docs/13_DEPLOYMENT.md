@@ -215,6 +215,14 @@ shared folders and delete drill snapshots after use.
   production) writes messages to the log and, with `EMAIL_OUTBOX_FILE`, to a
   local JSON-lines file. Wiring a real provider (sender domain, SPF/DKIM) is an
   owner decision; it plugs into `apps/api/src/modules/email/sender.ts`.
+- Operator panel (2026-10-04): `/admin` shows sign-ups, activity, the
+  activation funnel, stored totals and the feedback inbox across every
+  account. Only user ids listed in the API's `ADMIN_USER_IDS`
+  (comma-separated) can open it; everyone else gets 403 and the page shows
+  them their own id. Ids instead of e-mail addresses because sign-up does not
+  verify addresses. Bootstrap: sign up on the deployment, open `/admin`, copy
+  the id it shows into `ADMIN_USER_IDS`, restart the API. Empty (default)
+  keeps the panel closed.
 - Database TLS: node-postgres currently treats `sslmode=require` like
   `verify-full` (certificate and host name are checked) and will switch to the
   weaker libpq meaning in pg 9, so the production template uses

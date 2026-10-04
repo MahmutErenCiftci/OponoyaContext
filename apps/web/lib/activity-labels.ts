@@ -54,6 +54,8 @@ const labels: Record<string, string> = {
   "billing.portal_opened": "Abonelik portalı açıldı",
   "billing.reconciled": "Plan ödeme sağlayıcısıyla doğrulandı",
   "billing.webhook_processed": "Plan ödeme sağlayıcısı tarafından güncellendi",
+  "feedback.created": "Geri bildirim gönderildi",
+  "feedback.status_changed": "Geri bildirim durumu güncellendi",
 };
 
 export function activityLabel(event: AuditEvent) {
@@ -81,6 +83,8 @@ export function activityDetail(event: AuditEvent) {
 
 export function activityHref(event: AuditEvent): string | null {
   if (event.action.startsWith("billing.")) return "/workspace/billing";
+  if (event.action === "feedback.status_changed") return "/admin";
+  if (event.entityType === "feedback") return "/workspace/feedback";
   if (event.entityType === "workspace" || event.entityType === "account") return "/workspace/settings";
   // AI suggestions live on the Project's stack page; the suggestion id itself has no page.
   if (event.entityType === "ai_suggestion") return typeof event.metadata.projectId === "string" ? `/workspace/projects/${event.metadata.projectId}/stack` : null;

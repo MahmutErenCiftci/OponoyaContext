@@ -21,6 +21,8 @@ export type AuthOptions = z.infer<typeof authOptionsResponseSchema>["options"];
 
 export const currentUserResponseSchema = z.object({
   user: currentUserSchema,
+  /** The user is listed in the API's `ADMIN_USER_IDS` and may open the operator overview. */
+  admin: z.boolean().default(false),
 });
 
 export type CurrentUser = z.infer<typeof currentUserSchema>;
@@ -791,7 +793,7 @@ export type WorkspaceSummary = z.infer<typeof workspaceSummarySchema>;
 // ---------------------------------------------------------------------------
 
 /** Aggregate an audit event belongs to; decisions are recorded against their Project or Profile. */
-export const auditEntityTypeSchema = z.enum(["account", "resource", "project", "profile", "recipe", "compatibility_rule", "workspace", "ai_suggestion"]);
+export const auditEntityTypeSchema = z.enum(["account", "resource", "project", "profile", "recipe", "compatibility_rule", "workspace", "ai_suggestion", "feedback"]);
 export type AuditEntityType = z.infer<typeof auditEntityTypeSchema>;
 
 /**
@@ -1591,6 +1593,50 @@ export const acceptAiSuggestionResponseSchema = z.object({
 });
 
 // ---------------------------------------------------------------------------
+// Feedback: suggestions, complaints and bug reports from signed-in users
+// ---------------------------------------------------------------------------
+
+export const feedbackKindSchema = z.enum(["suggestion", "complaint", "bug", "other"]);
+export type FeedbackKind = z.infer<typeof feedbackKindSchema>;
+/** Operator triage state; a new report starts as `new`. */
+export const feedbackStatusSchema = z.enum(["new", "reviewing", "resolved", "dismissed"]);
+export type FeedbackStatus = z.infer<typeof feedbackStatusSchema>;
+export const feedbackMessageLimits = { min: 10, max: 4000 } as const;
+
+export const createFeedbackSchema = z.object({
+  kind: feedbackKindSchema,
+  message: z.string().trim().min(feedbackMessageLimits.min).max(feedbackMessageLimits.max),
+  /** The workspace path the form was opened on; a query string or fragment is never stored. */
+  pagePath: z.string().trim().max(300).regex(/^\/[^\s?#]*$/).optional(),
+});
+export type CreateFeedbackInput = z.infer<typeof createFeedbackSchema>;
+
+export const feedbackSchema = z.object({
+  id: z.uuid(),
+  kind: feedbackKindSchema,
+  message: z.string(),
+  pagePath: z.string().nullable(),
+  status: feedbackStatusSchema,
+  createdAt: z.iso.datetime(),
+  updatedAt: z.iso.datetime(),
+});
+export type Feedback = z.infer<typeof feedbackSchema>;
+export const feedbackResponseSchema = z.object({ feedback: feedbackSchema });
+/** `GET /v1/feedback`: the caller's own reports, newest first. */
+export const feedbackListResponseSchema = z.object({ feedback: z.array(feedbackSchema) });
+
+export const adminFeedbackSchema = feedbackSchema.extend({
+  user: z.object({ id: z.uuid(), name: z.string(), email: z.string() }),
+});
+export type AdminFeedback = z.infer<typeof adminFeedbackSchema>;
+export const adminFeedbackListQuerySchema = z.object({
+  status: z.union([feedbackStatusSchema, z.literal("all")]).default("new"),
+  limit: z.coerce.number().int().min(1).max(200).default(100),
+});
+export const adminFeedbackListResponseSchema = z.object({ feedback: z.array(adminFeedbackSchema) });
+export const updateFeedbackStatusSchema = z.object({ status: feedbackStatusSchema });
+
+// ---------------------------------------------------------------------------
 // Account lifecycle, structured data export and legal surfaces (Handoff 11)
 // ---------------------------------------------------------------------------
 
@@ -1622,6 +1668,7 @@ export const accountStoredCountsSchema = z.object({
   auditEvents: z.number().int().nonnegative(),
   importRequests: z.number().int().nonnegative(),
   aiSuggestions: z.number().int().nonnegative(),
+  feedback: z.number().int().nonnegative(),
   sessions: z.number().int().nonnegative(),
 });
 export type AccountStoredCounts = z.infer<typeof accountStoredCountsSchema>;
@@ -1724,6 +1771,7 @@ export const accountExportSchema = z.object({
   auditEvents: z.array(auditEventSchema),
   /** AI suggestions with their proposals and outcomes; empty while AI is off. */
   aiSuggestions: z.array(aiSuggestionSchema),
+  feedback: z.array(feedbackSchema),
 });
 export type AccountExport = z.infer<typeof accountExportSchema>;
 
@@ -1762,3 +1810,64 @@ export const legalConfigSchema = z.object({
 });
 export type LegalConfig = z.infer<typeof legalConfigSchema>;
 export const legalConfigResponseSchema = z.object({ legal: legalConfigSchema });
+
+// ---------------------------------------------------------------------------
+// Operator overview (`GET /v1/admin/overview`, users in ADMIN_USER_IDS only)
+// ---------------------------------------------------------------------------
+
+const tally = z.number().int().nonnegative();
+
+/**
+ * Cross-account counts for the operator: sign-ups, activity, the activation
+ * funnel from docs/15_ANALYTICS_METRICS.md and stored totals. Funnel steps
+ * leave out entities the sample set installed, so they count the user's own work.
+ */
+export const adminOverviewSchema = z.object({
+  generatedAt: z.iso.datetime(),
+  /** IANA zone the daily buckets are cut in. */
+  timeZone: z.string(),
+  users: z.object({
+    total: tally,
+    last24h: tally,
+    last7d: tally,
+    last30d: tally,
+    /** Signed in, used a session or changed something in the window. */
+    active7d: tally,
+    active30d: tally,
+    /** Completed account deletions (the user rows are gone). */
+    deleted: tally,
+  }),
+  /** The last 30 days, oldest first, days without a sign-up included as zero. */
+  signupsByDay: z.array(z.object({ date: z.iso.date(), count: tally })),
+  funnel: z.object({
+    signedUp: tally,
+    addedResource: tally,
+    createdProject: tally,
+    compiledContext: tally,
+    exportedContext: tally,
+    secondProject: tally,
+  }),
+  totals: z.object({
+    projects: tally,
+    resources: tally,
+    profiles: tally,
+    recipes: tally,
+    contextVersions: tally,
+    exports: tally,
+    sampleInstalls: tally,
+    proSubscriptions: tally,
+  }),
+  /** Reports per triage state. */
+  feedback: z.record(feedbackStatusSchema, tally),
+  recentUsers: z.array(z.object({
+    id: z.uuid(),
+    name: z.string(),
+    email: z.string(),
+    createdAt: z.iso.datetime(),
+    /** Newest session activity; null when the user has no session left. */
+    lastSeenAt: z.iso.datetime().nullable(),
+    projects: tally,
+  })),
+});
+export type AdminOverview = z.infer<typeof adminOverviewSchema>;
+export const adminOverviewResponseSchema = z.object({ overview: adminOverviewSchema });

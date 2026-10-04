@@ -23,6 +23,7 @@ const storedLabels: Array<[keyof AccountSummary["stored"], string]> = [
   ["importRequests", "İçe aktarma kaydı"],
   ["auditEvents", "Etkinlik kaydı"],
   ["aiSuggestions", "AI önerisi"],
+  ["feedback", "Geri bildirim"],
   ["sessions", "Açık oturum"],
 ];
 

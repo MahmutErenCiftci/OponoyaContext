@@ -223,7 +223,8 @@ describe("billing routes", () => {
     expect((versions.json() as { versions: unknown[] }).versions).toHaveLength(3);
     expect((await app.inject({ method: "POST", url: `/v1/projects/${project}/exports`, headers: asA, payload: { target: "agents" } })).statusCode).toBe(418);
 
-    subscriptions.set(proRecord(ownerA));
+    // Routes resolve entitlements against the real clock: the paid period must still be running whenever the suite runs.
+    subscriptions.set(proRecord(ownerA, { currentPeriodEnd: new Date(Date.now() + 30 * 86_400_000) }));
     for (const { method, url, body } of blocked) {
       const response = await app.inject({ method, url, headers: asA, ...(body ? { payload: body } : {}) });
       expect(response.statusCode, `${method} ${url}`).not.toBe(403);

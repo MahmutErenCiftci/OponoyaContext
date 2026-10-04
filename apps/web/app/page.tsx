@@ -242,7 +242,7 @@ export default async function HomePage() {
 
       <footer className="lp-footer">
         <span className="brand"><BrandMark /></span>
-        <nav aria-label="Yasal"><Link href="/legal/terms">Kullanım Şartları</Link><Link href="/legal/privacy">Gizlilik</Link></nav>
+        <nav aria-label="Yasal"><Link href="/legal/terms">Kullanım Şartları</Link><Link href="/legal/privacy">Gizlilik</Link><Link href="/workspace/feedback">Geri bildirim</Link></nav>
         <span>© {new Date().getFullYear()} {productName}</span>
       </footer>
     </main>
