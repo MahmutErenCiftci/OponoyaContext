@@ -1,12 +1,18 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getResourceList } from "../../../lib/api";
+import { defineCopy } from "../../../lib/i18n";
+import { getLocale } from "../../../lib/locale-server";
 import { loadSession } from "../../../lib/server-session";
 import { ServiceUnavailable } from "../unavailable";
 import { WorkspaceShell } from "../workspace-shell";
 import { LibraryClient } from "./library-client";
 
-export const metadata: Metadata = { title: "Kütüphane" };
+const copy = defineCopy({ tr: { title: "Kütüphane" }, en: { title: "Library" } });
+
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: copy[await getLocale()].title };
+}
 
 export default async function LibraryPage({ searchParams }: { searchParams: Promise<{ add?: string; q?: string; view?: string }> }) {
   const session = await loadSession();

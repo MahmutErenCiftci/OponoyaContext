@@ -2,6 +2,10 @@
 
 import { X } from "@phosphor-icons/react/dist/ssr";
 import { useEffect, useId, useRef, type FormEvent, type ReactNode } from "react";
+import { defineCopy } from "../lib/i18n";
+import { useLocale } from "./locale-provider";
+
+const copy = defineCopy({ tr: { close: "Kapat" }, en: { close: "Close" } });
 
 const focusableSelector = [
   "a[href]",
@@ -18,7 +22,7 @@ const focusableSelector = [
  * the control that opened it. When `onSubmit` is given, body and footer sit in
  * one form so Enter submits and the footer's primary button is the submit.
  */
-export function DrawerFrame({ title, eyebrow, subtitle, onClose, onSubmit, children, footer, closeLabel = "Kapat", variant = "drawer", wide = false, labelledBy }: {
+export function DrawerFrame({ title, eyebrow, subtitle, onClose, onSubmit, children, footer, closeLabel, variant = "drawer", wide = false, labelledBy }: {
   title: ReactNode;
   eyebrow?: ReactNode;
   subtitle?: ReactNode;
@@ -32,6 +36,7 @@ export function DrawerFrame({ title, eyebrow, subtitle, onClose, onSubmit, child
   /** Optional explicit heading id (for tests or when the title is not the heading). */
   labelledBy?: string;
 }) {
+  const locale = useLocale();
   const generated = useId();
   const titleId = labelledBy ?? `drawer-title-${generated}`;
   const panel = useRef<HTMLElement>(null);
@@ -84,7 +89,7 @@ export function DrawerFrame({ title, eyebrow, subtitle, onClose, onSubmit, child
             <h2 id={titleId}>{title}</h2>
             {subtitle && <small>{subtitle}</small>}
           </div>
-          <button aria-label={closeLabel} className="icon-button" onClick={onClose} type="button"><X aria-hidden size={22} /></button>
+          <button aria-label={closeLabel ?? copy[locale].close} className="icon-button" onClick={onClose} type="button"><X aria-hidden size={22} /></button>
         </header>
         {onSubmit ? <form noValidate onSubmit={onSubmit} style={{ display: "contents" }}>{body}</form> : body}
       </section>

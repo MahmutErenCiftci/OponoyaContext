@@ -4,11 +4,65 @@ import { CaretRight, MagnifyingGlass, Tray } from "@phosphor-icons/react/dist/ss
 import { catalogDomainSchema, resourceTypeSchema, type CatalogDomain, type CatalogLibraryLinks, type CatalogOverview, type CatalogStackSummary, type CatalogTechnologySummary, type ResourceType } from "@devcontext/contracts";
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { useLocale } from "../../../components/locale-provider";
 import { PageHead } from "../../../components/page-heading";
 import { TechLogo } from "../../../components/tech-logo";
 import { authorizedUseTag, domainLabels, foldText, maturityLabels } from "../../../lib/catalog-labels";
+import { defineCopy } from "../../../lib/i18n";
 import { typeLabels } from "../../../lib/resource-labels";
 import { AddToLibraryButton, Notice, useNotice } from "./catalog-actions";
+
+const copy = defineCopy({
+  tr: {
+    title: "Teknoloji kataloğu",
+    lead: "Projene uygun araçları keşfet ve kütüphanene ekle.",
+    /** English only: the catalog content itself is written in Turkish. */
+    contentLanguageNote: null as string | null,
+    loadFailed: "Katalog yüklenemedi. Birazdan tekrar dene.",
+    overviewCount: (technologies: number, stacks: number) => `${technologies} teknoloji · ${stacks} hazır stack`,
+    technologyCount: (technologies: number) => `${technologies} teknoloji`,
+    categories: "Kategoriler",
+    all: "Tümü",
+    search: "Katalogda ara",
+    searchPlaceholder: "Teknoloji veya kullanım alanı ara",
+    filterType: "Türe göre filtrele",
+    allTypes: "Tüm türler",
+    stacks: "Hazır stack’ler",
+    emptyTitle: "Eşleşen teknoloji yok",
+    emptyText: "Başka bir sözcük dene veya filtreleri temizle.",
+    clearFilters: "Filtreleri temizle",
+    authorizedUse: "Yalnızca yetkili kullanım",
+    added: (name: string) => `${name} Kütüphanene eklendi.`,
+    alreadyAdded: (name: string) => `${name} zaten Kütüphanendeydi.`,
+    details: (name: string) => `${name} ayrıntıları`,
+    editorNote: "AI uyumu değerlendirmeleri editör görüşüdür, ölçülmüş başarı oranı değildir.",
+    sourceDate: (version: string) => ` Kaynak tarihi: ${version}.`,
+  },
+  en: {
+    title: "Technology catalog",
+    lead: "Discover tools that fit your project and add them to your Library.",
+    contentLanguageNote: "Technology descriptions are currently available in Turkish only.",
+    loadFailed: "The catalog could not be loaded. Try again shortly.",
+    overviewCount: (technologies: number, stacks: number) => `${technologies} ${technologies === 1 ? "technology" : "technologies"} · ${stacks} ready-made ${stacks === 1 ? "stack" : "stacks"}`,
+    technologyCount: (technologies: number) => `${technologies} ${technologies === 1 ? "technology" : "technologies"}`,
+    categories: "Categories",
+    all: "All",
+    search: "Search the catalog",
+    searchPlaceholder: "Search technologies or use cases",
+    filterType: "Filter by type",
+    allTypes: "All types",
+    stacks: "Ready-made stacks",
+    emptyTitle: "No matching technologies",
+    emptyText: "Try another word or clear the filters.",
+    clearFilters: "Clear filters",
+    authorizedUse: "Authorized use only",
+    added: (name: string) => `${name} added to your Library.`,
+    alreadyAdded: (name: string) => `${name} was already in your Library.`,
+    details: (name: string) => `${name} details`,
+    editorNote: "AI fit ratings are editor assessments, not measured success rates.",
+    sourceDate: (version: string) => ` Source date: ${version}.`,
+  },
+});
 
 function matches(item: CatalogTechnologySummary, needle: string) {
   const haystack = foldText([item.name, item.slug, item.summary, item.category, item.tags.join(" ")].join(" "));
@@ -38,6 +92,8 @@ export function CatalogClient({ overview, technologies, stacks, links: initialLi
   initialDomain: CatalogDomain | null;
   initialType: ResourceType | null;
 }) {
+  const locale = useLocale();
+  const t = copy[locale];
   const [query, setQuery] = useState(initialQuery);
   const [domain, setDomain] = useState<CatalogDomain | null>(initialDomain);
   const [type, setType] = useState<ResourceType | null>(initialType);
@@ -54,36 +110,37 @@ export function CatalogClient({ overview, technologies, stacks, links: initialLi
 
   return (
     <section className="page">
-      <PageHead lead="Projene uygun araçları keşfet ve kütüphanene ekle." title="Teknoloji kataloğu" />
-      {overview === null && <p className="note warning" role="status" style={{ marginTop: 20 }}>Katalog yüklenemedi. Birazdan tekrar dene.</p>}
+      <PageHead lead={t.lead} title={t.title} />
+      {t.contentLanguageNote && <p className="muted small" role="note" style={{ marginTop: 8 }}>{t.contentLanguageNote}</p>}
+      {overview === null && <p className="note warning" role="status" style={{ marginTop: 20 }}>{t.loadFailed}</p>}
       <div className="catalog-toolbar">
-        <span className="count">{overview ? `${overview.technologyCount} teknoloji · ${overview.stackCount} hazır stack` : `${technologies.length} teknoloji`}</span>
-        <div aria-label="Kategoriler" className="pill-group" role="group">
-          <button aria-pressed={domain === null} onClick={() => setDomain(null)} type="button">Tümü</button>
-          {(overview?.domains ?? []).map((item) => <button aria-pressed={domain === item.id} key={item.id} onClick={() => setDomain(item.id)} type="button">{domainLabels[item.id]}</button>)}
+        <span className="count">{overview ? t.overviewCount(overview.technologyCount, overview.stackCount) : t.technologyCount(technologies.length)}</span>
+        <div aria-label={t.categories} className="pill-group" role="group">
+          <button aria-pressed={domain === null} onClick={() => setDomain(null)} type="button">{t.all}</button>
+          {(overview?.domains ?? []).map((item) => <button aria-pressed={domain === item.id} key={item.id} onClick={() => setDomain(item.id)} type="button">{domainLabels[locale][item.id]}</button>)}
         </div>
         <form className="search" onSubmit={(event) => event.preventDefault()} role="search">
           <MagnifyingGlass aria-hidden size={20} />
-          <input aria-label="Katalogda ara" onChange={(event) => setQuery(event.target.value)} placeholder="Teknoloji veya kullanım alanı ara" value={query} />
+          <input aria-label={t.search} onChange={(event) => setQuery(event.target.value)} placeholder={t.searchPlaceholder} value={query} />
         </form>
-        <select aria-label="Türe göre filtrele" className="select inline" onChange={(event) => setType(event.target.value ? resourceTypeSchema.parse(event.target.value) : null)} value={type ?? ""}>
-          <option value="">Tüm türler</option>
-          {availableTypes.map((option) => <option key={option} value={option}>{typeLabels[option]}</option>)}
+        <select aria-label={t.filterType} className="select inline" onChange={(event) => setType(event.target.value ? resourceTypeSchema.parse(event.target.value) : null)} value={type ?? ""}>
+          <option value="">{t.allTypes}</option>
+          {availableTypes.map((option) => <option key={option} value={option}>{typeLabels[locale][option]}</option>)}
         </select>
       </div>
       {domainNote && <p className="note warning" role="note" style={{ marginTop: 16 }}>{domainNote}</p>}
       {stacks.length > 0 && (
-        <div aria-label="Hazır stack’ler" className="stack-strip">
-          <h2>Hazır stack’ler</h2>
+        <div aria-label={t.stacks} className="stack-strip">
+          <h2>{t.stacks}</h2>
           {stacks.map((stack) => <StackStripItem key={stack.slug} stack={stack} />)}
         </div>
       )}
       {visible.length === 0 ? (
         <div className="empty">
           <span className="mark xl"><Tray aria-hidden size={34} /></span>
-          <h2>Eşleşen teknoloji yok</h2>
-          <p>Başka bir sözcük dene veya filtreleri temizle.</p>
-          <button className="button" onClick={() => { setQuery(""); setDomain(null); setType(null); }} type="button">Filtreleri temizle</button>
+          <h2>{t.emptyTitle}</h2>
+          <p>{t.emptyText}</p>
+          <button className="button" onClick={() => { setQuery(""); setDomain(null); setType(null); }} type="button">{t.clearFilters}</button>
         </div>
       ) : (
         <div className="catalog-grid">
@@ -93,29 +150,29 @@ export function CatalogClient({ overview, technologies, stacks, links: initialLi
                 <span className="mark large"><TechLogo name={item.name} size={38} slug={item.slug} /></span>
                 <div style={{ minWidth: 0 }}>
                   <strong><Link href={`/workspace/catalog/${item.slug}`}>{item.name}</Link></strong>
-                  <small>{domainLabels[item.domain]}</small>
+                  <small>{domainLabels[locale][item.domain]}</small>
                 </div>
               </div>
               <p>{item.summary}</p>
               <div className="catalog-card-foot">
                 <span className="meta">
-                  <span className={`dot ${item.maturity}`}>{maturityLabels[item.maturity]}</span>
-                  <span className="host">{typeLabels[item.type]}</span>
-                  {item.tags.includes(authorizedUseTag) && <span className="chip" style={{ color: "var(--warning)" }}>Yalnızca yetkili kullanım</span>}
+                  <span className={`dot ${item.maturity}`}>{maturityLabels[locale][item.maturity]}</span>
+                  <span className="host">{typeLabels[locale][item.type]}</span>
+                  {item.tags.includes(authorizedUseTag) && <span className="chip" style={{ color: "var(--warning)" }}>{t.authorizedUse}</span>}
                 </span>
                 <AddToLibraryButton
                   name={item.name}
-                  onAdded={(resourceId, created) => { setLinks((current) => ({ ...current, [item.slug]: resourceId })); setNotice(created ? `${item.name} Kütüphanene eklendi.` : `${item.name} zaten Kütüphanendeydi.`); }}
+                  onAdded={(resourceId, created) => { setLinks((current) => ({ ...current, [item.slug]: resourceId })); setNotice(created ? t.added(item.name) : t.alreadyAdded(item.name)); }}
                   resourceId={links[item.slug] ?? null}
                   slug={item.slug}
                 />
-                <Link aria-label={`${item.name} ayrıntıları`} className="icon-button bordered" href={`/workspace/catalog/${item.slug}`} style={{ width: 40, height: 40 }}><CaretRight aria-hidden size={18} /></Link>
+                <Link aria-label={t.details(item.name)} className="icon-button bordered" href={`/workspace/catalog/${item.slug}`} style={{ width: 40, height: 40 }}><CaretRight aria-hidden size={18} /></Link>
               </div>
             </article>
           ))}
         </div>
       )}
-      <p className="catalog-note">AI uyumu değerlendirmeleri editör görüşüdür, ölçülmüş başarı oranı değildir.{overview ? ` Kaynak tarihi: ${overview.version}.` : ""}</p>
+      <p className="catalog-note">{t.editorNote}{overview ? t.sourceDate(overview.version) : ""}</p>
       <Notice>{notice}</Notice>
     </section>
   );

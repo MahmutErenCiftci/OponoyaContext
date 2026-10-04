@@ -2,6 +2,13 @@
 
 import { CaretLeft, CaretRight } from "@phosphor-icons/react/dist/ssr";
 import { Children, useCallback, useEffect, useRef, useState, type CSSProperties, type PointerEvent, type ReactNode } from "react";
+import { defineCopy } from "../lib/i18n";
+import { useLocale } from "./locale-provider";
+
+const copy = defineCopy({
+  tr: { previous: (title: string) => `${title}: önceki`, next: (title: string) => `${title}: sonraki` },
+  en: { previous: (title: string) => `${title}: previous`, next: (title: string) => `${title}: next` },
+});
 
 type Edges = { overflow: boolean; atStart: boolean; atEnd: boolean; thumb: number; offset: number };
 
@@ -18,6 +25,7 @@ export function Carousel({ title, titleId, action, perView = 3, children }: {
   perView?: number;
   children: ReactNode;
 }) {
+  const t = copy[useLocale()];
   const track = useRef<HTMLUListElement>(null);
   const drag = useRef<{ x: number; left: number; moved: boolean } | null>(null);
   const [edges, setEdges] = useState<Edges>({ overflow: false, atStart: true, atEnd: true, thumb: 1, offset: 0 });
@@ -94,8 +102,8 @@ export function Carousel({ title, titleId, action, perView = 3, children }: {
           {action}
           {edges.overflow && (
             <div className="carousel-arrows">
-              <button aria-label={`${title}: önceki`} className="carousel-arrow" disabled={edges.atStart} onClick={() => page(-1)} type="button"><CaretLeft aria-hidden size={18} weight="bold" /></button>
-              <button aria-label={`${title}: sonraki`} className="carousel-arrow" disabled={edges.atEnd} onClick={() => page(1)} type="button"><CaretRight aria-hidden size={18} weight="bold" /></button>
+              <button aria-label={t.previous(title)} className="carousel-arrow" disabled={edges.atStart} onClick={() => page(-1)} type="button"><CaretLeft aria-hidden size={18} weight="bold" /></button>
+              <button aria-label={t.next(title)} className="carousel-arrow" disabled={edges.atEnd} onClick={() => page(1)} type="button"><CaretRight aria-hidden size={18} weight="bold" /></button>
             </div>
           )}
         </div>

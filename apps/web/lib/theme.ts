@@ -1,3 +1,5 @@
+import { defineCopy } from "./i18n";
+
 export const themes = ["system", "light", "dark"] as const;
 export type Theme = (typeof themes)[number];
 
@@ -5,13 +7,23 @@ export type Theme = (typeof themes)[number];
 export const themeCookieName = "devcontext-theme";
 const themeCookieMaxAge = 60 * 60 * 24 * 365;
 
-export const themeLabels: Record<Theme, string> = { system: "Sistem", light: "Açık", dark: "Koyu" };
+export const themeLabels = defineCopy<Record<Theme, string>>({
+  tr: { system: "Sistem", light: "Açık", dark: "Koyu" },
+  en: { system: "System", light: "Light", dark: "Dark" },
+});
 
-export const themeDescriptions: Record<Theme, string> = {
-  system: "Cihazının görünüm tercihini kullan.",
-  light: "Açık yüzeyler ve koyu metin.",
-  dark: "Düşük ışık için koyu çalışma alanı.",
-};
+export const themeDescriptions = defineCopy<Record<Theme, string>>({
+  tr: {
+    system: "Cihazının görünüm tercihini kullan.",
+    light: "Açık yüzeyler ve koyu metin.",
+    dark: "Düşük ışık için koyu çalışma alanı.",
+  },
+  en: {
+    system: "Follow your device's appearance setting.",
+    light: "Light surfaces and dark text.",
+    dark: "A dark workspace for low light.",
+  },
+});
 
 export function parseTheme(value: string | null | undefined): Theme {
   return value === "light" || value === "dark" ? value : "system";

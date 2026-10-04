@@ -3,21 +3,56 @@
 import { adminFeedbackListResponseSchema, feedbackResponseSchema, feedbackStatusSchema, type AdminFeedback, type FeedbackStatus } from "@devcontext/contracts";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useLocale } from "../../components/locale-provider";
 import { responseError } from "../../lib/errors";
 import { feedbackKindLabels, feedbackStatusLabels } from "../../lib/feedback-labels";
+import { defineCopy } from "../../lib/i18n";
 import { formatDateTime } from "../../lib/resource-labels";
 
 type Filter = FeedbackStatus | "all";
 const filters: Filter[] = [...feedbackStatusSchema.options, "all"];
 
+const copy = defineCopy({
+  tr: {
+    loadFailed: "Geri bildirimler yüklenemedi.",
+    unreachable: "Yönetim paneline şu an ulaşılamıyor.",
+    saveFailed: "Durum kaydedilemedi. Tekrar dene.",
+    title: "Geri bildirimler",
+    total: (count: number) => `${count} kayıt`,
+    filterLabel: "Duruma göre filtrele",
+    all: "Tümü",
+    noNew: "Yeni geri bildirim yok.",
+    noneInState: "Bu durumda geri bildirim yok.",
+    mailSubject: "Geri bildirimin hakkında",
+    page: "Sayfa: ",
+    status: "Durum",
+  },
+  en: {
+    loadFailed: "Feedback could not be loaded.",
+    unreachable: "The admin panel can't be reached right now.",
+    saveFailed: "The status could not be saved. Try again.",
+    title: "Feedback",
+    total: (count: number) => `${count} ${count === 1 ? "entry" : "entries"}`,
+    filterLabel: "Filter by status",
+    all: "All",
+    noNew: "No new feedback.",
+    noneInState: "No feedback in this state.",
+    mailSubject: "About your feedback",
+    page: "Page: ",
+    status: "Status",
+  },
+});
+
 /** Operator inbox: one triage state at a time, status changes saved immediately. Messages render as plain text. */
 export function FeedbackInbox({ initial, counts }: { initial: AdminFeedback[] | null; counts: Record<FeedbackStatus, number> }) {
   const router = useRouter();
+  const locale = useLocale();
+  const t = copy[locale];
   const [filter, setFilter] = useState<Filter>("new");
   const [items, setItems] = useState<AdminFeedback[] | null>(initial);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(initial === null ? "Geri bildirimler yüklenemedi." : null);
+  const [error, setError] = useState<string | null>(initial === null ? t.loadFailed : null);
   const total = Object.values(counts).reduce((sum, value) => sum + value, 0);
 
   async function load(next: Filter) {
@@ -32,9 +67,9 @@ export function FeedbackInbox({ initial, counts }: { initial: AdminFeedback[] | 
       }
       const parsed = adminFeedbackListResponseSchema.safeParse(await response.json());
       if (parsed.success) setItems(parsed.data.feedback);
-      else setError("Geri bildirimler yüklenemedi.");
+      else setError(t.loadFailed);
     } catch {
-      setError("Yönetim paneline şu an ulaşılamıyor.");
+      setError(t.unreachable);
     } finally {
       setLoading(false);
     }
@@ -63,7 +98,7 @@ export function FeedbackInbox({ initial, counts }: { initial: AdminFeedback[] | 
       }) ?? null);
       router.refresh();
     } catch {
-      setError("Durum kaydedilemedi. Tekrar dene.");
+      setError(t.saveFailed);
     } finally {
       setSaving(null);
     }
@@ -72,38 +107,38 @@ export function FeedbackInbox({ initial, counts }: { initial: AdminFeedback[] | 
   return (
     <section aria-labelledby="admin-feedback-title" className="overview-section admin-inbox">
       <div className="section-head">
-        <h2 className="section-title small" id="admin-feedback-title">Geri bildirimler</h2>
-        <span className="muted small">{total} kayıt</span>
+        <h2 className="section-title small" id="admin-feedback-title">{t.title}</h2>
+        <span className="muted small">{t.total(total)}</span>
       </div>
-      <div aria-label="Duruma göre filtrele" className="pill-group" role="group">
+      <div aria-label={t.filterLabel} className="pill-group" role="group">
         {filters.map((option) => (
           <button aria-pressed={filter === option} disabled={loading} key={option} onClick={() => void load(option)} type="button">
-            {option === "all" ? "Tümü" : feedbackStatusLabels[option]}
+            {option === "all" ? t.all : feedbackStatusLabels[locale][option]}
             <span className="pill-count">{option === "all" ? total : counts[option]}</span>
           </button>
         ))}
       </div>
       {error && <p className="form-error" role="alert">{error}</p>}
       {items && items.length === 0 && !loading && (
-        <p className="muted admin-inbox-empty">{filter === "new" ? "Yeni geri bildirim yok." : "Bu durumda geri bildirim yok."}</p>
+        <p className="muted admin-inbox-empty">{filter === "new" ? t.noNew : t.noneInState}</p>
       )}
       {items && items.length > 0 && (
         <ol aria-busy={loading} className="admin-inbox-list">
           {items.map((item) => (
             <li key={item.id}>
               <div className="feedback-meta">
-                <span className={`chip feedback-kind ${item.kind}`}>{feedbackKindLabels[item.kind]}</span>
+                <span className={`chip feedback-kind ${item.kind}`}>{feedbackKindLabels[locale][item.kind]}</span>
                 <strong>{item.user.name}</strong>
-                <a className="text-link small" href={`mailto:${item.user.email}?subject=${encodeURIComponent("Geri bildirimin hakkında")}`}>{item.user.email}</a>
-                <time className="muted small" dateTime={item.createdAt}>{formatDateTime(item.createdAt)}</time>
+                <a className="text-link small" href={`mailto:${item.user.email}?subject=${encodeURIComponent(t.mailSubject)}`}>{item.user.email}</a>
+                <time className="muted small" dateTime={item.createdAt}>{formatDateTime(item.createdAt, locale)}</time>
               </div>
               <p className="feedback-message">{item.message}</p>
               <div className="admin-inbox-foot">
-                {item.pagePath ? <span className="muted small">Sayfa: <code>{item.pagePath}</code></span> : <span />}
+                {item.pagePath ? <span className="muted small">{t.page}<code>{item.pagePath}</code></span> : <span />}
                 <label className="admin-inbox-status">
-                  <span className="muted small">Durum</span>
+                  <span className="muted small">{t.status}</span>
                   <select className="select" disabled={saving === item.id} onChange={(event) => void changeStatus(item, feedbackStatusSchema.parse(event.target.value))} value={item.status}>
-                    {feedbackStatusSchema.options.map((status) => <option key={status} value={status}>{feedbackStatusLabels[status]}</option>)}
+                    {feedbackStatusSchema.options.map((status) => <option key={status} value={status}>{feedbackStatusLabels[locale][status]}</option>)}
                   </select>
                 </label>
               </div>

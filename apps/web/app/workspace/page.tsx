@@ -11,6 +11,8 @@ import { contextStatusFrom } from "../../lib/context-status";
 import { Carousel } from "../../components/carousel";
 import { ContextStatusLabel } from "../../components/status-label";
 import { TechLogo } from "../../components/tech-logo";
+import { defineCopy, intlLocales, type Locale } from "../../lib/i18n";
+import { getLocale } from "../../lib/locale-server";
 import { catalogSlugFor } from "../../lib/logos";
 import { displayTimeZone, formatDate, stageLabels, typeLabels } from "../../lib/resource-labels";
 import { loadSession } from "../../lib/server-session";
@@ -20,19 +22,140 @@ import { LiveClock } from "./live-clock";
 import { ServiceUnavailable } from "./unavailable";
 import { WorkspaceShell } from "./workspace-shell";
 
-export const metadata: Metadata = { title: "Genel bakış" };
+const copy = defineCopy({
+  tr: {
+    metaTitle: "Genel bakış",
+    justNow: "az önce",
+    noDescription: "Açıklama eklenmemiş.",
+    technologyCount: (count: number) => `${count} teknoloji`,
+    noTechnologies: "Henüz teknoloji yok",
+    contextFresh: "Bağlam güncel",
+    readyStack: "Hazır stack",
+    stackMatch: (matched: number, total: number) => `${matched} / ${total} teknolojin bu stack’te`,
+    goodStart: "Başlangıç için iyi bir seçim",
+    pairsWith: (names: string) => `${names} ile sık kullanılır`,
+    alternativeTo: (names: string) => `${names} alternatifi`,
+    checklist: {
+      resources: "Kütüphanene beş kaynak ekle",
+      project: "İlk projeni oluştur",
+      compile: "AI talimatlarını oluştur",
+      export: "Bir coding agent’a aktar",
+    },
+    actionAddResource: "Kaynak ekle",
+    actionNewProject: "Yeni proje",
+    actionOpenProject: "Bir proje aç",
+    welcomeBack: "Tekrar hoş geldin",
+    welcome: "Hoş geldin",
+    lastVisit: "Son ziyaretin",
+    lastSignIn: "Son girişin: ",
+    latest: "En son:",
+    heroLead: "Projelerin, teknolojilerin ve AI talimatların burada bir arada.",
+    countsFailed: "Çalışma alanı sayıları yüklenemedi. Aşağıdaki bilgiler eksik olabilir; yenileyip tekrar dene.",
+    setupTitle: (done: number, total: number) => `Kurulum: ${done} / ${total} tamamlandı`,
+    setupSteps: "Kurulum adımları",
+    done: "Tamamlandı",
+    yourProjects: "Projelerin",
+    projectsFailed: "Projeler şu an yüklenemedi. Sayfayı yenileyerek tekrar dene.",
+    allProjects: "Tüm projeler",
+    createFirstProject: "İlk projeni oluştur",
+    newProject: "Yeni proje",
+    newProjectText: "Kütüphanendeki tercihleri bir projede toplayıp AI talimatlarını oluştur.",
+    start: "Başla",
+    recentTechnologies: "Son kullandığın teknolojiler",
+    libraryFailed: "Kütüphane şu an yüklenemedi. Sayfayı yenileyerek tekrar dene.",
+    noTechnologiesYet: "Henüz teknoloji yok.",
+    addFirstResource: "İlk kaynağını ekle",
+    or: "veya",
+    browseCatalog: "kataloğa göz at",
+    library: "Kütüphane",
+    inProjects: (count: number) => `${count} projede`,
+    inLibrary: "Kütüphanede",
+    suggestions: "Senin için öneriler",
+    suggestionsFailed: "Öneriler şu an yüklenemedi.",
+    exploreCatalog: "Kataloğu keşfet",
+    suggestionsFootnote: "Öneriler, kütüphanendeki teknolojilere ve katalogdaki editör değerlendirmelerine göre hazırlanır; sen eklemedikçe kütüphanene hiçbir şey eklenmez.",
+    news: "Yenilikler",
+    newsLabel: "Sürüm notları ve duyurular",
+    takeALook: "Göz at",
+  },
+  en: {
+    metaTitle: "Overview",
+    justNow: "just now",
+    noDescription: "No description yet.",
+    technologyCount: (count: number) => `${count} ${count === 1 ? "technology" : "technologies"}`,
+    noTechnologies: "No technologies yet",
+    contextFresh: "Context up to date",
+    readyStack: "Ready-made stack",
+    stackMatch: (matched: number, total: number) => `You already use ${matched} of its ${total} technologies`,
+    goodStart: "A good place to start",
+    pairsWith: (names: string) => `Often used with ${names}`,
+    alternativeTo: (names: string) => `Alternative to ${names}`,
+    checklist: {
+      resources: "Add five resources to your Library",
+      project: "Create your first project",
+      compile: "Generate the AI instructions",
+      export: "Hand them to a coding agent",
+    },
+    actionAddResource: "Add resource",
+    actionNewProject: "New project",
+    actionOpenProject: "Open a project",
+    welcomeBack: "Welcome back",
+    welcome: "Welcome",
+    lastVisit: "Your last visit",
+    lastSignIn: "Last sign-in: ",
+    latest: "Latest:",
+    heroLead: "Your projects, technologies and AI instructions, all in one place.",
+    countsFailed: "Workspace counts could not be loaded. The details below may be incomplete; refresh and try again.",
+    setupTitle: (done: number, total: number) => `Setup: ${done} / ${total} done`,
+    setupSteps: "Setup steps",
+    done: "Done",
+    yourProjects: "Your projects",
+    projectsFailed: "Projects could not be loaded right now. Refresh the page to try again.",
+    allProjects: "All projects",
+    createFirstProject: "Create your first project",
+    newProject: "New project",
+    newProjectText: "Bring the choices in your Library together in a project and generate its AI instructions.",
+    start: "Start",
+    recentTechnologies: "Recently used technologies",
+    libraryFailed: "The Library could not be loaded right now. Refresh the page to try again.",
+    noTechnologiesYet: "No technologies yet.",
+    addFirstResource: "Add your first resource",
+    or: "or",
+    browseCatalog: "browse the catalog",
+    library: "Library",
+    inProjects: (count: number) => `In ${count} ${count === 1 ? "project" : "projects"}`,
+    inLibrary: "In Library",
+    suggestions: "Suggestions for you",
+    suggestionsFailed: "Suggestions could not be loaded right now.",
+    exploreCatalog: "Explore the catalog",
+    suggestionsFootnote: "Suggestions are based on the technologies in your Library and the editors' assessments in the catalog; nothing is added to your Library unless you add it.",
+    news: "What's new",
+    newsLabel: "Release notes and announcements",
+    takeALook: "Take a look",
+  },
+});
 
-const signInFormat = new Intl.DateTimeFormat("tr-TR", { weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit", timeZone: displayTimeZone });
-const newsDateFormat = new Intl.DateTimeFormat("tr-TR", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
-const relative = new Intl.RelativeTimeFormat("tr-TR", { numeric: "auto" });
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: copy[await getLocale()].metaTitle };
+}
 
-/** "3 saat önce", "dün", "2 gün önce". */
-function timeAgo(iso: string, now: number) {
+function overviewFormats(locale: Locale) {
+  return {
+    signIn: new Intl.DateTimeFormat(intlLocales[locale], { weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit", timeZone: displayTimeZone }),
+    newsDate: new Intl.DateTimeFormat(intlLocales[locale], { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" }),
+    relative: new Intl.RelativeTimeFormat(intlLocales[locale], { numeric: "auto" }),
+  };
+}
+
+const formats: Record<Locale, ReturnType<typeof overviewFormats>> = { tr: overviewFormats("tr"), en: overviewFormats("en") };
+
+/** "3 saat önce", "dün", "2 gün önce" / "3 hours ago", "yesterday", "2 days ago". */
+function timeAgo(iso: string, now: number, locale: Locale) {
   const seconds = Math.round((new Date(iso).getTime() - now) / 1000);
   const steps: Array<[Intl.RelativeTimeFormatUnit, number]> = [["second", 60], ["minute", 60], ["hour", 24], ["day", 7], ["week", 4.35], ["month", 12], ["year", Infinity]];
   let value = seconds;
   for (const [unit, size] of steps) {
-    if (Math.abs(value) < size) return unit === "second" ? "az önce" : relative.format(Math.round(value), unit);
+    if (Math.abs(value) < size) return unit === "second" ? copy[locale].justNow : formats[locale].relative.format(Math.round(value), unit);
     value /= size;
   }
   return "";
@@ -66,41 +189,43 @@ function recentTechnologies(projects: Project[], library: Resource[]): RecentTec
   return [...recent.values()].slice(0, 16);
 }
 
-function lastActivityText(event: AuditEvent, projects: Project[]) {
+function lastActivityText(event: AuditEvent, projects: Project[], locale: Locale) {
   const project = event.entityType === "project" ? projects.find((item) => item.id === event.entityId) : undefined;
-  return project ? `${activityLabel(event)} · ${project.name}` : activityLabel(event);
+  return project ? `${activityLabel(event, locale)} · ${project.name}` : activityLabel(event, locale);
 }
 
-function ProjectCard({ project, status }: { project: Project; status: ReturnType<typeof contextStatusFrom> }) {
+function ProjectCard({ project, status, locale }: { project: Project; status: ReturnType<typeof contextStatusFrom>; locale: Locale }) {
+  const t = copy[locale];
   const techs = project.resources.filter((item) => !item.archivedAt);
   return (
     <Link className="overview-card project-card" draggable={false} href={`/workspace/projects/${project.id}`}>
       <div className="card-top">
         <span className="mark tone project-initial">{displayName(project.name).slice(0, 1).toUpperCase()}</span>
-        <span className={`chip stage stage-${project.stage}`}>{stageLabels[project.stage]}</span>
+        <span className={`chip stage stage-${project.stage}`}>{stageLabels[locale][project.stage]}</span>
       </div>
       <strong className="card-title">{project.name}</strong>
-      <p className="card-text">{project.description ?? project.productType ?? "Açıklama eklenmemiş."}</p>
-      <div className="logo-row" aria-label={`${techs.length} teknoloji`}>
+      <p className="card-text">{project.description ?? project.productType ?? t.noDescription}</p>
+      <div className="logo-row" aria-label={t.technologyCount(techs.length)}>
         {techs.slice(0, 5).map((item) => <span className="logo-chip" key={item.id} title={item.name}><TechLogo name={item.name} size={20} slug={catalogSlugFor(item)} /></span>)}
         {techs.length > 5 && <span className="logo-more">+{techs.length - 5}</span>}
-        {techs.length === 0 && <span className="muted small">Henüz teknoloji yok</span>}
+        {techs.length === 0 && <span className="muted small">{t.noTechnologies}</span>}
       </div>
       <div className="card-foot">
-        <ContextStatusLabel kind={status.kind} label={status.kind === "fresh" ? "Bağlam güncel" : undefined} />
-        <small className="muted">{formatDate(project.updatedAt)}</small>
+        <ContextStatusLabel kind={status.kind} label={status.kind === "fresh" ? t.contextFresh : undefined} />
+        <small className="muted">{formatDate(project.updatedAt, locale)}</small>
       </div>
     </Link>
   );
 }
 
-function suggestionCards(suggestions: CatalogSuggestions) {
+function suggestionCards(suggestions: CatalogSuggestions, locale: Locale) {
+  const t = copy[locale];
   return [
     ...suggestions.stacks.map(({ stack, matched }) => (
       <Link className="overview-card suggestion-card" draggable={false} href={`/workspace/catalog/stacks/${stack.slug}`} key={`stack-${stack.slug}`}>
         <div className="card-top">
           <span className="mark tone"><Stack aria-hidden size={22} /></span>
-          <span className="chip stage-experiment">Hazır stack</span>
+          <span className="chip stage-experiment">{t.readyStack}</span>
         </div>
         <strong className="card-title">{stack.name}</strong>
         <p className="card-text">{stack.summary}</p>
@@ -108,23 +233,26 @@ function suggestionCards(suggestions: CatalogSuggestions) {
           {stack.highlights.slice(0, 5).map((item) => <span className="logo-chip" key={item.slug} title={item.name ?? item.slug}><TechLogo name={item.name ?? item.slug} size={20} slug={item.slug} /></span>)}
         </div>
         <div className="card-foot">
-          <span className="reason"><Lightning aria-hidden size={16} weight="fill" />{matched > 0 ? `${matched} / ${stack.technologyCount} teknolojin bu stack’te` : "Başlangıç için iyi bir seçim"}</span>
+          <span className="reason"><Lightning aria-hidden size={16} weight="fill" />{matched > 0 ? t.stackMatch(matched, stack.technologyCount) : t.goodStart}</span>
         </div>
       </Link>
     )),
-    ...suggestions.technologies.map(({ technology, reason, because }) => (
-      <Link className="overview-card suggestion-card" draggable={false} href={`/workspace/catalog/${technology.slug}`} key={`tech-${technology.slug}`}>
-        <div className="card-top">
-          <span className="mark plain"><TechLogo name={technology.name} size={28} slug={technology.slug} /></span>
-          <span className="chip">{technology.category}</span>
-        </div>
-        <strong className="card-title">{technology.name}</strong>
-        <p className="card-text">{technology.summary}</p>
-        <div className="card-foot">
-          <span className="reason"><Lightning aria-hidden size={16} weight="fill" />{because.map((item) => item.name ?? item.slug).join(", ")} {reason === "pairs_with" ? "ile sık kullanılır" : "alternatifi"}</span>
-        </div>
-      </Link>
-    )),
+    ...suggestions.technologies.map(({ technology, reason, because }) => {
+      const names = because.map((item) => item.name ?? item.slug).join(", ");
+      return (
+        <Link className="overview-card suggestion-card" draggable={false} href={`/workspace/catalog/${technology.slug}`} key={`tech-${technology.slug}`}>
+          <div className="card-top">
+            <span className="mark plain"><TechLogo name={technology.name} size={28} slug={technology.slug} /></span>
+            <span className="chip">{technology.category}</span>
+          </div>
+          <strong className="card-title">{technology.name}</strong>
+          <p className="card-text">{technology.summary}</p>
+          <div className="card-foot">
+            <span className="reason"><Lightning aria-hidden size={16} weight="fill" />{reason === "pairs_with" ? t.pairsWith(names) : t.alternativeTo(names)}</span>
+          </div>
+        </Link>
+      );
+    }),
   ];
 }
 
@@ -133,7 +261,7 @@ export default async function WorkspacePage() {
   if (session.status === "unavailable") return <ServiceUnavailable />;
   if (session.status === "anonymous") redirect("/auth?mode=sign-in");
   const { user, cookieHeader } = session;
-  const [summary, projects, settings, library, presence, suggestions, cookieStore] = await Promise.all([
+  const [summary, projects, settings, library, presence, suggestions, cookieStore, locale] = await Promise.all([
     getWorkspaceSummary(cookieHeader),
     getProjectList(cookieHeader, new URLSearchParams({ status: "active", limit: "12" })),
     getWorkspaceSettings(cookieHeader),
@@ -141,14 +269,16 @@ export default async function WorkspacePage() {
     getAuditPresence(cookieHeader),
     getCatalogSuggestions(cookieHeader),
     cookies(),
+    getLocale(),
   ]);
+  const t = copy[locale];
   const statuses = projects ? await getContextStatuses(cookieHeader, projects.projects.map((project) => project.id)) : new Map();
   const counts = summary ?? { resources: 0, favorites: 0, projects: projects?.total ?? 0, profiles: 0, compiledProjects: 0, contextVersions: 0, exports: 0 };
   const checklist = [
-    { id: "resources", label: "Kütüphanene beş kaynak ekle", progress: `${Math.min(counts.resources, 5)}/5`, done: counts.resources >= 5, href: "/workspace/library?add=1", action: "Kaynak ekle" },
-    { id: "project", label: "İlk projeni oluştur", progress: `${Math.min(counts.projects, 1)}/1`, done: counts.projects >= 1, href: "/workspace/projects?new=1", action: "Yeni proje" },
-    { id: "compile", label: "AI talimatlarını oluştur", progress: `${Math.min(counts.compiledProjects, 1)}/1`, done: counts.compiledProjects >= 1, href: "/workspace/projects", action: "Bir proje aç" },
-    { id: "export", label: "Bir coding agent’a aktar", progress: `${Math.min(counts.exports, 1)}/1`, done: counts.exports >= 1, href: "/workspace/projects", action: "Bir proje aç" },
+    { id: "resources", label: t.checklist.resources, progress: `${Math.min(counts.resources, 5)}/5`, done: counts.resources >= 5, href: "/workspace/library?add=1", action: t.actionAddResource },
+    { id: "project", label: t.checklist.project, progress: `${Math.min(counts.projects, 1)}/1`, done: counts.projects >= 1, href: "/workspace/projects?new=1", action: t.actionNewProject },
+    { id: "compile", label: t.checklist.compile, progress: `${Math.min(counts.compiledProjects, 1)}/1`, done: counts.compiledProjects >= 1, href: "/workspace/projects", action: t.actionOpenProject },
+    { id: "export", label: t.checklist.export, progress: `${Math.min(counts.exports, 1)}/1`, done: counts.exports >= 1, href: "/workspace/projects", action: t.actionOpenProject },
   ];
   const doneCount = checklist.filter((item) => item.done).length;
   const firstName = user.name.trim().split(/\s+/)[0] || user.name;
@@ -160,7 +290,8 @@ export default async function WorkspacePage() {
   const lastActivityHref = lastActivity ? activityHref(lastActivity) : null;
   // Server component: rendered once per request, so the request time is stable.
   const now = new Date().getTime();
-  const featured = announcements[0];
+  const news = announcements[locale];
+  const featured = news[0];
   const showBanner = featured !== undefined && cookieStore.get(bannerCookieName)?.value !== featured.id;
   const technologies = library ? recentTechnologies(projects?.projects ?? [], library.resources) : [];
 
@@ -172,40 +303,40 @@ export default async function WorkspacePage() {
         <header className="overview-hero">
           <div className="overview-hero-text">
             <LiveClock initial={new Date(now).toISOString()} />
-            <h1>{returning ? "Tekrar hoş geldin" : "Hoş geldin"}, {firstName}</h1>
+            <h1>{returning ? t.welcomeBack : t.welcome}, {firstName}</h1>
             {returning && presence?.previousSignInAt ? (
-              <ul aria-label="Son ziyaretin" className="overview-meta">
-                <li><SignIn aria-hidden size={18} />Son girişin: <time dateTime={presence.previousSignInAt}>{signInFormat.format(new Date(presence.previousSignInAt))}</time></li>
+              <ul aria-label={t.lastVisit} className="overview-meta">
+                <li><SignIn aria-hidden size={18} />{t.lastSignIn}<time dateTime={presence.previousSignInAt}>{formats[locale].signIn.format(new Date(presence.previousSignInAt))}</time></li>
                 {lastActivity && (
                   <li>
-                    <ClockCounterClockwise aria-hidden size={18} />En son:{" "}
-                    {lastActivityHref ? <Link href={lastActivityHref}>{lastActivityText(lastActivity, projects?.projects ?? [])}</Link> : lastActivityText(lastActivity, projects?.projects ?? [])}
-                    <span className="muted"> · {timeAgo(lastActivity.createdAt, now)}</span>
+                    <ClockCounterClockwise aria-hidden size={18} />{t.latest}{" "}
+                    {lastActivityHref ? <Link href={lastActivityHref}>{lastActivityText(lastActivity, projects?.projects ?? [], locale)}</Link> : lastActivityText(lastActivity, projects?.projects ?? [], locale)}
+                    <span className="muted"> · {timeAgo(lastActivity.createdAt, now, locale)}</span>
                   </li>
                 )}
               </ul>
             ) : (
-              <p className="page-lead">Projelerin, teknolojilerin ve AI talimatların burada bir arada.</p>
+              <p className="page-lead">{t.heroLead}</p>
             )}
           </div>
           <span aria-hidden="true" className="overview-hero-art"><span /><span /><span /></span>
         </header>
 
-        {summary === null && <p className="note warning" role="status">Çalışma alanı sayıları yüklenemedi. Aşağıdaki bilgiler eksik olabilir; yenileyip tekrar dene.</p>}
+        {summary === null && <p className="note warning" role="status">{t.countsFailed}</p>}
 
         {firstRun && settings ? <FirstRunPanel settings={settings} /> : (
           <>
             {showCompactFirstRun && settings && <FirstRunPanel settings={settings} />}
             {doneCount < checklist.length && (
               <section aria-labelledby="checklist-title" className="checklist-panel">
-                <h2 id="checklist-title">Kurulum: {doneCount} / {checklist.length} tamamlandı</h2>
-                <ol aria-label="Kurulum adımları" className="checklist">
+                <h2 id="checklist-title">{t.setupTitle(doneCount, checklist.length)}</h2>
+                <ol aria-label={t.setupSteps} className="checklist">
                   {checklist.map((item) => (
                     <li className={item.done ? "done" : ""} key={item.id}>
                       <span aria-hidden="true" className="mark">{item.done ? <Check aria-hidden size={14} weight="bold" /> : null}</span>
                       <div>
                         <strong>{item.label}</strong>
-                        {item.done ? <small>Tamamlandı</small> : <Link href={item.href}>{item.action} · {item.progress}</Link>}
+                        {item.done ? <small>{t.done}</small> : <Link href={item.href}>{item.action} · {item.progress}</Link>}
                       </div>
                     </li>
                   ))}
@@ -214,38 +345,38 @@ export default async function WorkspacePage() {
             )}
 
             {projects === null ? (
-              <section className="overview-section"><h2 className="section-title">Projelerin</h2><p className="muted" role="status">Projeler şu an yüklenemedi. Sayfayı yenileyerek tekrar dene.</p></section>
+              <section className="overview-section"><h2 className="section-title">{t.yourProjects}</h2><p className="muted" role="status">{t.projectsFailed}</p></section>
             ) : (
               <Carousel
-                action={projects.total > 0 ? <Link className="text-link locked" href="/workspace/projects">Tüm projeler <ArrowRight aria-hidden size={18} /></Link> : undefined}
+                action={projects.total > 0 ? <Link className="text-link locked" href="/workspace/projects">{t.allProjects} <ArrowRight aria-hidden size={18} /></Link> : undefined}
                 perView={3}
-                title="Projelerin"
+                title={t.yourProjects}
                 titleId="overview-projects"
               >
                 {[
-                  ...projects.projects.map((project) => <ProjectCard key={project.id} project={project} status={contextStatusFrom(statuses.get(project.id))} />),
+                  ...projects.projects.map((project) => <ProjectCard key={project.id} locale={locale} project={project} status={contextStatusFrom(statuses.get(project.id))} />),
                   <Link className="overview-card new-card" draggable={false} href="/workspace/projects?new=1" key="new-project">
                     <span className="mark large tone"><FolderSimplePlus aria-hidden size={30} /></span>
-                    <strong className="card-title">{projects.total === 0 ? "İlk projeni oluştur" : "Yeni proje"}</strong>
-                    <p className="card-text">Kütüphanendeki tercihleri bir projede toplayıp AI talimatlarını oluştur.</p>
-                    <span className="button small"><Plus aria-hidden size={16} />Başla</span>
+                    <strong className="card-title">{projects.total === 0 ? t.createFirstProject : t.newProject}</strong>
+                    <p className="card-text">{t.newProjectText}</p>
+                    <span className="button small"><Plus aria-hidden size={16} />{t.start}</span>
                   </Link>,
                 ]}
               </Carousel>
             )}
 
             {library === null ? (
-              <section className="overview-section"><h2 className="section-title">Son kullandığın teknolojiler</h2><p className="muted" role="status">Kütüphane şu an yüklenemedi. Sayfayı yenileyerek tekrar dene.</p></section>
+              <section className="overview-section"><h2 className="section-title">{t.recentTechnologies}</h2><p className="muted" role="status">{t.libraryFailed}</p></section>
             ) : technologies.length === 0 ? (
               <section className="overview-section">
-                <h2 className="section-title">Son kullandığın teknolojiler</h2>
-                <p className="muted">Henüz teknoloji yok. <Link className="text-link" href="/workspace/library?add=1">İlk kaynağını ekle</Link> veya <Link className="text-link" href="/workspace/catalog">kataloğa göz at</Link>.</p>
+                <h2 className="section-title">{t.recentTechnologies}</h2>
+                <p className="muted">{t.noTechnologiesYet} <Link className="text-link" href="/workspace/library?add=1">{t.addFirstResource}</Link> {t.or} <Link className="text-link" href="/workspace/catalog">{t.browseCatalog}</Link>.</p>
               </section>
             ) : (
               <Carousel
-                action={<Link className="text-link locked" href="/workspace/library">Kütüphane <ArrowRight aria-hidden size={18} /></Link>}
+                action={<Link className="text-link locked" href="/workspace/library">{t.library} <ArrowRight aria-hidden size={18} /></Link>}
                 perView={4}
-                title="Son kullandığın teknolojiler"
+                title={t.recentTechnologies}
                 titleId="overview-technologies"
               >
                 {technologies.map((item) => (
@@ -253,27 +384,27 @@ export default async function WorkspacePage() {
                     <span className="mark plain"><TechLogo name={item.name} size={30} slug={item.slug} /></span>
                     <span className="tech-card-text" title={item.name}>
                       <strong>{displayName(item.name)}</strong>
-                      <small>{typeLabels[item.type]}</small>
+                      <small>{typeLabels[locale][item.type]}</small>
                     </span>
-                    <span className={`tech-usage${item.projects > 0 ? " used" : ""}`}>{item.projects > 0 ? `${item.projects} projede` : "Kütüphanede"}</span>
+                    <span className={`tech-usage${item.projects > 0 ? " used" : ""}`}>{item.projects > 0 ? t.inProjects(item.projects) : t.inLibrary}</span>
                   </Link>
                 ))}
               </Carousel>
             )}
 
             {suggestions === null ? (
-              <section className="overview-section"><h2 className="section-title">Senin için öneriler</h2><p className="muted" role="status">Öneriler şu an yüklenemedi.</p></section>
+              <section className="overview-section"><h2 className="section-title">{t.suggestions}</h2><p className="muted" role="status">{t.suggestionsFailed}</p></section>
             ) : suggestions.stacks.length + suggestions.technologies.length > 0 && (
               <>
                 <Carousel
-                  action={<Link className="text-link locked" href="/workspace/catalog"><Compass aria-hidden size={18} />Kataloğu keşfet</Link>}
+                  action={<Link className="text-link locked" href="/workspace/catalog"><Compass aria-hidden size={18} />{t.exploreCatalog}</Link>}
                   perView={3}
-                  title="Senin için öneriler"
+                  title={t.suggestions}
                   titleId="overview-suggestions"
                 >
-                  {suggestionCards(suggestions)}
+                  {suggestionCards(suggestions, locale)}
                 </Carousel>
-                <p className="muted small overview-footnote">Öneriler, kütüphanendeki teknolojilere ve katalogdaki editör değerlendirmelerine göre hazırlanır; sen eklemedikçe kütüphanene hiçbir şey eklenmez.</p>
+                <p className="muted small overview-footnote">{t.suggestionsFootnote}</p>
               </>
             )}
           </>
@@ -281,19 +412,19 @@ export default async function WorkspacePage() {
 
         <section aria-labelledby="overview-news" className="overview-section news" id="yenilikler">
           <div className="section-head">
-            <h2 className="section-title" id="overview-news"><Megaphone aria-hidden size={22} />Yenilikler</h2>
+            <h2 className="section-title" id="overview-news"><Megaphone aria-hidden size={22} />{t.news}</h2>
           </div>
-          <ol aria-label="Sürüm notları ve duyurular" className="news-list">
-            {announcements.map((item) => (
+          <ol aria-label={t.newsLabel} className="news-list">
+            {news.map((item) => (
               <li className={`news-item ${item.kind}`} key={item.id}>
                 <div className="news-meta">
-                  <span className={`news-kind ${item.kind}`}>{announcementKindLabels[item.kind]}</span>
+                  <span className={`news-kind ${item.kind}`}>{announcementKindLabels[locale][item.kind]}</span>
                   {item.version && <span className="chip mono">{item.version}</span>}
-                  <time dateTime={item.date}>{newsDateFormat.format(new Date(`${item.date}T00:00:00Z`))}</time>
+                  <time dateTime={item.date}>{formats[locale].newsDate.format(new Date(`${item.date}T00:00:00Z`))}</time>
                 </div>
                 <strong>{item.title}</strong>
                 <p>{item.summary}</p>
-                {item.href && <Link className="text-link" href={item.href}>Göz at <ArrowRight aria-hidden size={16} /></Link>}
+                {item.href && <Link className="text-link" href={item.href}>{t.takeALook} <ArrowRight aria-hidden size={16} /></Link>}
               </li>
             ))}
           </ol>

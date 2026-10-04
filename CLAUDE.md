@@ -46,7 +46,7 @@ only one numbered handoff prompt at a time.
   record. The owner deferred writing tests for new slices until the product is
   complete (2026-09-09); keep existing suites green.
 - The web UI follows the design pack in `../claude-ui-handoff` (27 reference
-  screens, `DESIGN_SYSTEM.md`, `DOMAIN_BINDINGS.md`): Turkish copy, right-hand
+  screens, `DESIGN_SYSTEM.md`, `DOMAIN_BINDINGS.md`): Turkish reference copy, right-hand
   drawers (`components/drawer.tsx`), the four-step full-page project wizard and
   shared components under `apps/web/components`. Navigation changed by owner
   decision on 2026-09-30 (`app/workspace/workspace-navigation.tsx`): work
@@ -127,6 +127,24 @@ only one numbered handoff prompt at a time.
   deleted with the account. Correlated SQL in `modules/admin/repository.ts`
   names columns through aliases because Drizzle leaves interpolated columns
   unqualified in single-table selects.
+- The interface is bilingual (2026-10-04): Turkish is the reference copy and
+  English sits next to it in `defineCopy({ tr, en })` from `apps/web/lib/i18n.ts`;
+  `NoInfer` makes the English shape follow the Turkish one, so a missing key is
+  a type error. Server components read `getLocale()` (`lib/locale-server.ts`),
+  client components `useLocale()` (`components/locale-provider.tsx`), plain
+  client helpers `documentLocale()`. `apps/web/proxy.ts` resolves the language
+  once per request (`/en`, then the `devcontext-locale` cookie, then
+  Accept-Language) and passes it in an internal header it overwrites; `/en` is
+  the English landing and `/` stays Turkish for crawlers. Every new UI string
+  needs both languages; API errors get their text from codes in
+  `lib/errors.ts`, and catalog descriptions stay Turkish (the catalog says so).
+  Playwright runs as a Turkish browser; `e2e/i18n.spec.ts` covers English.
+- Wizard technology slots offer "Önerilen" picks from
+  `GET /v1/catalog/slot-suggestions` (`modules/catalog/slot-suggestions.ts`):
+  deterministic scoring from catalog popularity, the user's own archived
+  projects, pairings with their Library and adoption counted only from three
+  users up. Picking one adds the technology to the Library through the
+  existing catalog route; an AI ranking is a post-V2 decision.
 - At the end of each handoff, update the execution plan and create the exact report
   required by that prompt. Never mark production-ready without a GO decision in
   `docs/44_V1_LAUNCH_GATE.md`.

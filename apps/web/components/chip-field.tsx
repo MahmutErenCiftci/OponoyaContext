@@ -1,8 +1,23 @@
 "use client";
 
 import { useState, type KeyboardEvent } from "react";
+import { defineCopy } from "../lib/i18n";
+import { useLocale } from "./locale-provider";
 
 const listLimit = 10;
+
+const copy = defineCopy({
+  tr: {
+    placeholder: "Kendi seçeneğini yaz…",
+    add: "Ekle",
+    full: (limit: number) => `En fazla ${limit} kayıt.`,
+  },
+  en: {
+    placeholder: "Type your own option…",
+    add: "Add",
+    full: (limit: number) => `Up to ${limit} entries.`,
+  },
+});
 
 function sameText(a: string, b: string) {
   return a.trim().toLowerCase() === b.trim().toLowerCase();
@@ -17,6 +32,7 @@ export function ChipField({ legend, hint, suggestions, values, onChange, addLabe
   onChange(values: string[]): void;
   addLabel: string;
 }) {
+  const t = copy[useLocale()];
   const [draft, setDraft] = useState("");
   const options = [...suggestions, ...values.filter((value) => !suggestions.some((option) => sameText(option, value)))];
   const full = values.length >= listLimit;
@@ -56,10 +72,10 @@ export function ChipField({ legend, hint, suggestions, values, onChange, addLabe
         </div>
       )}
       <div className="chip-input">
-        <input aria-label={addLabel} className="input" disabled={full} maxLength={100} onChange={(event) => setDraft(event.target.value)} onKeyDown={onKeyDown} placeholder="Kendi seçeneğini yaz…" value={draft} />
-        <button className="button" disabled={full || !draft.trim()} onClick={add} type="button">Ekle</button>
+        <input aria-label={addLabel} className="input" disabled={full} maxLength={100} onChange={(event) => setDraft(event.target.value)} onKeyDown={onKeyDown} placeholder={t.placeholder} value={draft} />
+        <button className="button" disabled={full || !draft.trim()} onClick={add} type="button">{t.add}</button>
       </div>
-      <small>{full ? `En fazla ${listLimit} kayıt.` : hint}</small>
+      <small>{full ? t.full(listLimit) : hint}</small>
     </fieldset>
   );
 }

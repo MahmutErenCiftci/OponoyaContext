@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState, type CSSProperties, type PointerEvent, type ReactNode } from "react";
+import { useLocale } from "../components/locale-provider";
+import { defineCopy } from "../lib/i18n";
 
 /**
  * Sections below the fold rise in when they scroll into view. Everything is
@@ -42,62 +44,130 @@ export function SpotlightGrid({ className, children }: { className: string; chil
 
 type AgentFile = { id: string; label: string; agent: string; lines: Array<{ text: string; tone?: "title" | "muted" | "head" | "locked" | "preferred" }> };
 
-const files: AgentFile[] = [
-  {
-    id: "agents",
-    label: "AGENTS.md",
-    agent: "Codex",
-    lines: [
-      { text: "# Atlas Finance — Proje bağlamı", tone: "title" },
-      { text: "Kişisel finans SaaS · aşama: MVP · platform: web", tone: "muted" },
-      { text: "" },
-      { text: "## Teknoloji kararları", tone: "head" },
-      { text: "[Kilitli]  Framework: Next.js", tone: "locked" },
-      { text: "[Kilitli]  Veritabanı: PostgreSQL", tone: "locked" },
-      { text: "[Tercih]   ORM: Drizzle ORM", tone: "preferred" },
-      { text: "[AI karar] Mimari: Fastify veya Hono" },
-      { text: "" },
-      { text: "## Kurallar", tone: "head" },
-      { text: "- Her API girdisini Zod ile doğrula" },
-      { text: "- Ölçülmüş bir ihtiyaç olmadan yeni altyapı ekleme" },
+const copy = defineCopy({
+  tr: {
+    tabsLabel: "Örnek dışa aktarma dosyaları",
+    live: "aynı kaynak",
+    example: (label: string) => `${label} örneği`,
+    files: [
+      {
+        id: "agents",
+        label: "AGENTS.md",
+        agent: "Codex",
+        lines: [
+          { text: "# Atlas Finance — Proje bağlamı", tone: "title" },
+          { text: "Kişisel finans SaaS · aşama: MVP · platform: web", tone: "muted" },
+          { text: "" },
+          { text: "## Teknoloji kararları", tone: "head" },
+          { text: "[Kilitli]  Framework: Next.js", tone: "locked" },
+          { text: "[Kilitli]  Veritabanı: PostgreSQL", tone: "locked" },
+          { text: "[Tercih]   ORM: Drizzle ORM", tone: "preferred" },
+          { text: "[AI karar] Mimari: Fastify veya Hono" },
+          { text: "" },
+          { text: "## Kurallar", tone: "head" },
+          { text: "- Her API girdisini Zod ile doğrula" },
+          { text: "- Ölçülmüş bir ihtiyaç olmadan yeni altyapı ekleme" },
+        ],
+      },
+      {
+        id: "claude",
+        label: "CLAUDE.md",
+        agent: "Claude Code",
+        lines: [
+          { text: "# Atlas Finance", tone: "title" },
+          { text: "Bu dosya Oponoya ile oluşturuldu · sürüm 3", tone: "muted" },
+          { text: "" },
+          { text: "## Değiştirme", tone: "head" },
+          { text: "Next.js ve PostgreSQL kilitli; başka seçenek önerme.", tone: "locked" },
+          { text: "" },
+          { text: "## Tercih et", tone: "head" },
+          { text: "Veri erişimi için Drizzle ORM; gerekçeyle değişebilir.", tone: "preferred" },
+          { text: "" },
+          { text: "## Sen karar ver", tone: "head" },
+          { text: "Mimari: Fastify veya Hono içinden seç, gerekçeni yaz." },
+        ],
+      },
+      {
+        id: "cursor",
+        label: ".cursor/rules/*.mdc",
+        agent: "Cursor",
+        lines: [
+          { text: "---", tone: "muted" },
+          { text: "description: Atlas Finance proje bağlamı", tone: "muted" },
+          { text: "alwaysApply: true", tone: "muted" },
+          { text: "---", tone: "muted" },
+          { text: "## Teknoloji kararları", tone: "head" },
+          { text: "- Next.js (kilitli)", tone: "locked" },
+          { text: "- PostgreSQL (kilitli)", tone: "locked" },
+          { text: "- Drizzle ORM (tercih)", tone: "preferred" },
+          { text: "## Kurallar", tone: "head" },
+          { text: "- Her API girdisini Zod ile doğrula" },
+        ],
+      },
+    ] as AgentFile[],
+  },
+  en: {
+    tabsLabel: "Sample export files",
+    live: "same source",
+    example: (label: string) => `${label} example`,
+    files: [
+      {
+        id: "agents",
+        label: "AGENTS.md",
+        agent: "Codex",
+        lines: [
+          { text: "# Atlas Finance — Project context", tone: "title" },
+          { text: "Personal finance SaaS · stage: MVP · platform: web", tone: "muted" },
+          { text: "" },
+          { text: "## Technology decisions", tone: "head" },
+          { text: "[Locked]     Framework: Next.js", tone: "locked" },
+          { text: "[Locked]     Database: PostgreSQL", tone: "locked" },
+          { text: "[Preferred]  ORM: Drizzle ORM", tone: "preferred" },
+          { text: "[AI decides] Architecture: Fastify or Hono" },
+          { text: "" },
+          { text: "## Rules", tone: "head" },
+          { text: "- Validate every API input with Zod" },
+          { text: "- Don't add new infrastructure without a measured need" },
+        ],
+      },
+      {
+        id: "claude",
+        label: "CLAUDE.md",
+        agent: "Claude Code",
+        lines: [
+          { text: "# Atlas Finance", tone: "title" },
+          { text: "Generated with Oponoya · version 3", tone: "muted" },
+          { text: "" },
+          { text: "## Do not change", tone: "head" },
+          { text: "Next.js and PostgreSQL are locked; don't suggest alternatives.", tone: "locked" },
+          { text: "" },
+          { text: "## Prefer", tone: "head" },
+          { text: "Drizzle ORM for data access; it can change with a stated reason.", tone: "preferred" },
+          { text: "" },
+          { text: "## You decide", tone: "head" },
+          { text: "Architecture: choose between Fastify and Hono and explain why." },
+        ],
+      },
+      {
+        id: "cursor",
+        label: ".cursor/rules/*.mdc",
+        agent: "Cursor",
+        lines: [
+          { text: "---", tone: "muted" },
+          { text: "description: Atlas Finance project context", tone: "muted" },
+          { text: "alwaysApply: true", tone: "muted" },
+          { text: "---", tone: "muted" },
+          { text: "## Technology decisions", tone: "head" },
+          { text: "- Next.js (locked)", tone: "locked" },
+          { text: "- PostgreSQL (locked)", tone: "locked" },
+          { text: "- Drizzle ORM (preferred)", tone: "preferred" },
+          { text: "## Rules", tone: "head" },
+          { text: "- Validate every API input with Zod" },
+        ],
+      },
     ],
   },
-  {
-    id: "claude",
-    label: "CLAUDE.md",
-    agent: "Claude Code",
-    lines: [
-      { text: "# Atlas Finance", tone: "title" },
-      { text: "Bu dosya Oponoya ile oluşturuldu · sürüm 3", tone: "muted" },
-      { text: "" },
-      { text: "## Değiştirme", tone: "head" },
-      { text: "Next.js ve PostgreSQL kilitli; başka seçenek önerme.", tone: "locked" },
-      { text: "" },
-      { text: "## Tercih et", tone: "head" },
-      { text: "Veri erişimi için Drizzle ORM; gerekçeyle değişebilir.", tone: "preferred" },
-      { text: "" },
-      { text: "## Sen karar ver", tone: "head" },
-      { text: "Mimari: Fastify veya Hono içinden seç, gerekçeni yaz." },
-    ],
-  },
-  {
-    id: "cursor",
-    label: ".cursor/rules/*.mdc",
-    agent: "Cursor",
-    lines: [
-      { text: "---", tone: "muted" },
-      { text: "description: Atlas Finance proje bağlamı", tone: "muted" },
-      { text: "alwaysApply: true", tone: "muted" },
-      { text: "---", tone: "muted" },
-      { text: "## Teknoloji kararları", tone: "head" },
-      { text: "- Next.js (kilitli)", tone: "locked" },
-      { text: "- PostgreSQL (kilitli)", tone: "locked" },
-      { text: "- Drizzle ORM (tercih)", tone: "preferred" },
-      { text: "## Kurallar", tone: "head" },
-      { text: "- Her API girdisini Zod ile doğrula" },
-    ],
-  },
-];
+});
 
 /**
  * One source, three files: the window cycles through the exports every few
@@ -105,6 +175,8 @@ const files: AgentFile[] = [
  * cycle; the tabs switch by hand at any time.
  */
 export function AgentFiles() {
+  const t = copy[useLocale()];
+  const files = t.files;
   const [active, setActive] = useState(0);
   const [paused, setPaused] = useState(false);
 
@@ -112,20 +184,20 @@ export function AgentFiles() {
     if (paused || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     const timer = window.setInterval(() => setActive((index) => (index + 1) % files.length), 6_000);
     return () => window.clearInterval(timer);
-  }, [paused]);
+  }, [paused, files.length]);
 
   const file = files[active] ?? files[0]!;
   return (
     <div className="lp-code" onBlur={() => setPaused(false)} onFocus={() => setPaused(true)} onPointerEnter={() => setPaused(true)} onPointerLeave={() => setPaused(false)}>
-      <div aria-label="Örnek dışa aktarma dosyaları" className="lp-code-tabs" role="group">
+      <div aria-label={t.tabsLabel} className="lp-code-tabs" role="group">
         {files.map((item, index) => (
           <button aria-pressed={index === active} className="lp-code-tab" key={item.id} onClick={() => setActive(index)} type="button">
             <span>{item.label}</span><small>{item.agent}</small>
           </button>
         ))}
-        <span aria-hidden="true" className="lp-code-live">aynı kaynak</span>
+        <span aria-hidden="true" className="lp-code-live">{t.live}</span>
       </div>
-      <pre aria-label={`${file.label} örneği`} className="lp-code-body" key={file.id}>
+      <pre aria-label={t.example(file.label)} className="lp-code-body" key={file.id}>
         {file.lines.map((line, index) => (
           <span className={`lp-line${line.tone ? ` ${line.tone}` : ""}`} key={index} style={{ "--i": index } as CSSProperties}>{line.text || " "}</span>
         ))}

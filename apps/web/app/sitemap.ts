@@ -8,5 +8,5 @@ export const dynamic = "force-dynamic";
 export default function sitemap(): MetadataRoute.Sitemap {
   const base = siteUrl();
   if (!base) return [];
-  return ["/", "/auth", "/legal/terms", "/legal/privacy"].map((path) => ({ url: new URL(path, base).toString(), changeFrequency: "monthly" }));
+  return ["/", "/en", "/auth", "/legal/terms", "/legal/privacy"].map((path) => ({ url: new URL(path, base).toString(), changeFrequency: "monthly" }));
 }

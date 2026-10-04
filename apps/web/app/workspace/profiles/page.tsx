@@ -1,12 +1,18 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getProfileList } from "../../../lib/api";
+import { defineCopy } from "../../../lib/i18n";
+import { getLocale } from "../../../lib/locale-server";
 import { loadSession } from "../../../lib/server-session";
 import { ServiceUnavailable } from "../unavailable";
 import { WorkspaceShell } from "../workspace-shell";
 import { ProfilesClient } from "./profiles-client";
 
-export const metadata: Metadata = { title: "Profiller" };
+const copy = defineCopy({ tr: { title: "Profiller" }, en: { title: "Profiles" } });
+
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: copy[await getLocale()].title };
+}
 
 export default async function ProfilesPage({ searchParams }: { searchParams: Promise<{ new?: string }> }) {
   const session = await loadSession();

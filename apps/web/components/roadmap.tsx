@@ -2,15 +2,59 @@
 
 import { CheckCircle, CircleDashed, Clock, Sparkle } from "@phosphor-icons/react/dist/ssr";
 import { useState } from "react";
+import { defineCopy } from "../lib/i18n";
 import { proPricing, roadmap, type RoadmapStage, type RoadmapStageId } from "../lib/roadmap";
+import { useLocale } from "./locale-provider";
+
+const copy = defineCopy({
+  tr: {
+    now: "Şu an",
+    free: "Ücretsiz",
+    freeNow: "Geliştirme aşamasında hiçbir ücret alınmaz.",
+    freeAlways: "Free · her zaman",
+    zeroPrice: "0 $",
+    freeAlwaysText: "Free hesap kalıcıdır; Pro geldiğinde de ücretsiz kullanmaya devam edersin.",
+    proDiscount: "Pro · gelişim indirimi",
+    regularPrice: (price: string) => `Normal fiyat ${price}`,
+    fixedPrice: (regular: string) => `Sabit fiyat. Ürün tam sürüme ulaşıp yeterli kullanıcıya ulaştığında ${regular} olacak.`,
+    enterprise: "Kurumsal",
+    afterV3: "V3 sonrası",
+    enterpriseText: "Kurumsal kullanım ve fiyatlandırma V3’ten sonra netleşecek.",
+    title: "Gelişim planı",
+    lead: "Bir aşamaya dokun; o aşamada gelecek özellik ve olanakları gör.",
+    stagesLabel: "Gelişim aşamaları",
+    disclaimer: "Plan yön göstermek içindir; kapsam ve sıralama kullanıcı geri bildirimlerine göre değişebilir.",
+  },
+  en: {
+    now: "Now",
+    free: "Free",
+    freeNow: "Nothing is charged while the product is in development.",
+    freeAlways: "Free · always",
+    zeroPrice: "$0",
+    freeAlwaysText: "The Free account is permanent; you keep using it for free when Pro arrives.",
+    proDiscount: "Pro · development discount",
+    regularPrice: (price: string) => `Regular price ${price}`,
+    fixedPrice: (regular: string) => `Fixed price. It becomes ${regular} once the product is complete and has enough users.`,
+    enterprise: "Enterprise",
+    afterV3: "After V3",
+    enterpriseText: "Enterprise use and pricing will be settled after V3.",
+    title: "Development plan",
+    lead: "Tap a stage to see the features and options it brings.",
+    stagesLabel: "Development stages",
+    disclaimer: "The plan shows direction; scope and order may change with user feedback.",
+  },
+});
 
 function PriceBox({ stage }: { stage: RoadmapStage }) {
+  const locale = useLocale();
+  const t = copy[locale];
+  const pricing = proPricing[locale];
   if (stage.id === "v1") {
     return (
       <div className="roadmap-price">
-        <small>Şu an</small>
-        <div><strong>Ücretsiz</strong></div>
-        <p>Geliştirme aşamasında hiçbir ücret alınmaz.</p>
+        <small>{t.now}</small>
+        <div><strong>{t.free}</strong></div>
+        <p>{t.freeNow}</p>
       </div>
     );
   }
@@ -18,18 +62,18 @@ function PriceBox({ stage }: { stage: RoadmapStage }) {
     return (
       <div className="roadmap-prices">
         <div className="roadmap-price">
-          <small>Free · her zaman</small>
-          <div><strong>0 $</strong></div>
-          <p>Free hesap kalıcıdır; Pro geldiğinde de ücretsiz kullanmaya devam edersin.</p>
+          <small>{t.freeAlways}</small>
+          <div><strong>{t.zeroPrice}</strong></div>
+          <p>{t.freeAlwaysText}</p>
         </div>
         <div className="roadmap-price featured">
-          <small><Sparkle aria-hidden size={14} weight="fill" />Pro · gelişim indirimi</small>
+          <small><Sparkle aria-hidden size={14} weight="fill" />{t.proDiscount}</small>
           <div>
-            <s aria-label={`Normal fiyat ${proPricing.regular}`}>{proPricing.regular}</s>
-            <strong>{proPricing.launch}</strong>
-            <span>/ {proPricing.period}</span>
+            <s aria-label={t.regularPrice(pricing.regular)}>{pricing.regular}</s>
+            <strong>{pricing.launch}</strong>
+            <span>/ {pricing.period}</span>
           </div>
-          <p>Sabit fiyat. Ürün tam sürüme ulaşıp yeterli kullanıcıya ulaştığında {proPricing.regular} olacak.</p>
+          <p>{t.fixedPrice(pricing.regular)}</p>
         </div>
       </div>
     );
@@ -37,9 +81,9 @@ function PriceBox({ stage }: { stage: RoadmapStage }) {
   if (stage.id === "v3plus") {
     return (
       <div className="roadmap-price">
-        <small>Kurumsal</small>
-        <div><strong>V3 sonrası</strong></div>
-        <p>Kurumsal kullanım ve fiyatlandırma V3’ten sonra netleşecek.</p>
+        <small>{t.enterprise}</small>
+        <div><strong>{t.afterV3}</strong></div>
+        <p>{t.enterpriseText}</p>
       </div>
     );
   }
@@ -51,17 +95,20 @@ function PriceBox({ stage }: { stage: RoadmapStage }) {
  * items are shipped; later items are plans and are marked as such.
  */
 export function Roadmap() {
+  const locale = useLocale();
+  const t = copy[locale];
+  const stages = roadmap[locale];
   const [active, setActive] = useState<RoadmapStageId>("v1");
-  const stage = roadmap.find((item) => item.id === active) ?? roadmap[0]!;
+  const stage = stages.find((item) => item.id === active) ?? stages[0]!;
   const shipped = stage.status === "now";
   return (
     <section aria-labelledby="roadmap-title" className="roadmap" id="gelisim-plani">
       <div>
-        <h2 className="section-title" id="roadmap-title">Gelişim planı</h2>
-        <p className="muted">Bir aşamaya dokun; o aşamada gelecek özellik ve olanakları gör.</p>
+        <h2 className="section-title" id="roadmap-title">{t.title}</h2>
+        <p className="muted">{t.lead}</p>
       </div>
-      <div aria-label="Gelişim aşamaları" className="roadmap-stages" role="group">
-        {roadmap.map((item) => (
+      <div aria-label={t.stagesLabel} className="roadmap-stages" role="group">
+        {stages.map((item) => (
           <button aria-pressed={item.id === active} className={`roadmap-stage ${item.status}`} key={item.id} onClick={() => setActive(item.id)} type="button">
             <span className="roadmap-tag">{item.tag}</span>
             <span className="roadmap-stage-text"><strong>{item.name}</strong><small>{item.statusLabel}</small></span>
@@ -91,7 +138,7 @@ export function Roadmap() {
         </div>
         {stage.note && <p className="muted small">{stage.note}</p>}
       </div>
-      <p className="muted small">Plan yön göstermek içindir; kapsam ve sıralama kullanıcı geri bildirimlerine göre değişebilir.</p>
+      <p className="muted small">{t.disclaimer}</p>
     </section>
   );
 }

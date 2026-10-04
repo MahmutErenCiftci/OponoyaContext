@@ -13,12 +13,21 @@ import {
   getSlotSuggestions,
 } from "../../../lib/api";
 import { contextStatusFrom, type ContextStatus } from "../../../lib/context-status";
+import { defineCopy } from "../../../lib/i18n";
+import { getLocale } from "../../../lib/locale-server";
 import { loadSession } from "../../../lib/server-session";
 import { ServiceUnavailable } from "../unavailable";
 import { WorkspaceShell } from "../workspace-shell";
 import { ProjectsClient } from "./projects-client";
 
-export const metadata: Metadata = { title: "Projeler" };
+const copy = defineCopy({
+  tr: { title: "Projeler" },
+  en: { title: "Projects" },
+});
+
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: copy[await getLocale()].title };
+}
 
 export default async function ProjectsPage({ searchParams }: { searchParams: Promise<{ new?: string; edit?: string; recipe?: string }> }) {
   const session = await loadSession();

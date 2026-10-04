@@ -24,7 +24,8 @@ export const emailOutboxFile = resolve("test-results/e2e-outbox.jsonl");
 export default defineConfig({
   testDir: "./e2e",
   // The suite runs under a dark system preference so the dark adaptation stays covered; the light design (the default) is exercised in e2e/catalog.spec.ts and by .local/ui-shots.mjs.
-  use: { baseURL: webUrl, trace: "retain-on-failure", colorScheme: "dark" },
+  // Turkish browser: the interface follows Accept-Language, and the specs read the Turkish copy (e2e/i18n.spec.ts covers English).
+  use: { baseURL: webUrl, trace: "retain-on-failure", colorScheme: "dark", locale: "tr-TR" },
   retries: process.env.CI ? 1 : 0,
   // Journeys such as usability and composer chain many real API round-trips; 30 s leaves no margin on this machine.
   timeout: 60_000,

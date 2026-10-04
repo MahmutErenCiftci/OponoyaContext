@@ -2,18 +2,26 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { getAiStatus, getProject, getProjectContext, getProjectDecisions, getResourceList } from "../../../../../lib/api";
 import { contextStatus } from "../../../../../lib/context-status";
+import { defineCopy } from "../../../../../lib/i18n";
+import { getLocale } from "../../../../../lib/locale-server";
 import { loadSession } from "../../../../../lib/server-session";
 import { ServiceUnavailable } from "../../../unavailable";
 import { WorkspaceShell } from "../../../workspace-shell";
 import { ProjectHeader } from "../project-header";
 import { StackClient } from "./stack-client";
 
+const copy = defineCopy({
+  tr: { title: "Teknoloji kararları" },
+  en: { title: "Technology decisions" },
+});
+
 /** The entity name in the tab title; the lookup is shared with the page through the per-request cache. */
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
+  const t = copy[await getLocale()];
   const session = await loadSession();
   const project = session.status === "authenticated" ? await getProject(session.cookieHeader, id) : null;
-  return { title: project ? `${project.name} · Teknoloji kararları` : "Teknoloji kararları" };
+  return { title: project ? `${project.name} · ${t.title}` : t.title };
 }
 
 export default async function ProjectStackPage({ params }: { params: Promise<{ id: string }> }) {

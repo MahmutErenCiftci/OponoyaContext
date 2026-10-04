@@ -2,9 +2,15 @@
 
 import { Check, Copy } from "@phosphor-icons/react/dist/ssr";
 import { useState } from "react";
+import { defineCopy } from "../lib/i18n";
+import { useLocale } from "./locale-provider";
+
+const copyText = defineCopy({ tr: { copy: "Kopyala" }, en: { copy: "Copy" } });
 
 /** Copies a short text (install command, file name) to the clipboard with visible confirmation. */
-export function CopyButton({ text, label = "Kopyala" }: { text: string; label?: string }) {
+export function CopyButton({ text, label: givenLabel }: { text: string; label?: string }) {
+  const locale = useLocale();
+  const label = givenLabel ?? copyText[locale].copy;
   const [done, setDone] = useState(false);
   async function copy() {
     try {

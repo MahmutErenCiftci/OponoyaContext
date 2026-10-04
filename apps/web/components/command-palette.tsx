@@ -4,29 +4,95 @@ import { searchResponseSchema, type SearchResult } from "@devcontext/contracts";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { MagnifyingGlass, X } from "@phosphor-icons/react/dist/ssr";
+import { defineCopy } from "../lib/i18n";
+import { useLocale } from "./locale-provider";
 
 type Action = { id: string; label: string; hint: string; href: string; kind: "action" | SearchResult["kind"] };
+type QuickActionId = "new-project" | "add-resource" | "new-profile" | "go-library" | "go-catalog" | "go-projects" | "go-profiles" | "go-recipes" | "go-plan" | "go-settings";
 
-const quickActions: Action[] = [
-  { id: "new-project", label: "Yeni proje", hint: "Proje oluşturucuyu aç", href: "/workspace/projects?new=1", kind: "action" },
-  { id: "add-resource", label: "Kaynak ekle", hint: "Bir araç, bileşen veya kural kaydet", href: "/workspace/library?add=1", kind: "action" },
-  { id: "new-profile", label: "Yeni profil", hint: "Tekrar kullanılabilir kararları paketle", href: "/workspace/profiles?new=1", kind: "action" },
-  { id: "go-library", label: "Kütüphaneyi aç", hint: "Kayıtlı kaynaklarına göz at", href: "/workspace/library", kind: "action" },
-  { id: "go-catalog", label: "Kataloğu aç", hint: "Teknolojileri ve hazır stack’leri keşfet", href: "/workspace/catalog", kind: "action" },
-  { id: "go-projects", label: "Projeleri aç", hint: "Proje listesine git", href: "/workspace/projects", kind: "action" },
-  { id: "go-profiles", label: "Profilleri aç", hint: "Stack, tasarım, AI ve dağıtım profilleri", href: "/workspace/profiles", kind: "action" },
-  { id: "go-recipes", label: "Tarifleri aç", hint: "Profilleri tekrar kullanılabilir tariflerde birleştir", href: "/workspace/recipes", kind: "action" },
-  { id: "go-plan", label: "Gelişim planını aç", hint: "Abonelik, V1–V3 planı ve Pro", href: "/workspace/billing#gelisim-plani", kind: "action" },
-  { id: "go-settings", label: "Ayarları aç", hint: "Hesap, görünüm, veri aktarımı ve gizlilik", href: "/workspace/settings", kind: "action" },
+const quickActionTargets: Array<{ id: QuickActionId; href: string }> = [
+  { id: "new-project", href: "/workspace/projects?new=1" },
+  { id: "add-resource", href: "/workspace/library?add=1" },
+  { id: "new-profile", href: "/workspace/profiles?new=1" },
+  { id: "go-library", href: "/workspace/library" },
+  { id: "go-catalog", href: "/workspace/catalog" },
+  { id: "go-projects", href: "/workspace/projects" },
+  { id: "go-profiles", href: "/workspace/profiles" },
+  { id: "go-recipes", href: "/workspace/recipes" },
+  { id: "go-plan", href: "/workspace/billing#gelisim-plani" },
+  { id: "go-settings", href: "/workspace/settings" },
 ];
 
-const kindLabels: Record<SearchResult["kind"] | "action", string> = {
-  action: "İşlemler",
-  resource: "Kaynaklar",
-  project: "Projeler",
-  profile: "Profiller",
-  recipe: "Tarifler",
-};
+const copy = defineCopy({
+  tr: {
+    actions: {
+      "new-project": { label: "Yeni proje", hint: "Proje oluşturucuyu aç" },
+      "add-resource": { label: "Kaynak ekle", hint: "Bir araç, bileşen veya kural kaydet" },
+      "new-profile": { label: "Yeni profil", hint: "Tekrar kullanılabilir kararları paketle" },
+      "go-library": { label: "Kütüphaneyi aç", hint: "Kayıtlı kaynaklarına göz at" },
+      "go-catalog": { label: "Kataloğu aç", hint: "Teknolojileri ve hazır stack’leri keşfet" },
+      "go-projects": { label: "Projeleri aç", hint: "Proje listesine git" },
+      "go-profiles": { label: "Profilleri aç", hint: "Stack, tasarım, AI ve dağıtım profilleri" },
+      "go-recipes": { label: "Tarifleri aç", hint: "Profilleri tekrar kullanılabilir tariflerde birleştir" },
+      "go-plan": { label: "Gelişim planını aç", hint: "Abonelik, V1–V3 planı ve Pro" },
+      "go-settings": { label: "Ayarları aç", hint: "Hesap, görünüm, veri aktarımı ve gizlilik" },
+    } satisfies Record<QuickActionId, { label: string; hint: string }>,
+    kinds: {
+      action: "İşlemler",
+      resource: "Kaynaklar",
+      project: "Projeler",
+      profile: "Profiller",
+      recipe: "Tarifler",
+    } satisfies Record<SearchResult["kind"] | "action", string>,
+    archived: " · arşivde",
+    search: "Çalışma alanında ara",
+    searchTitle: "Ara (Ctrl+K)",
+    trigger: "Ara veya hızlı işlem…",
+    inputLabel: "Kaynak, proje ve profil ara",
+    placeholder: "Kaynak, proje veya profil ara…",
+    close: "Aramayı kapat",
+    unreachable: "Arama hizmetine ulaşılamıyor. Tekrar dene.",
+    noResults: (query: string) => `“${query}” için çalışma alanında sonuç yok.`,
+    searching: "Aranıyor…",
+    keySelect: "↑↓ seç",
+    keyOpen: "↵ aç",
+    keyClose: "esc kapat",
+  },
+  en: {
+    actions: {
+      "new-project": { label: "New project", hint: "Open the project builder" },
+      "add-resource": { label: "Add resource", hint: "Save a tool, component or rule" },
+      "new-profile": { label: "New profile", hint: "Package reusable decisions" },
+      "go-library": { label: "Open Library", hint: "Browse your saved resources" },
+      "go-catalog": { label: "Open Catalog", hint: "Discover technologies and ready-made stacks" },
+      "go-projects": { label: "Open Projects", hint: "Go to the project list" },
+      "go-profiles": { label: "Open Profiles", hint: "Stack, design, AI and deployment profiles" },
+      "go-recipes": { label: "Open Recipes", hint: "Combine profiles into reusable recipes" },
+      "go-plan": { label: "Open the development plan", hint: "Subscription, the V1–V3 plan and Pro" },
+      "go-settings": { label: "Open Settings", hint: "Account, appearance, import and export, and privacy" },
+    },
+    kinds: {
+      action: "Actions",
+      resource: "Resources",
+      project: "Projects",
+      profile: "Profiles",
+      recipe: "Recipes",
+    },
+    archived: " · archived",
+    search: "Search the workspace",
+    searchTitle: "Search (Ctrl+K)",
+    trigger: "Search or run a quick action…",
+    inputLabel: "Search resources, projects and profiles",
+    placeholder: "Search resources, projects or profiles…",
+    close: "Close search",
+    unreachable: "The search service can't be reached. Try again.",
+    noResults: (query: string) => `No results in your workspace for “${query}”.`,
+    searching: "Searching…",
+    keySelect: "↑↓ select",
+    keyOpen: "↵ open",
+    keyClose: "esc close",
+  },
+});
 
 function hrefFor(result: SearchResult) {
   switch (result.kind) {
@@ -47,6 +113,7 @@ function hrefFor(result: SearchResult) {
  */
 export function CommandPalette({ variant = "icon" }: { variant?: "icon" | "field" }) {
   const router = useRouter();
+  const t = copy[useLocale()];
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
@@ -96,8 +163,8 @@ export function CommandPalette({ variant = "icon" }: { variant?: "icon" | "field
 
   const trimmed = query.trim();
   const items: Action[] = trimmed
-    ? results.map((result) => ({ id: `${result.kind}-${result.id}`, label: result.name, hint: `${result.subtitle ?? ""}${result.archived ? " · arşivde" : ""}`.replace(/^ · /, ""), href: hrefFor(result), kind: result.kind }))
-    : quickActions;
+    ? results.map((result) => ({ id: `${result.kind}-${result.id}`, label: result.name, hint: `${result.subtitle ?? ""}${result.archived ? t.archived : ""}`.replace(/^ · /, ""), href: hrefFor(result), kind: result.kind }))
+    : quickActionTargets.map(({ id, href }): Action => ({ id, href, kind: "action", ...t.actions[id] }));
   const grouped = items.reduce<Array<{ kind: Action["kind"]; items: Action[] }>>((groups, item) => {
     const group = groups.find((entry) => entry.kind === item.kind);
     if (group) group.items.push(item);
@@ -138,19 +205,19 @@ export function CommandPalette({ variant = "icon" }: { variant?: "icon" | "field
   return (
     <>
       {variant === "field" ? (
-        <button aria-haspopup="dialog" aria-label="Çalışma alanında ara" className="search-trigger" onClick={() => setOpen(true)} title="Ara (Ctrl+K)" type="button">
+        <button aria-haspopup="dialog" aria-label={t.search} className="search-trigger" onClick={() => setOpen(true)} title={t.searchTitle} type="button">
           <MagnifyingGlass aria-hidden size={18} />
-          <span className="search-trigger-text">Ara veya hızlı işlem…</span>
+          <span className="search-trigger-text">{t.trigger}</span>
           <kbd>Ctrl K</kbd>
         </button>
       ) : (
-        <button aria-haspopup="dialog" aria-label="Çalışma alanında ara" className="icon-button" onClick={() => setOpen(true)} title="Ara (Ctrl+K)" type="button">
+        <button aria-haspopup="dialog" aria-label={t.search} className="icon-button" onClick={() => setOpen(true)} title={t.searchTitle} type="button">
           <MagnifyingGlass aria-hidden size={24} />
         </button>
       )}
       {open && (
         <div className="drawer-backdrop dialog-center" onMouseDown={(event) => { if (event.currentTarget === event.target) close(); }} role="presentation">
-          <section aria-label="Çalışma alanında ara" aria-modal="true" className="dialog" role="dialog">
+          <section aria-label={t.search} aria-modal="true" className="dialog" role="dialog">
             <div className="palette-input">
               <MagnifyingGlass aria-hidden size={22} />
               <input
@@ -158,22 +225,22 @@ export function CommandPalette({ variant = "icon" }: { variant?: "icon" | "field
                 aria-autocomplete="list"
                 aria-controls="palette-results"
                 aria-expanded="true"
-                aria-label="Kaynak, proje ve profil ara"
+                aria-label={t.inputLabel}
                 onChange={(event) => setQuery(event.target.value)}
                 onKeyDown={onInputKeyDown}
-                placeholder="Kaynak, proje veya profil ara…"
+                placeholder={t.placeholder}
                 ref={inputRef}
                 role="combobox"
                 value={query}
               />
-              <button aria-label="Aramayı kapat" className="icon-button" onClick={close} type="button"><X aria-hidden size={20} /></button>
+              <button aria-label={t.close} className="icon-button" onClick={close} type="button"><X aria-hidden size={20} /></button>
             </div>
             <div className="palette-body" id="palette-results" role="listbox">
-              {state === "error" && <p className="palette-status" role="alert">Arama hizmetine ulaşılamıyor. Tekrar dene.</p>}
-              {trimmed && state !== "error" && items.length === 0 && state !== "loading" && <p className="palette-status">“{trimmed}” için çalışma alanında sonuç yok.</p>}
+              {state === "error" && <p className="palette-status" role="alert">{t.unreachable}</p>}
+              {trimmed && state !== "error" && items.length === 0 && state !== "loading" && <p className="palette-status">{t.noResults(trimmed)}</p>}
               {grouped.map((group) => (
                 <div className="palette-group" key={group.kind}>
-                  <span className="palette-group-label">{kindLabels[group.kind]}</span>
+                  <span className="palette-group-label">{t.kinds[group.kind]}</span>
                   {group.items.map((item) => {
                     const index = items.indexOf(item);
                     return (
@@ -194,9 +261,9 @@ export function CommandPalette({ variant = "icon" }: { variant?: "icon" | "field
                   })}
                 </div>
               ))}
-              {state === "loading" && <p className="palette-status">Aranıyor…</p>}
+              {state === "loading" && <p className="palette-status">{t.searching}</p>}
             </div>
-            <footer className="palette-footer"><span>↑↓ seç</span><span>↵ aç</span><span>esc kapat</span></footer>
+            <footer className="palette-footer"><span>{t.keySelect}</span><span>{t.keyOpen}</span><span>{t.keyClose}</span></footer>
           </section>
         </div>
       )}

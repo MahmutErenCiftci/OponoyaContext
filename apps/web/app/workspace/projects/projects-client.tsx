@@ -17,15 +17,102 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useLocale } from "../../../components/locale-provider";
 import { PageHead } from "../../../components/page-heading";
 import { RowMenu } from "../../../components/row-menu";
 import { ContextStatusLabel } from "../../../components/status-label";
 import { TechLogo } from "../../../components/tech-logo";
 import { contextStatusFrom, type ContextStatus } from "../../../lib/context-status";
 import { responseError } from "../../../lib/errors";
+import { defineCopy } from "../../../lib/i18n";
 import { catalogSlugFor } from "../../../lib/logos";
 import { formatDateTime, stageLabels } from "../../../lib/resource-labels";
 import { ProjectWizard } from "./project-wizard";
+
+const copy = defineCopy({
+  tr: {
+    noDescription: "Henüz açıklama yok.",
+    technologies: "Teknolojiler",
+    stage: "Aşama",
+    archivedChip: "Arşivlendi",
+    aiContext: "AI bağlamı",
+    freshVersion: (version: number | null) => `Güncel v${version}`,
+    updated: "Güncellendi",
+    rowActions: (name: string) => `${name} işlemleri`,
+    edit: "Düzenle",
+    restore: "Geri yükle",
+    archive: "Arşivle",
+    open: (name: string) => `${name} projesini aç`,
+    refreshFailed: "Projeler yenilenemedi.",
+    loadMoreFailed: "Daha fazla proje yüklenemedi. Tekrar dene.",
+    restored: (name: string) => `${name} geri yüklendi.`,
+    archived: (name: string) => `${name} arşive taşındı. Bağlı Kütüphane kaynaklarına dokunulmadı.`,
+    unreachable: "Proje hizmetine ulaşılamıyor. Tekrar dene.",
+    saved: (name: string) => `${name} kaydedildi.`,
+    emptyArchive: "Arşiv boş",
+    emptyFiltered: "Aramana uygun proje bulunamadı",
+    emptyFirst: "İlk projeni oluştur",
+    newProject: "Yeni proje",
+    lead: "Her proje için tek ve güncel bir bağlam.",
+    title: "Projeler",
+    statusTabs: "Proje durumu",
+    active: "Aktif",
+    archiveTab: "Arşiv",
+    search: "Projelerde ara",
+    stageFilter: "Aşamaya göre filtrele",
+    allStages: "Tüm aşamalar",
+    project: "Proje",
+    actions: "İşlemler",
+    loading: "Yükleniyor…",
+    showMore: (left: number) => `Daha fazla göster (${left} kaldı)`,
+    archiveText: "Arşivlenen projeler burada kurtarılabilir kalır. Bağlı Kütüphane kaynakları asla silinmez.",
+    filteredText: "Başka bir sözcük dene ya da filtreleri temizle.",
+    libraryText: "Kayıtlı kaynaklarını coding agent’ların izleyeceği bir proje bağlamına dönüştür.",
+    startText: "Bir proje bilgisiyle başla. Kütüphane kaynaklarını şimdi bağlayabilir ya da sonra ekleyebilirsin.",
+    clearFilters: "Filtreleri temizle",
+  },
+  en: {
+    noDescription: "No description yet.",
+    technologies: "Technologies",
+    stage: "Stage",
+    archivedChip: "Archived",
+    aiContext: "AI context",
+    freshVersion: (version: number | null) => `Up to date v${version}`,
+    updated: "Updated",
+    rowActions: (name: string) => `${name} actions`,
+    edit: "Edit",
+    restore: "Restore",
+    archive: "Archive",
+    open: (name: string) => `Open project ${name}`,
+    refreshFailed: "Projects could not be refreshed.",
+    loadMoreFailed: "More projects could not be loaded. Try again.",
+    restored: (name: string) => `${name} restored.`,
+    archived: (name: string) => `${name} moved to the archive. Attached Library resources were not touched.`,
+    unreachable: "The project service cannot be reached. Try again.",
+    saved: (name: string) => `${name} saved.`,
+    emptyArchive: "The archive is empty",
+    emptyFiltered: "No projects match your search",
+    emptyFirst: "Create your first project",
+    newProject: "New project",
+    lead: "One up-to-date context for every project.",
+    title: "Projects",
+    statusTabs: "Project status",
+    active: "Active",
+    archiveTab: "Archive",
+    search: "Search projects",
+    stageFilter: "Filter by stage",
+    allStages: "All stages",
+    project: "Project",
+    actions: "Actions",
+    loading: "Loading…",
+    showMore: (left: number) => `Show more (${left} left)`,
+    archiveText: "Archived projects stay recoverable here. Attached Library resources are never deleted.",
+    filteredText: "Try another word or clear the filters.",
+    libraryText: "Turn your saved resources into a project context your coding agents follow.",
+    startText: "Start with the project details. You can attach Library resources now or add them later.",
+    clearFilters: "Clear filters",
+  },
+});
 
 type StatusView = "active" | "archived";
 
@@ -40,6 +127,8 @@ function ProjectRow({ project, status, onEdit, onArchive, onRestore }: {
   onArchive(): void;
   onRestore(): void;
 }) {
+  const locale = useLocale();
+  const t = copy[locale];
   const archived = project.status === "archived";
   const techs = project.resources.slice(0, 3);
   return (
@@ -47,26 +136,26 @@ function ProjectRow({ project, status, onEdit, onArchive, onRestore }: {
       <td>
         <div style={{ minWidth: 0 }}>
           <h3 style={{ fontSize: 20, letterSpacing: "-.02em" }}><Link href={`/workspace/projects/${project.id}`}>{project.name}</Link></h3>
-          <small className="muted" style={{ display: "block", marginTop: 4 }}>{project.description || project.productType || "Henüz açıklama yok."}</small>
+          <small className="muted" style={{ display: "block", marginTop: 4 }}>{project.description || project.productType || t.noDescription}</small>
         </div>
       </td>
-      <td data-label="Teknolojiler">
+      <td data-label={t.technologies}>
         {techs.length > 0
           ? <div className="inline-logos">{techs.map((item) => <span key={item.id}><span className="mark small plain"><TechLogo name={item.name} size={22} slug={catalogSlugFor(item)} /></span>{item.name}</span>)}{project.resources.length > 3 && <span className="muted">+{project.resources.length - 3}</span>}</div>
           : <span className="muted">—</span>}
       </td>
-      <td data-label="Aşama"><span className={`chip stage stage-${project.stage}`}>{stageLabels[project.stage]}</span>{archived && <span className="chip" style={{ marginLeft: 6 }}>Arşivlendi</span>}</td>
-      <td data-label="AI bağlamı">{status ? <ContextStatusLabel kind={status.kind} label={status.kind === "fresh" ? `Güncel v${status.version}` : undefined} /> : <span className="muted">…</span>}</td>
-      <td className="muted nowrap" data-label="Güncellendi">{formatDateTime(project.updatedAt)}</td>
+      <td data-label={t.stage}><span className={`chip stage stage-${project.stage}`}>{stageLabels[locale][project.stage]}</span>{archived && <span className="chip" style={{ marginLeft: 6 }}>{t.archivedChip}</span>}</td>
+      <td data-label={t.aiContext}>{status ? <ContextStatusLabel kind={status.kind} label={status.kind === "fresh" ? t.freshVersion(status.version) : undefined} /> : <span className="muted">…</span>}</td>
+      <td className="muted nowrap" data-label={t.updated}>{formatDateTime(project.updatedAt, locale)}</td>
       <td className="actions">
         <div className="row-actions">
-          <RowMenu label={`${project.name} işlemleri`}>
-            {!archived && <button onClick={onEdit} type="button"><PencilSimple aria-hidden size={18} />Düzenle</button>}
+          <RowMenu label={t.rowActions(project.name)}>
+            {!archived && <button onClick={onEdit} type="button"><PencilSimple aria-hidden size={18} />{t.edit}</button>}
             {archived
-              ? <button onClick={onRestore} type="button"><ArrowCounterClockwise aria-hidden size={18} />Geri yükle</button>
-              : <button onClick={onArchive} type="button"><Archive aria-hidden size={18} />Arşivle</button>}
+              ? <button onClick={onRestore} type="button"><ArrowCounterClockwise aria-hidden size={18} />{t.restore}</button>
+              : <button onClick={onArchive} type="button"><Archive aria-hidden size={18} />{t.archive}</button>}
           </RowMenu>
-          <Link aria-label={`${project.name} projesini aç`} className="icon-button" href={`/workspace/projects/${project.id}`}><ArrowRight aria-hidden size={22} /></Link>
+          <Link aria-label={t.open(project.name)} className="icon-button" href={`/workspace/projects/${project.id}`}><ArrowRight aria-hidden size={22} /></Link>
         </div>
       </td>
     </tr>
@@ -86,6 +175,8 @@ export function ProjectsClient({ initial, initialStatuses, library, profiles, re
   editDecisions: ProjectDecisionView[];
   suggestions: CatalogSlotSuggestions | null;
 }) {
+  const locale = useLocale();
+  const t = copy[locale];
   const [editorDecisions, setEditorDecisions] = useState<ProjectDecisionView[]>(editDecisions);
   const router = useRouter();
   const [projects, setProjects] = useState(initial.projects);
@@ -141,7 +232,7 @@ export function ProjectsClient({ initial, initialStatuses, library, profiles, re
       setTotal(result.total);
       void loadStatuses(result.projects);
     } catch {
-      setNotice("Projeler yenilenemedi.");
+      setNotice(t.refreshFailed);
     } finally {
       setLoading(false);
     }
@@ -163,7 +254,7 @@ export function ProjectsClient({ initial, initialStatuses, library, profiles, re
       setTotal(result.total);
       void loadStatuses(added);
     } catch {
-      setNotice("Daha fazla proje yüklenemedi. Tekrar dene.");
+      setNotice(t.loadMoreFailed);
     } finally {
       setLoadingMore(false);
     }
@@ -178,10 +269,10 @@ export function ProjectsClient({ initial, initialStatuses, library, profiles, re
         setNotice(await responseError(response));
         return;
       }
-      setNotice(action === "restore" ? `${project.name} geri yüklendi.` : `${project.name} arşive taşındı. Bağlı Kütüphane kaynaklarına dokunulmadı.`);
+      setNotice(action === "restore" ? t.restored(project.name) : t.archived(project.name));
       await load();
     } catch {
-      setNotice("Proje hizmetine ulaşılamıyor. Tekrar dene.");
+      setNotice(t.unreachable);
     } finally {
       setBusyId(null);
     }
@@ -203,7 +294,7 @@ export function ProjectsClient({ initial, initialStatuses, library, profiles, re
     }
     setEditor({ kind: "closed" });
     clearQueryString();
-    setNotice(`${project.name} kaydedildi.`);
+    setNotice(t.saved(project.name));
     void load();
   }
 
@@ -239,35 +330,35 @@ export function ProjectsClient({ initial, initialStatuses, library, profiles, re
   }
 
   const filtered = Boolean(search || stage);
-  const emptyTitle = status === "archived" ? "Arşiv boş" : filtered ? "Aramana uygun proje bulunamadı" : "İlk projeni oluştur";
+  const emptyTitle = status === "archived" ? t.emptyArchive : filtered ? t.emptyFiltered : t.emptyFirst;
 
   return (
     <section className="page">
       <PageHead
-        actions={<button className="button primary large" onClick={() => setEditor({ kind: "create" })} type="button"><Plus aria-hidden size={20} />Yeni proje</button>}
-        lead="Her proje için tek ve güncel bir bağlam."
-        title="Projeler"
+        actions={<button className="button primary large" onClick={() => setEditor({ kind: "create" })} type="button"><Plus aria-hidden size={20} />{t.newProject}</button>}
+        lead={t.lead}
+        title={t.title}
       />
       <div className="tab-row">
-        <div aria-label="Proje durumu" className="tabs" role="tablist">
-          <button aria-selected={status === "active"} onClick={() => { setStatus("active"); void load({ status: "active" }); }} role="tab" type="button">Aktif{status === "active" ? ` (${total})` : ""}</button>
-          <button aria-selected={status === "archived"} onClick={() => { setStatus("archived"); void load({ status: "archived" }); }} role="tab" type="button">Arşiv</button>
+        <div aria-label={t.statusTabs} className="tabs" role="tablist">
+          <button aria-selected={status === "active"} onClick={() => { setStatus("active"); void load({ status: "active" }); }} role="tab" type="button">{t.active}{status === "active" ? ` (${total})` : ""}</button>
+          <button aria-selected={status === "archived"} onClick={() => { setStatus("archived"); void load({ status: "archived" }); }} role="tab" type="button">{t.archiveTab}</button>
         </div>
         <div style={{ display: "flex", gap: 12, marginBottom: 8, flexWrap: "wrap" }}>
           <form className="search" onSubmit={(event) => { event.preventDefault(); void load(); }} role="search" style={{ width: 300 }}>
             <MagnifyingGlass aria-hidden size={20} />
-            <input aria-label="Projelerde ara" onChange={(event) => setSearch(event.target.value)} placeholder="Projelerde ara" value={search} />
+            <input aria-label={t.search} onChange={(event) => setSearch(event.target.value)} placeholder={t.search} value={search} />
           </form>
-          <select aria-label="Aşamaya göre filtrele" className="select inline" onChange={(event) => { setStage(event.target.value); void load({ stage: event.target.value }); }} value={stage}>
-            <option value="">Tüm aşamalar</option>
-            {projectStageSchema.options.map((option) => <option key={option} value={option}>{stageLabels[option]}</option>)}
+          <select aria-label={t.stageFilter} className="select inline" onChange={(event) => { setStage(event.target.value); void load({ stage: event.target.value }); }} value={stage}>
+            <option value="">{t.allStages}</option>
+            {projectStageSchema.options.map((option) => <option key={option} value={option}>{stageLabels[locale][option]}</option>)}
           </select>
         </div>
       </div>
       {projects.length > 0 && (
         <div className="table-wrap" style={{ marginTop: 20 }}>
-          <table aria-label="Projeler" className="table bordered">
-            <thead><tr><th scope="col">Proje</th><th scope="col">Teknolojiler</th><th scope="col">Aşama</th><th scope="col">AI bağlamı</th><th scope="col">Güncellendi</th><th className="actions" scope="col"><span className="visually-hidden">İşlemler</span></th></tr></thead>
+          <table aria-label={t.title} className="table bordered">
+            <thead><tr><th scope="col">{t.project}</th><th scope="col">{t.technologies}</th><th scope="col">{t.stage}</th><th scope="col">{t.aiContext}</th><th scope="col">{t.updated}</th><th className="actions" scope="col"><span className="visually-hidden">{t.actions}</span></th></tr></thead>
             <tbody>
               {projects.map((project) => (
                 <ProjectRow key={project.id} onArchive={() => void mutate(project, "archive")} onEdit={() => void openEditor(project)} onRestore={() => void mutate(project, "restore")} project={project} status={statuses[project.id] ?? null} />
@@ -279,7 +370,7 @@ export function ProjectsClient({ initial, initialStatuses, library, profiles, re
       {!loading && projects.length > 0 && projects.length < total && (
         <div className="load-more">
           <button className="button" disabled={loadingMore} onClick={() => void loadMore()} type="button">
-            {loadingMore ? "Yükleniyor…" : `Daha fazla göster (${total - projects.length} kaldı)`}
+            {loadingMore ? t.loading : t.showMore(total - projects.length)}
           </button>
         </div>
       )}
@@ -289,12 +380,12 @@ export function ProjectsClient({ initial, initialStatuses, library, profiles, re
           <h2>{emptyTitle}</h2>
           <p>
             {status === "archived"
-              ? "Arşivlenen projeler burada kurtarılabilir kalır. Bağlı Kütüphane kaynakları asla silinmez."
-              : filtered ? "Başka bir sözcük dene ya da filtreleri temizle."
-                : library.length > 0 ? "Kayıtlı kaynaklarını coding agent’ların izleyeceği bir proje bağlamına dönüştür." : "Bir proje bilgisiyle başla. Kütüphane kaynaklarını şimdi bağlayabilir ya da sonra ekleyebilirsin."}
+              ? t.archiveText
+              : filtered ? t.filteredText
+                : library.length > 0 ? t.libraryText : t.startText}
           </p>
-          {status === "active" && !filtered && <button className="button primary" onClick={() => setEditor({ kind: "create" })} type="button">İlk projeni oluştur</button>}
-          {filtered && <button className="button" onClick={() => { setSearch(""); setStage(""); void load({ search: "", stage: "" }); }} type="button">Filtreleri temizle</button>}
+          {status === "active" && !filtered && <button className="button primary" onClick={() => setEditor({ kind: "create" })} type="button">{t.emptyFirst}</button>}
+          {filtered && <button className="button" onClick={() => { setSearch(""); setStage(""); void load({ search: "", stage: "" }); }} type="button">{t.clearFilters}</button>}
         </div>
       )}
       {notice && <div className="toast" role="status">{notice}</div>}

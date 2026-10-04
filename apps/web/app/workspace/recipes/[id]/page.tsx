@@ -1,17 +1,21 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { getProfileList, getRecipe, getResourceList } from "../../../../lib/api";
+import { defineCopy } from "../../../../lib/i18n";
+import { getLocale } from "../../../../lib/locale-server";
 import { loadSession } from "../../../../lib/server-session";
 import { ServiceUnavailable } from "../../unavailable";
 import { WorkspaceShell } from "../../workspace-shell";
 import { RecipeDetailClient } from "./recipe-detail-client";
 
+const copy = defineCopy({ tr: { fallbackTitle: "Tarif" }, en: { fallbackTitle: "Recipe" } });
+
 /** The entity name in the tab title; the lookup is shared with the page through the per-request cache. */
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
-  const session = await loadSession();
+  const [session, locale] = await Promise.all([loadSession(), getLocale()]);
   const recipe = session.status === "authenticated" ? await getRecipe(session.cookieHeader, id) : null;
-  return { title: recipe ? recipe.name : "Tarif" };
+  return { title: recipe ? recipe.name : copy[locale].fallbackTitle };
 }
 
 export default async function RecipeDetailPage({ params }: { params: Promise<{ id: string }> }) {

@@ -264,6 +264,16 @@ img { max-width: 100%; height: auto; }
 .search-trigger kbd { padding: 2px 7px; border: 1px solid var(--line); border-radius: 999px; background: var(--subtle); color: var(--muted); font-size: 11px; }
 .topbar-tools { display: flex; align-items: center; gap: 4px; }
 .topbar .theme-select { width: 38px; height: 38px; }
+.language-select { position: relative; height: 38px; padding: 0 8px; display: inline-flex; align-items: center; gap: 5px; border-radius: var(--radius); color: var(--muted); font-size: 13px; font-weight: 600; }
+.language-select:hover { background: var(--subtle); color: var(--ink); }
+.language-select select { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+.language-select:focus-within { outline: 2px solid var(--focus); outline-offset: 2px; }
+.language-select[aria-busy="true"] { opacity: .6; }
+.sidebar-language { display: none; }
+@media (max-width: 600px) {
+  .topbar .language-select { display: none; }
+  .sidebar-language { display: flex; }
+}
 .topbar .account-menu > summary { display: grid; place-items: center; padding: 2px; border-radius: 50%; }
 .topbar .avatar { width: 36px; height: 36px; font-size: 14px; transition: box-shadow .18s ease; }
 .topbar .account-menu > summary:hover .avatar, .topbar .account-menu[open] .avatar { box-shadow: 0 0 0 3px var(--accent-soft-border); }

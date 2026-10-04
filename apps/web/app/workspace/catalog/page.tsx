@@ -2,12 +2,18 @@ import type { Metadata } from "next";
 import { catalogDomainSchema, resourceTypeSchema } from "@devcontext/contracts";
 import { redirect } from "next/navigation";
 import { getCatalogLibraryLinks, getCatalogOverview, getCatalogStacks, getCatalogTechnologies } from "../../../lib/api";
+import { defineCopy } from "../../../lib/i18n";
+import { getLocale } from "../../../lib/locale-server";
 import { loadSession } from "../../../lib/server-session";
 import { ServiceUnavailable } from "../unavailable";
 import { WorkspaceShell } from "../workspace-shell";
 import { CatalogClient } from "./catalog-client";
 
-export const metadata: Metadata = { title: "Teknoloji kataloğu" };
+const copy = defineCopy({ tr: { title: "Teknoloji kataloğu" }, en: { title: "Technology catalog" } });
+
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: copy[await getLocale()].title };
+}
 
 export default async function CatalogPage({ searchParams }: { searchParams: Promise<{ q?: string; domain?: string; type?: string }> }) {
   const session = await loadSession();

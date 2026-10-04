@@ -1,6 +1,7 @@
 import type { NextRequest } from "next/server";
 import { getApiBaseUrl } from "./api";
 import { clientIpFrom } from "./client-ip";
+import { localeFromAcceptLanguage, localeFromCookieHeader } from "./i18n";
 
 /**
  * The one same-origin proxy from `/api/*` to the Fastify API. Every route
@@ -60,6 +61,24 @@ export type ProxyOptions = {
   /** Extra gate on method + path segments (the auth proxy allow-lists Better Auth endpoints). */
   allow?: (method: string, segments: readonly string[]) => boolean;
 };
+
+/** The visitor's interface language, for the few messages the proxy writes itself. */
+function requestLanguage(request: NextRequest) {
+  return localeFromCookieHeader(request.headers.get("cookie")) ?? localeFromAcceptLanguage(request.headers.get("accept-language"));
+}
+
+/** Route handlers name their service in Turkish; an English visitor gets the generic English line instead. */
+function unavailableText(request: NextRequest, options: ProxyOptions) {
+  return requestLanguage(request) === "en" ? "The service cannot be reached right now. Try again shortly." : options.unavailableMessage;
+}
+
+function notFoundText(request: NextRequest) {
+  return requestLanguage(request) === "en" ? "Not found." : "Bulunamadı.";
+}
+
+function tooLargeText(request: NextRequest) {
+  return requestLanguage(request) === "en" ? "The content you sent is too large." : "Gönderilen içerik çok büyük.";
+}
 
 function errorResponse(status: number, message: string) {
   return Response.json({ error: { message } }, { status, headers: { "cache-control": "no-store" } });
@@ -124,15 +143,15 @@ export function downstreamHeaders(upstream: Response): Headers {
 }
 
 export async function proxyToApi(request: NextRequest, segments: readonly string[], options: ProxyOptions): Promise<Response> {
-  if (segments.some((segment) => segment === "" || segment === "." || segment === "..")) return errorResponse(404, "Bulunamadı.");
-  if (options.allow && !options.allow(request.method, segments)) return errorResponse(404, "Bulunamadı.");
+  if (segments.some((segment) => segment === "" || segment === "." || segment === "..")) return errorResponse(404, notFoundText(request));
+  if (options.allow && !options.allow(request.method, segments)) return errorResponse(404, notFoundText(request));
 
   const suffix = segments.length > 0 ? `/${segments.map(encodeURIComponent).join("/")}` : "";
   let target: URL;
   try {
     target = new URL(`${options.prefix}${suffix}`, getApiBaseUrl());
   } catch {
-    return errorResponse(502, options.unavailableMessage);
+    return errorResponse(502, unavailableText(request, options));
   }
   target.search = request.nextUrl.search;
 
@@ -140,7 +159,7 @@ export async function proxyToApi(request: NextRequest, segments: readonly string
   if (!["GET", "HEAD"].includes(request.method)) {
     const limit = typeof options.maxBodyBytes === "function" ? options.maxBodyBytes(segments) : options.maxBodyBytes ?? defaultMaxBodyBytes;
     const body = await readBoundedBody(request, limit);
-    if (body === null) return errorResponse(413, "Gönderilen içerik çok büyük.");
+    if (body === null) return errorResponse(413, tooLargeText(request));
     init.body = body;
   }
 
@@ -150,8 +169,8 @@ export async function proxyToApi(request: NextRequest, segments: readonly string
     const upstream = await fetch(target, init);
     return new Response(upstream.body, { status: upstream.status, headers: downstreamHeaders(upstream) });
   } catch {
-    if (timeout.aborted) return errorResponse(504, options.unavailableMessage);
-    return errorResponse(502, options.unavailableMessage);
+    if (timeout.aborted) return errorResponse(504, unavailableText(request, options));
+    return errorResponse(502, unavailableText(request, options));
   }
 }
 
