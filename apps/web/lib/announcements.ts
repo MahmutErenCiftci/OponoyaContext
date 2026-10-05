@@ -2,8 +2,8 @@
  * Product news shown on the overview: the newest entry feeds the top banner,
  * the list feeds "Yenilikler" / "What's new". Entries describe shipped changes
  * only; add a new one at the top when a release lands, in both languages with
- * the same id. `version` is set only for real tags. Earlier rename notices
- * keep the name they announced.
+ * the same id. `version` is set only for real tags. Product renames are not
+ * news (owner decision 2026-10-05): entries say what people can do now.
  */
 import { productName } from "@devcontext/contracts/brand";
 import { defineCopy } from "./i18n";
@@ -29,22 +29,22 @@ export const announcementKindLabels = defineCopy<Record<AnnouncementKind, string
 export const announcements = defineCopy<Announcement[]>({
   tr: [
     {
-      id: "2026-10-05-hooliee",
-      date: "2026-10-05",
-      kind: "notice",
-      version: null,
-      title: "Oponoya artık hooliee",
-      summary: "Ürünün yeni adı hooliee, adresi hooliee.com. Oponoya, hooliee’yi geliştiren stüdyo olarak kalıyor. Hesabın, kayıtlı verilerin ve daha önce aldığın dışa aktarımlar aynen çalışıyor; yeni adreste bir kez giriş yapman yeterli.",
-      href: null,
-    },
-    {
       id: "2026-10-04-english-feedback",
       date: "2026-10-04",
       kind: "new",
       version: null,
       title: "İngilizce arayüz ve geri bildirim",
-      summary: `${productName} artık İngilizce de kullanılabiliyor; dili üst bardan değiştirebilirsin. Öneri, şikayet ve hataları da üst bardaki Geri bildirim düğmesiyle doğrudan bize iletebilirsin.`,
+      summary: "Arayüz artık İngilizce de kullanılabiliyor; dili üst bardan değiştirebilirsin. Öneri, şikayet ve hataları da üst bardaki Geri bildirim düğmesiyle doğrudan bize iletebilirsin.",
       href: "/workspace/feedback",
+    },
+    {
+      id: "2026-10-04-wizard-suggestions",
+      date: "2026-10-04",
+      kind: "improved",
+      version: null,
+      title: "Proje sihirbazında önerilen teknolojiler",
+      summary: "Her teknoloji alanında kütüphanendekilerin yanında öneriler de var: daha önce kullandıkların, kütüphanenle uyumlu olanlar ve katalogda öne çıkanlar. Seçtiğin öneri kütüphanene de eklenir.",
+      href: "/workspace/projects?new=1",
     },
     {
       id: "2026-09-30-roadmap",
@@ -62,15 +62,6 @@ export const announcements = defineCopy<Announcement[]>({
       version: null,
       title: "Yeni genel bakış ve sol menü",
       summary: "Projelerin, son kullandığın teknolojiler ve sana özel öneriler artık tek ekranda. Çalışma bölümleri solda, keşif üstte.",
-      href: null,
-    },
-    {
-      id: "2026-09-30-oponoya",
-      date: "2026-09-30",
-      kind: "notice",
-      version: null,
-      title: "DevContext OS artık Oponoya",
-      summary: "Ürünün yeni adı Oponoya. Kayıtlı verilerin ve daha önce aldığın dışa aktarımlar aynen çalışmaya devam ediyor.",
       href: null,
     },
     {
@@ -94,22 +85,22 @@ export const announcements = defineCopy<Announcement[]>({
   ],
   en: [
     {
-      id: "2026-10-05-hooliee",
-      date: "2026-10-05",
-      kind: "notice",
-      version: null,
-      title: "Oponoya is now hooliee",
-      summary: "The product's new name is hooliee, at hooliee.com. Oponoya stays on as the studio that builds it. Your account, saved data and earlier exports keep working; sign in once at the new address.",
-      href: null,
-    },
-    {
       id: "2026-10-04-english-feedback",
       date: "2026-10-04",
       kind: "new",
       version: null,
       title: "English interface and feedback",
-      summary: `${productName} now speaks English too; switch the language from the top bar. Send us suggestions, complaints and bug reports with the Feedback button in the top bar.`,
+      summary: "The interface now speaks English too; switch the language from the top bar. Send us suggestions, complaints and bug reports with the Feedback button in the top bar.",
       href: "/workspace/feedback",
+    },
+    {
+      id: "2026-10-04-wizard-suggestions",
+      date: "2026-10-04",
+      kind: "improved",
+      version: null,
+      title: "Suggested technologies in the project wizard",
+      summary: "Every technology slot now offers suggestions next to your Library: ones you used before, ones that work with your Library and catalog favourites. Picking one also adds it to your Library.",
+      href: "/workspace/projects?new=1",
     },
     {
       id: "2026-09-30-roadmap",
@@ -127,15 +118,6 @@ export const announcements = defineCopy<Announcement[]>({
       version: null,
       title: "New overview and left menu",
       summary: "Your projects, recently used technologies and personal suggestions are now on one screen. Work sections sit on the left, discovery at the top.",
-      href: null,
-    },
-    {
-      id: "2026-09-30-oponoya",
-      date: "2026-09-30",
-      kind: "notice",
-      version: null,
-      title: "DevContext OS is now Oponoya",
-      summary: "The product's new name is Oponoya. Your saved data and earlier exports keep working as before.",
       href: null,
     },
     {

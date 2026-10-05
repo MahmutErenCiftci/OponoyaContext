@@ -27,7 +27,10 @@ stüdyonun tüm projelerini yayınladığı site olacak. Landing'in alt satırı
   hepsi durur.
 - Footer: "Oponoya tarafından geliştirildi" / "Built by Oponoya" →
   `developerUrl` (oponoya.com).
-- "Oponoya artık hooliee" duyurusu (TR/EN).
+- Yenilikler: isim değişiklikleri haber sayılmaz (sahip kararı 2026-10-05);
+  "DevContext OS artık Oponoya" kaydı kalktı, hooliee için de duyuru yok.
+  Liste git geçmişine göre düzeltildi ve eksik olan "Proje sihirbazında
+  önerilen teknolojiler" (2026-10-04) eklendi.
 - Değişmeyenler: `devcontext` çerez önekleri, dışa aktarım format kimliği,
   `@devcontext/*` paketleri, `oponoya-*` imaj adları ve sunucudaki
   `/opt/oponoya` klasörü. Kullanıcı bunları görmez; değiştirmek yalnızca risk
